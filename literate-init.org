@@ -9,9 +9,11 @@
 Цель - использовать новые версии Emacs, которые Doom не успевает поддерживать.
 
 *Как установить?*
-1. Скопировать файл init.el в директорию ~/.emacs.d/ .
-2. Запустить Emacs.
-3. Дождаться установки пакетов.
+1. Склонировать этот проект настроек в директорию ~/.config (или просто завести
+   там ссылку).
+2. Скопировать файл init.el в директорию ~/.emacs.d/ .
+3. Запустить Emacs.
+4. Дождаться установки пакетов. По ходу установки отвечать на вопросы.
 
 *Какой редактор здесь строится?*
 - Делаю редактор с Vim-раскладкой для редактирования.
@@ -48,12 +50,10 @@
 
 ** Директория файлов конфигурации
 
-Здесь в сущности ссылка на клон конфига из репозитория.
+Для дальнейшей работы надо задать в переменной =my/config-dir= путь к
+файлам настроек, т.е. путь к проекту с этим файлом.
 
-#+begin_src emacs-lisp :tangle yes
-(unless (boundp 'my/config-dir)
-    (setq my/config-dir (concat (getenv "HOME") "/.config/emacs-evilconf")))
-#+end_src
+Переменная my/config-dir задается в файле проекта [[./init.el][init.el]].
 
 ** Идентификация пользователя Emacs
 
@@ -560,10 +560,13 @@ Type [M-x list-faces-display] to see all colors.
 #+begin_src emacs-lisp :tangle yes
 (setq my/application-name "Emacs")
 
+(defun my/make-title-bar-text (text)
+    (concat text " - " my/application-name))
+
 (defun my/set-title-bar (text)
     "Set title bar like: '<my-text> - <app-name>'.
 Find application name in my/application-name variable."
-    (let ((frame-text (concat text " - " my/application-name)))
+    (let ((frame-text (my/make-title-bar-text text)))
         (set-frame-name frame-text)
         frame-text))
 
@@ -1424,6 +1427,53 @@ Imenu - дает не только удобный способ навигаци�
     (evil-define-key nil 'global (kbd "<leader> s I") #'imenu-list-smart-toggle))
 #+end_src
 
+* Рабочие пространства (workspaces, perspectives)
+
+Здесь происходит организация рабочих пространств в редакторе.
+Делается на основе модуля persp-mode (перспективы).  В идеале каждое
+пространство должно помнить свои вкладки и окна, а также табуляции.
+
+Установим пакет и назовем "нулевую" перспективу "main".
+
+#+begin_src emacs-lisp :tangle yes
+(with-eval-after-load "persp-mode"
+    (setq wg-morph-on nil)
+    (setq persp-autokill-buffer-on-remove 'kill-weak)
+    (setq persp-auto-save-opt 0)
+    (add-hook 'window-setup-hook #'(lambda () (persp-mode 1))))
+
+(use-package persp-mode
+    :ensure t
+    :init
+    (setq persp-nil-name "main")
+    :config)
+
+;; (use-package persp-projectile
+;;     :ensure t)
+#+end_src
+
+Все функции пакета доступны по префиксу "Ctrl-c p".
+Но для удобства определю клавиши, к которым привык в Doom.
+
+#+begin_src emacs-lisp :tangle yes
+(evil-define-key nil 'global
+    (kbd "<leader> TAB .") #'persp-frame-switch
+    (kbd "<leader> TAB r") #'persp-rename
+    (kbd "<leader> TAB d") #'persp-kill
+    (kbd "<leader> ,") #'persp-switch-to-buffer
+    (kbd "<leader> TAB k") #'persp-remove-buffer)
+#+end_src
+
+Отдельно сделаем показ имени текущей перспективы.
+
+#+begin_src emacs-lisp :tangle yes
+(evil-define-key nil 'global (kbd "<leader> TAB v") #'my/show-last-perspective)
+
+(defun my/show-last-perspective ()
+    (interactive)
+    (message persp-last-persp-name))
+#+end_src
+
 * Работа с вкладками (tab)
 
 ** Новая именованная вкладка
@@ -1447,13 +1497,31 @@ Imenu - дает не только удобный способ навигаци�
 
 * Работа с фреймами
 
-** Клавиши для работы с фреймами
+** Открытие новых рабочих пространств в новых фреймах
+
+Чтобы сократить количество телодвижений, сделаем открытие фрейма
+одновременно с созданием или выбором рабочего пространства
+(перспективы).  В заголовок фрейма поместим имя перспективы.
+
+#+begin_src emacs-lisp :tangle yes
+(defun my/make-frame-and-switch-perpective (persp-name)
+    (interactive (list (read-string "Enter workspace name: ")))
+    (when persp-name
+        (let* ((frame-text (my/make-title-bar-text persp-name))
+               (frame (or (my/get-frame-by-name frame-text)
+                          (make-frame))))
+            (select-frame-set-input-focus frame)
+            (my/set-title-bar persp-name)
+            (switch-to-buffer "*dashboard*")
+            (persp-switch persp-name)
+            (message (concat "Workspace '" persp-name "' is selected.")))))
+#+end_src
 
 Здесь определим набор клавиш для привычных действий с фреймами.
 
 #+begin_src emacs-lisp :tangle yes
 (evil-define-key nil 'global
-    (kbd "<leader> o f") #'make-frame
+    (kbd "<leader> o f") #'my/make-frame-and-switch-perpective
     (kbd "<leader> q f") #'delete-frame)
 #+end_src
 
@@ -2117,53 +2185,6 @@ Return history hash-map."
 
 #+begin_src emacs-lisp :tangle yes
 (evil-define-key nil 'global (kbd "<leader> t k") #'my/notify-log-open-notify-log)
-#+end_src
-
-* Рабочие пространства (workspaces, perspectives)
-
-Здесь происходит организация рабочих пространств в редакторе.
-Делается на основе модуля persp-mode (перспективы).  В идеале каждое
-пространство должно помнить свои вкладки и окна, а также табуляции.
-
-Установим пакет и назовем "нулевую" перспективу "main".
-
-#+begin_src emacs-lisp :tangle yes
-(with-eval-after-load "persp-mode"
-    (setq wg-morph-on nil)
-    (setq persp-autokill-buffer-on-remove 'kill-weak)
-    (setq persp-auto-save-opt 0)
-    (add-hook 'window-setup-hook #'(lambda () (persp-mode 1))))
-
-(use-package persp-mode
-    :ensure t
-    :init
-    (setq persp-nil-name "main")
-    :config)
-
-;; (use-package persp-projectile
-;;     :ensure t)
-#+end_src
-
-Все функции пакета доступны по префиксу "Ctrl-c p".
-Но для удобства определю клавиши, к которым привык в Doom.
-
-#+begin_src emacs-lisp :tangle yes
-(evil-define-key nil 'global
-    (kbd "<leader> TAB .") #'persp-frame-switch
-    (kbd "<leader> TAB r") #'persp-rename
-    (kbd "<leader> TAB d") #'persp-kill
-    (kbd "<leader> ,") #'persp-switch-to-buffer
-    (kbd "<leader> TAB k") #'persp-remove-buffer)
-#+end_src
-
-Отдельно сделаем показ имени текущей перспективы.
-
-#+begin_src emacs-lisp :tangle yes
-(evil-define-key nil 'global (kbd "<leader> TAB v") #'my/show-last-perspective)
-
-(defun my/show-last-perspective ()
-    (interactive)
-    (message persp-last-persp-name))
 #+end_src
 
 * Org
@@ -3148,8 +3169,7 @@ shows it in message and put the result into registers `\"' and `t'."
     (kbd "<leader> p c") #'projectile-compile-project
     (kbd "<leader> p R") #'projectile-run-project
     (kbd "<leader> p T") #'projectile-test-project
-    (kbd "<leader> /") #'counsel-projectile-rg
-    (kbd "<leader> ,") #'counsel-projectile-switch-to-buffer)
+    (kbd "<leader> /") #'counsel-projectile-rg)
 #+end_src
 
 ** Исключение файлов из поиска по проектам
@@ -3831,6 +3851,15 @@ sudo apt install retext
 #+begin_src emacs-lisp :tangle yes
 (eval-after-load 'markdown-mode
 	'(evil-define-key nil markdown-mode-map (my/kbd-localleader "p") #'my/markdown-preview-file))
+#+end_src
+
+** Yaml
+
+Подсветка yaml-файлов.
+
+#+begin_src emacs-lisp :tangle yes
+(use-package yaml-mode
+    :ensure t)
 #+end_src
 
 ** PlantUML
