@@ -1,0 +1,7 @@
+# -*- mode: snippet -*-
+# name: Rust Tangle
+# key: rust_tangle_
+# --
+#+begin_src rust :tangle ${1:filename}.rs :noweb yes
+$0
+#+end_src

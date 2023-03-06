@@ -1,0 +1,7 @@
+# -*- mode: snippet -*-
+# name: Python Tangle
+# key: python_tangle_
+# --
+#+begin_src python :tangle ${1:filename}.py :noweb yes
+$0
+#+end_src

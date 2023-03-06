@@ -1,0 +1,4107 @@
+#+title: Конфигурация под ванильный Emacs
+#+startup: content
+#+startup: noindent
+
+* Вводная
+
+Попытка соскочить с Doom.
+
+Цель - использовать новые версии Emacs, которые Doom не успевает поддерживать.
+
+*Как установить?*
+1. Скопировать файл init.el в директорию ~/.emacs.d/ .
+2. Запустить Emacs.
+3. Дождаться установки пакетов.
+
+*Какой редактор здесь строится?*
+- Делаю редактор с Vim-раскладкой для редактирования.
+  Vim включается через систему пакетов EVIL.  Чтобы не связываться с
+  Vim-редактированием, лучше оставить загрузку evil-пакетов, но
+  отключить вызов функции =evil-mode= в разделе [[id:cc78f980-e959-4169-b667-4b40109e08a7][Evil]]. Далее можно
+  назначить везде свои горячие клавиши, где они тут определены через
+  функцию =evil-define-key=.
+- После того, как восстановлю всю нужную мне функциональность из Doom,
+  отправляюсь в свободное плаванье по конструированию редактора.
+
+* Отладка
+
+Создаем буфер и пишем в него логи.
+Функция для записи - =my/log=.
+Нужно для отладки кода в этом документе (т.е. почти не нужно).
+
+#+begin_src emacs-lisp :tangle yes
+(setq my/log-buffer (get-buffer-create "*my/log-buffer*"))
+
+(defun my/log (text)
+    (interactive "s")
+    (with-current-buffer my/log-buffer
+        (goto-char (point-max))
+        (insert text)
+        (insert "\n")
+        (goto-char (point-max))))
+#+end_src
+  
+* Общие параметры и переменные данной конфигурации
+
+Здесь собраны параметры, значения которых будут далее использованы по всему
+конфигу.
+
+** Директория файлов конфигурации
+
+Здесь в сущности ссылка на клон конфига из репозитория.
+
+#+begin_src emacs-lisp :tangle yes
+(unless (boundp 'my/config-dir)
+    (setq my/config-dir (concat (getenv "HOME") "/.config/emacs-evilconf")))
+#+end_src
+
+** Идентификация пользователя Emacs
+
+Подпишемся, как просят. :)
+
+"Some functionality uses this to identify you, e.g. GPG configuration, email clients, file templates and snippets."
+
+#+begin_src emacs-lisp :tangle yes
+(setq user-full-name "Vaddson"
+      user-mail-address "vaddson@vaddson.aaa")
+#+end_src
+
+* Подготовка к установке пакетов из репозиториев
+
+Подцепим репозиторий melpa.
+
+#+begin_src emacs-lisp :tangle yes
+(require 'package)
+(add-to-list 'package-archives '("melpa" . "http://melpa.org/packages/") t)
+#+end_src
+
+Рекомендуемые где-то кем-то действия перед загрузкой пакетов.  (Если
+какой-то пакет по прошествии времени упорно не находится в
+репозиториях, спасает ручной вызов функции =package-refresh-contents=.
+
+#+begin_src emacs-lisp :tangle yes
+;; disable automatic loading of packages after the init file
+(setq package-enable-at-startup nil)
+;; instead load them explicitly
+(package-initialize)
+;; refresh package descriptions
+(unless package-archive-contents
+  (package-refresh-contents))
+#+end_src
+
+Пакеты будем цеплять через =use-package=. Установим его.
+
+#+begin_src emacs-lisp :tangle yes
+;;; use-package initialization
+;;; install use-package if not already done
+(if (not (package-installed-p 'use-package))
+    (progn (package-refresh-contents)
+           (package-install 'use-package)))
+;;; use-package for вид GUI
+#+end_src
+
+* Пока редактор загружается, изменим ему внешний вид, но не до конца
+
+** Меню и панель инструментов (menu and toolbar)
+
+Скроем лишние элементы управления, как меню, полосы прокрутки и прочее.
+
+#+begin_src emacs-lisp :tangle yes
+(menu-bar-mode     -1)  ;; Отключфем графическое меню.
+(tool-bar-mode     -1)  ;; Отключаем tool-bar.
+(scroll-bar-mode   -1)  ;; Отключаем полосу прокрутки.
+#+end_src
+
+** Красивые темы и установка темы по-умолчанию
+
+Загружаем красивые темы и устанавливаем одну из них.
+Стараемся успеть до загрузки всех остальных настроек.
+
+#+begin_src emacs-lisp :tangle yes
+(use-package doom-themes
+    :ensure t
+    :config
+    (load-theme 'doom-one t)
+    ;; (load-theme 'doom-gruvbox-light t)
+    ;; (load-theme 'doom-gruvbox t)
+    ;; (load-theme 'doom-monokai-classic t)
+    )
+#+end_src
+
+* Полезные пакеты, вытащенные из сторонних проектов
+
+Здесь импортируются удобства, вытащенные из сторонних конфигураций Emacs.
+
+** Spacemacs
+
+Библиотека, вытянутая из Spacemacs.
+
+#+begin_src emacs-lisp :tangle yes
+(load-file (concat my/config-dir "/funcs.el"))
+#+end_src
+
+* Среда
+
+** Сохранение состояния для Desktop
+
+Запретим сохранение среды, чтобы не мешалось.
+
+#+begin_src emacs-lisp :tangle yes
+(setq desktop-save-mode nil)
+#+end_src
+
+** Удаление файлов и бэкапы
+
+Файлы удаляем только в корзину.
+
+#+begin_src emacs-lisp :tangle yes
+(setq delete-by-moving-to-trash t)
+#+end_src
+
+А бэкапы файлов запрещаем. Очень неудобно они называются, да и не нужны мне.
+
+#+begin_src emacs-lisp :tangle yes
+(setq make-backup-files nil)
+(setq auto-save-default nil)
+#+end_src
+
+** Звуковой сигнал (типа "гудок")
+
+Вот ни разу не был нужен. Отключаем.
+
+#+begin_src emacs-lisp :tangle yes
+(setq ring-bell-function 'ignore)
+#+end_src
+
+** Сборщик мусора (GC)
+
+Добыл из Emacs-чатика настройки для сборщика мусора.  Там порог
+выворачивается в максимум: меньше экономии, больше скорость работы.
+Попробуем.
+
+#+begin_src emacs-lisp :tangle yes
+(use-package gcmh
+	:ensure t
+	:config
+	(gcmh-mode 1)
+	(setf gc-cons-threshold gcmh-high-cons-threshold)
+	;; Release severe GC strategy before the user restart to working
+	(add-hook 'pre-command-hook #'gcmh-set-high-threshold)
+	(add-hook 'post-command-hook #'gcmh-register-idle-gc))
+#+end_src
+
+* Evil. Режим редактирования
+  :PROPERTIES:
+  :ID:       cc78f980-e959-4169-b667-4b40109e08a7
+  :END:
+
+Сразу ставим пакет =evil= и включаем эмуляцию редактора Vim. Здесь же
+ставим замену табуляций на пробелы для команды =evil-indent=.
+
+#+begin_src emacs-lisp :tangle yes
+(use-package evil
+    :ensure t
+    :init
+    ;; (setq evil-undo-system 'undo-tree)
+    (setq evil-undo-system 'undo-redo)
+    (setq evil-want-keybinding nil)
+    :config
+    (setq-default indent-tabs-mode nil)
+    (setq evil-indent-convert-tabs t)
+    (evil-mode))
+#+end_src
+
+Клавиши leader (пробел или M-m) и localleader (m).
+Взято отсюда: [[https://github.com/noctuid/evil-guide#leader-key][Emacs/Evil for Vim Users]].
+
+#+begin_src emacs-lisp :tangle yes
+(evil-set-leader 'normal (kbd "SPC"))
+(evil-set-leader 'visual (kbd "SPC"))
+(evil-set-leader 'motion (kbd "SPC"))
+(evil-set-leader 'insert (kbd "M-m"))
+(evil-set-leader 'replace (kbd "M-m"))
+#+end_src
+
+Только вот клавиша локального лидера упорно не ставится вопреки
+документации. Так что будем пока костылить.
+
+#+begin_src emacs-lisp :tangle yes
+(defun my/kbd-localleader (keys)
+    (kbd (concat "<leader> m " keys)))
+#+end_src
+
+Устанавливаем evil-клавиши для всего, что есть.
+
+Можно установить сразу все карты клавиш функцией evil-collection-init. Но мы
+скопируем сюда все, что есть и будем удалять по мере необходимости.
+
+#+begin_src emacs-lisp :tangle yes
+(use-package evil-collection
+    :ensure t
+    :config
+    (evil-collection-init)
+    ;; (evil-collection-bm-setup)
+    ;; (evil-collection-calendar-setup)
+    ;; (evil-collection-calendar-setup-org-bindings)
+    ;; (evil-collection-comint-setup)
+    ;; (evil-collection-compile-setup)
+    ;; (evil-collection-custom-setup)
+    ;; (evil-collection-debug-setup)
+    ;; (evil-collection-diff-mode-setup)
+    ;; (evil-collection-dired-setup)
+    ;; (evil-collection-edebug-setup)
+    ;; (evil-collection-ediff-setup)
+    ;; (evil-collection-eglot-setup)
+    ;; (evil-collection-elisp-mode-setup)
+    ;; (evil-collection-elisp-refs-setup)
+    ;; (evil-collection-epa-setup)
+    ;; (evil-collection-eshell-setup)
+    ;; (evil-collection-eshell-setup-keys)
+    ;; (evil-collection-finder-setup)
+    ;; (evil-collection-flycheck-setup)
+    ;; (evil-collection-flymake-setup)
+    ;; (evil-collection-grep-setup)
+    ;; (evil-collection-help-setup)
+    ;; (evil-collection-helpful-setup)
+    ;; (evil-collection-ibuffer-setup)
+    ;; (evil-collection-imenu-setup)
+    ;; (evil-collection-indent-setup)
+    ;; (evil-collection-info-setup)
+    ;; (evil-collection-ivy-setup)
+    ;; (evil-collection-log-edit-setup)
+    ;; (evil-collection-magit-section-setup)
+    ;; (evil-collection-magit-setup)
+    ;; (evil-collection-magit-todos-setup)
+    ;; (evil-collection-man-setup)
+    ;; (evil-collection-markdown-mode-setup)
+    ;; (evil-collection-org-roam-setup)
+    ;; (evil-collection-org-setup)
+    ;; (evil-collection-package-menu-setup)
+    ;; (evil-collection-popup-setup)
+    ;; (evil-collection-python-setup)
+    ;; (evil-collection-setup)
+    ;; (evil-collection-sh-script-setup)
+    ;; (evil-collection-so-long-setup)
+    ;; (evil-collection-vc-git-setup)
+    ;; (evil-collection-view-setup)
+    ;; (evil-collection-wgrep-setup)
+    ;; (evil-collection-which-key-setup)
+    ;; (evil-collection-xref-setup)
+    ;; Safe my leader key.
+    )
+#+end_src
+
+Для некоторых режимов вернем дееспособность leader-клавиши.
+
+#+begin_src emacs-lisp :tangle yes
+(evil-define-key '(normal visual motion) dired-mode-map (kbd "SPC") nil)
+(evil-define-key '(normal visual motion) help-mode-map (kbd "SPC") nil)
+(evil-define-key '(normal visual motion) view-mode-map (kbd "SPC") nil)
+(evil-define-key '(normal visual motion) Info-mode-map (kbd "SPC") nil)
+(evil-define-key '(normal visual motion) doc-view-mode-map (kbd "SPC") nil)
+#+end_src
+
+Догружаем остальной ворох пакетов для evil.
+
+#+begin_src emacs-lisp :tangle yes
+(use-package evil-args
+    :ensure t)
+(use-package evil-easymotion
+    :ensure t)
+(use-package evil-embrace
+    :ensure t)
+(use-package evil-escape
+    :ensure t)
+(use-package evil-exchange
+    :ensure t)
+(use-package evil-indent-plus
+    :ensure t)
+(use-package evil-lion
+    :ensure t)
+(use-package evil-nerd-commenter
+    :ensure t)
+(use-package evil-numbers
+    :ensure t)
+(use-package evil-snipe
+    :ensure t)
+(use-package evil-surround
+    :ensure t)
+(use-package evil-textobj-anyblock
+    :ensure t)
+(use-package evil-vimish-fold
+    :ensure t)
+(use-package evil-visualstar
+    :ensure t)
+#+end_src
+
+Назначим некоторые полезные сочетания клавиш.
+
+#+begin_src emacs-lisp :tangle yes
+;; Eval expression
+(evil-define-key nil 'global (kbd "<leader> ;") #'pp-eval-expression)
+#+end_src
+
+* Внешний вид GUI
+
+** Автоматическая установка шрифтов
+
+Для маленького монитора в 14" удобнее взять шрифт побольше.
+Поскольку отображение текста в Emacs не зависит от DPI, напишем
+следующущий костыль.
+
+Для этого установим в редактор два шрифта: обычный и побольше.
+Пример:
+: (setq my/global-font "Droid Sans Mono-10")
+Глобальный шрифт (обычный) будем держать в переменной =my/global-font=,
+а шрифт побольше - в переменной =my/global-font-inc=.
+
+#+begin_src emacs-lisp :tangle yes
+(setq my/global-font "Liberation Mono-9")
+(setq my/global-font-inc "Liberation Mono-10")
+#+end_src
+
+Прописываем шрифты глобально в редактор.
+
+#+begin_src emacs-lisp :tangle yes
+(add-to-list 'default-frame-alist `(font . ,my/global-font))
+;; (add-to-list 'default-frame-alist `(font . ,my/global-font-inc))
+;; (set-face-attribute 'default t :font my/global-font :weight 'semi-light)
+;; (set-face-attribute 'default nil :font my/global-font :weight 'semi-light)
+#+end_src
+
+Напишем функцию, которая в указанном (или активном) фрейме в
+зависимости от ширины экрана выбирает один из двух шрифтов.
+
+#+begin_src emacs-lisp :tangle yes
+(defun my/select-frame-font-for-monitor (frame font font-inc)
+    (if (my/small-monitor-p frame)
+        (set-frame-font font-inc frame t)
+        (set-frame-font font t)))
+
+(defun my/small-monitor-p (frame)
+    (let* ((monitor-attrs (frame-monitor-attributes frame))
+           (mm-width (cl-second (assoc 'mm-size monitor-attrs))))
+        (and mm-width
+             (<= mm-width 310))))
+#+end_src
+
+Теперь с помощью полученной функции обновляем шрифт в активном фрейме.
+В случае запуска демоном установку шрифта ниже надо пропустить.
+
+#+begin_src emacs-lisp :tangle yes
+(unless (daemonp)
+    (my/select-frame-font-for-monitor nil my/global-font my/global-font-inc))
+#+end_src
+
+При создании фрейма навесим обработчик этого события, чтобы размер
+шрифта выровнять автоматически.
+
+#+begin_src emacs-lisp :tangle yes
+(add-hook 'after-make-frame-functions
+		  (lambda (frame)
+			  (my/select-frame-font-for-monitor frame
+												my/global-font
+												my/global-font-inc)))
+#+end_src
+
+Не всегда получится правильно угадать и выставить шрифт
+автоматически. Так что предусмотрим "ручное управлене".
+
+#+begin_src emacs-lisp :tangle yes
+(defun my/correct-font-in-current-frame ()
+    (interactive)
+	(my/select-frame-font-for-monitor nil
+									  my/global-font
+									  my/global-font-inc))
+
+(evil-define-key nil 'global (kbd "<leader> e d") #'my/correct-font-in-current-frame)
+#+end_src
+
+** Выбор случайной картинки для стартового логотипа
+
+В репозитории этого конфига есть папочка с картинками. В нее можно добавлять
+новые картинки, и на старте Emacs одна из них случайно будет помещена на
+логотип. Обозначим эту директорию.
+
+#+begin_src emacs-lisp :tangle yes
+(setq my/dashboard-banner-dir (concat my/config-dir "/banners"))
+#+end_src
+
+Теперь напишем функцию выбора случайной картинки.
+
+#+begin_src emacs-lisp :tangle yes
+(defun my/select-random-banner ()
+    (let* ((pictures (directory-files my/dashboard-banner-dir nil ".png"))
+           (pictures-sorted (sort pictures #'string-lessp))
+           (filename (nth (random (length pictures))
+                          pictures-sorted)))
+        (concat my/dashboard-banner-dir "/" filename)))
+#+end_src
+
+** Панель на старте с логотипом (dashboard)
+
+Заменим начальный экран более модной панелью.
+
+#+begin_src emacs-lisp :tangle yes
+(use-package dashboard
+    :ensure t
+    :config
+    (setq dashboard-center-content t
+          dashboard-startup-banner (my/select-random-banner)
+          initial-buffer-choice (lambda () (get-buffer "*dashboard*")))
+    (dashboard-setup-startup-hook))
+#+end_src
+
+Определим, какие секции будут видны на начальном экране.
+Пусть это будут ранее открытые файлы.
+
+#+begin_src emacs-lisp :tangle yes
+(setq dashboard-items '((recents .  6)))
+#+end_src
+
+** Мигание курсора
+
+Выключаем мигание курсора.
+
+#+begin_src emacs-lisp :tangle yes
+(blink-cursor-mode 0)
+#+end_src
+
+** Прозрачность
+
+Делаем три уровня прозрачности редактора:
+1. непрозрачный,
+2. слегка прозрачный.
+3. достаточно прозрачный (не пользуюсь, но, может, пригодится). :)
+
+#+begin_src emacs-lisp :tangle yes
+(defvar my/transparency_level 0
+    "Transparence level for Emacs environment. Values: 0, 1 or 2.")
+
+(defun my/change_transparency ()
+    "Toggles transparency of Emacs between 3 settings (none, mild, moderate)."
+    (interactive)
+    (setq my/transparency_level (mod (+ 1 my/transparency_level) 3))
+    (my/set-transparency))
+
+(defun my/set-transparency (&optional frame)
+    "Set current transparency from my/transparency_level variable."
+    (interactive)
+    (let ((true-frame (or frame (selected-frame))))
+    (cond ((= my/transparency_level 0)
+           (set-frame-parameter true-frame 'alpha '(100 . 100)))
+          ((= my/transparency_level 1)
+           (set-frame-parameter true-frame 'alpha '(85 . 85)))
+          ((= my/transparency_level 2)
+           (set-frame-parameter true-frame 'alpha '(65 . 65))))))
+#+end_src
+
+Если открылся новый фрейм, то восстановим его прозрачность.
+
+#+begin_src emacs-lisp :tangle yes
+(add-hook 'after-make-frame-functions #'my/set-transparency)
+#+end_src
+
+Смену уровней прозрачности вешаем на горячие клавиши.
+
+#+begin_src emacs-lisp :tangle yes
+(evil-define-key nil 'global
+    (kbd "<leader> t t") #'my/change_transparency
+    (kbd "<leader> t T") #'my/set-transparency)
+#+end_src
+
+** Настройка статусной панели (modeline)
+
+Установим в панели отображение позиции курсора.
+
+#+begin_src emacs-lisp :tangle yes
+(setq mode-line-position (list "(%l,%c)"))
+#+end_src
+
+** Показ объекта внутри которого находится курсор (header-line)
+
+Часто бывает нужно посмотреть, в каком объекте находится курсор. Это может быть функция из программного кода или заголовок в org-mode.
+
+Сделаем такую строку.
+
+#+begin_src emacs-lisp :tangle yes
+(which-function-mode)
+
+(defun my/show-header-line ()
+    (setq-default header-line-format
+                  '((which-func-mode ("" which-func-format " ")))))
+
+(defun my/hide-header-line ()
+    (setq-default header-line-format nil))
+
+(my/show-header-line)
+
+(setq mode-line-misc-info
+      ;; We remove Which Function Mode from the mode line, because it's mostly
+      ;; invisible here anyway.
+      (assq-delete-all 'which-function-mode mode-line-misc-info))
+#+end_src
+
+Цвет текста в header-line перенастроим, поскольку по-умолчанию он слишком слепой.
+
+Type [M-x list-faces-display] to see all colors.
+
+#+begin_src emacs-lisp :tangle yes
+(set-face-foreground 'which-func            "#7f9fff" )
+#+end_src
+
+** Установка текста в заголовке основного окна (фрейма)
+
+Если размещать работу по разным Emacs'ам, то скоро можно запутаться, в каком из них что.
+Здесь спасает текст в заголовке окна (фрейма). Нужно иметь возможность назначать текст окна интерактивно.
+
+Определим для этого соответствующую функцию. Неизменная часть заголовка будет жить в переменной =my/application-name=.
+
+#+begin_src emacs-lisp :tangle yes
+(setq my/application-name "Emacs")
+
+(defun my/set-title-bar (text)
+    "Set title bar like: '<my-text> - <app-name>'.
+Find application name in my/application-name variable."
+    (let ((frame-text (concat text " - " my/application-name)))
+        (set-frame-name frame-text)
+        frame-text))
+
+(defun my/set-title-bar-interactive (text)
+    "Interactive set title bar. Type 'M-x RET my/set-title-bar-interactive RET some-text'"
+    (interactive (list (read-string "Enter text for title bar: ")))
+    (my/set-title-bar text)
+    )
+#+end_src
+
+И повесим назначение заголовка окну на горячие клавиши.
+
+#+begin_src emacs-lisp :tangle yes
+(evil-define-key nil 'global (kbd "<leader> n i") #'my/set-title-bar-interactive)
+#+end_src
+
+Ниже устанавливаем формат заголовка по умолчанию.
+
+#+begin_src emacs-lisp :tangle yes
+(setq frame-title-format
+      '(multiple-frames "%b"
+                        ("" "%b - " my/application-name)))
+#+end_src
+
+** Подсветка кодов цвета соответствующим цветом (rainbow mode)
+
+Здесь на постоянку устанавливается подсветка фона у текстовых значений
+цветов, например: #aa0000, #00aa00, #0000aa
+
+#+begin_src emacs-lisp :tangle yes
+(use-package rainbow-mode
+	:ensure t
+	:config
+	(define-globalized-minor-mode global-rainbow-mode rainbow-mode
+		(lambda () (rainbow-mode 1))))
+#+end_src
+
+Можно выставить подсветку цветов везде по-умолчанию через вызов
+=(global-rainbow-mode 1)=. Однако, оно не дружит с некоторыми более
+полезными режимами, такими как org-agenda. Так что оставим код ниже
+только для примера.
+
+#+begin_example emacs-lisp :tangle yes
+(global-rainbow-mode 1)  ; Remove comment for turn on on start Emacs.
+#+end_example
+
+** Отказываемся от диалоговых окон
+
+Ибо не по emacs'ерски это. :)
+
+#+begin_src emacs-lisp :tangle yes
+(setq use-dialog-box nil)
+#+end_src
+
+** Тильды в конце буффера
+
+В Vim было удобно видеть тильды "~" в конце буфера. Установим их.
+
+#+begin_src emacs-lisp :tangle yes
+(use-package vi-tilde-fringe
+    :ensure t
+    :config
+    (global-vi-tilde-fringe-mode 1))
+#+end_src
+
+#+RESULTS:
+: t
+
+** Увеличение и уменьшение шрифта в окне
+
+Нужно в основном во время демонстраций экрана.
+
+#+begin_src emacs-lisp :tangle yes
+(require 'face-remap)
+(text-scale-mode 1)
+#+end_src
+
+Горячие клавиши, как в любом редакторе или консоли.
+
+#+begin_src emacs-lisp :tangle yes
+(global-set-key (kbd "C-=") #'text-scale-increase)
+(global-set-key (kbd "C--") #'text-scale-decrease)
+#+end_src
+
+* Регистры и операции с ними
+
+** Общий буфер обмена для Emacs и ОС
+
+Запретим. Раздельные с ОС буфера обмена удобней.
+
+#+begin_src emacs-lisp :tangle yes
+(setq x-select-enable-clipboard nil)
+#+end_src
+
+** Быстрая работа с регистрами `+' и `"'
+
+Часто нужно скопировать содержимое буфера ОС в буфер Emacs.
+Тут будем пользоваться регистрами "vim", предоставляемыми через evil-mode.
+
+Ниже код копирует содержимое регистра `+' в регистр `"' по =C-,=. Далее можно пользоваться =C-y= для вставки.
+
+#+begin_src emacs-lisp :tangle yes
+(global-set-key (kbd "C-,")
+                (lambda ()
+                    (interactive)
+                    (let ((text (evil-get-register ?+)))
+                        (evil-set-register ?\" text)
+                        (minibuffer-message (concat "Register `\"': " text)))))
+#+end_src
+
+Аналогично в обратную сторону, из регистра `"' в `+' и `*'.
+
+#+begin_src emacs-lisp :tangle yes
+(global-set-key (kbd "C-;")
+                (lambda ()
+                    (interactive)
+                    (let ((text (evil-get-register ?\")))
+                        (evil-set-register ?+ text)
+                        (evil-set-register ?* text)
+                        (minibuffer-message (concat "Registers `+' and `*': " text)))))
+#+end_src
+
+Для памяти оставлю некотороые другие реализации. Может в них потом найду что полезное.
+
+#+begin_example
+(global-set-key (kbd "C-,") (lambda () (interactive) (evil-paste-after nil ?+ t)))  ; Best result
+(global-set-key (kbd "C-,") (lambda () (interactive) (insert-for-yank (evil-get-register ?+))))
+(global-set-key (kbd "C-,") 'evil-paste-from-register)
+(global-set-key (kbd "C-,") 'clipboard-yank)
+#+end_example
+
+* Редактирование текста и интерфейс к нему
+
+** Отмена изменений на основе дерева (undo-tree)
+
+Очень удобное окошко с деревом изменений по буферу.
+Сразу отменим запись дерева изменений в файл.
+
+#+begin_src emacs-lisp :tangle yes
+(use-package undo-tree
+	:ensure t
+	:config
+    (setq undo-tree-auto-save-history nil)
+	(global-undo-tree-mode 1))
+#+end_src
+
+Чтобы в окошке с деревом изменений не помнить про клавишу "d"
+(показать diff изменеий), включим ее эффект сразу при показе этого
+окна.
+
+#+begin_src emacs-lisp :tangle yes
+(defun my/undo-tree-visualize ()
+	(interactive)
+	(undo-tree-visualize)
+	(undo-tree-visualizer-toggle-diff))
+#+end_src
+
+И переопределим предустановленные из пакета клавиши "Ctrl-x u".
+
+#+begin_src emacs-lisp :tangle yes
+(define-key undo-tree-map (kbd "C-x u") #'my/undo-tree-visualize)
+#+end_src
+   
+** Прокручивание текста
+
+Ставим прокручивание текста мышкой по три строки, клавишами по одной и
+забываем об этом.
+
+#+begin_src emacs-lisp :tangle yes
+(setq mouse-wheel-scroll-amount '(3 ((shift) . 1))) ;; one line at a time
+(setq mouse-wheel-progressive-speed nil) ;; don't accelerate scrolling
+(setq mouse-wheel-follow-mouse 't) ;; scroll window under mouse
+(setq scroll-step 1) ;; keyboard scroll one line at a time
+#+end_src
+
+** Avy. Перемещение по всему редактору
+
+Все любят Avy. Поставим его.
+
+#+begin_src emacs-lisp :tangle yes
+(use-package avy
+    :ensure t)
+#+end_src
+
+** Нумерация строк
+
+В =evil-mode= самая удобная нумерация строк - относительная. Выставим ее и
+добавим немного шаманства для беспроблемной ее отрисовки.
+
+#+begin_src emacs-lisp :tangle yes
+(use-package linum-relative
+    :ensure t
+    :config
+    (setq linum-relative-backend 'display-line-numbers-mode))
+#+end_src
+
+Теперь надо установить нумерацию строк по-умолчанию для соответствующих режимов.
+
+#+begin_src emacs-lisp :tangle yes
+(add-hook 'text-mode-hook (lambda () (linum-relative-mode 1)))
+(add-hook 'prog-mode-hook (lambda () (linum-relative-mode 1)))
+(add-hook 'org-mode-hook (lambda () (linum-relative-mode 1)))
+#+end_src
+
+Горячие клавиши на нумерцию строк.
+
+#+begin_src emacs-lisp :tangle yes
+(evil-define-key nil 'global (kbd "<leader> t l") #'linum-relative-toggle)
+#+end_src
+
+** Wgrep. Отслеживаем не сохраненное во всех буферах
+
+#+begin_src emacs-lisp :tangle yes
+(use-package wgrep
+    :ensure t)
+#+end_src
+
+** Автоотступ (indent)
+
+Четыре пробела - лучший отступ.
+
+#+begin_src emacs-lisp :tangle yes
+(setq-default tab-width 4) ;; ширина табуляции - 4 пробельных символа
+(setq-default c-basic-offset 4)
+(setq-default standart-indent 4) ;; стандартная ширина отступа - 4 пробельных символа
+(setq-default plantuml-indent-level 4)
+(setq-default lisp-body-indent 4) ;; сдвигать lisp-выражения на 4 пробельных символа
+(setq lisp-indent-function 'common-lisp-indent-function)
+#+end_src
+
+** ESC-кодирование для работы с URL
+
+Часто бывает нужно кодировать и раскодировать URL.
+Сделаны аналоги функций quote и unquote из Python'а:
+
+#+begin_example python
+from urllib.parse import quote, unquote
+#+end_example
+
+Ниже код работает с выделенным текстом.
+
+#+begin_src emacs-lisp :tangle yes
+(defun my/quote-url (url-text)
+    "Quote URL to esc-sequence."
+    (url-encode-url url-text))
+
+(defun my/unquote-url (url-text)
+    "Unquote URL from esc-sequence to UTF-8."
+    (decode-coding-string (url-unhex-string url-text) 'utf-8))
+
+(defun my/quote-region ()
+    "Quote text (like URL) in region."
+    (interactive)
+    (let ((beg (region-beginning))
+          (end (region-end))
+          (text))
+        (setq text (buffer-substring-no-properties beg end))
+        (kill-region beg end)
+        (insert (my/quote-url text))))
+
+(defun my/unquote-region ()
+    "Unquote text (like URL) in region."
+    (interactive)
+    (let ((beg (region-beginning))
+          (end (region-end))
+          (text))
+        (setq text (buffer-substring-no-properties beg end))
+        (kill-region beg end)
+        (insert (my/unquote-url text))))
+#+end_src
+
+** Более привычная раскладка клавиш для evil-mode (ближе к Vim и консоли)
+
+Переносим привычные клавиши передвижения, удаления и ввода и в Emacs тоже.
+
+#+begin_src emacs-lisp :tangle yes
+(define-key evil-insert-state-map (kbd "C-j") (kbd "RET"))
+(define-key evil-replace-state-map (kbd "C-j") (kbd "RET"))
+(define-key evil-normal-state-map (kbd "C-j") (kbd "j"))
+(define-key evil-visual-state-map (kbd "C-j") (kbd "j"))
+(define-key evil-insert-state-map (kbd "C-h") (kbd "<backspace>"))
+(define-key evil-replace-state-map (kbd "C-h") (kbd "<backspace>"))
+(define-key evil-normal-state-map (kbd "C-h") (kbd "h"))
+(define-key evil-visual-state-map (kbd "C-h") (kbd "h"))
+#+end_src
+
+А удалению символа влево - особое место. Удобно при наборе пути в Ivy или Helm.
+
+#+begin_src emacs-lisp :tangle yes
+(global-set-key (kbd "C-h") 'delete-backward-char)
+#+end_src
+
+После такого надо реанимировать вызов части полезных функций из Emacs.
+
+#+begin_src emacs-lisp :tangle yes
+(global-set-key (kbd "C-?") 'help-command)
+(global-set-key (kbd "M-?") 'mark-paragraph)
+(global-set-key (kbd "M-h") 'backward-kill-word)
+#+end_src
+
+** Переключение раскладки клавиатуры
+
+Внутри Vim и evil-mode много удобней иметь внутренне переключение раскладки клавиатуры. Такое переключение позволяет пользоваться командами модального режима вне зависимости от состояния раскладки. И, хотя, переключение в evil-mode работает хуже, чем в Vim, все равно оно того стоит.
+
+#+begin_src emacs-lisp :tangle yes
+(set-input-method 'russian-computer)
+(global-set-key (kbd "C-c d") #'toggle-input-method)
+#+end_src
+
+Во время поиска в Ex-режиме нельзя задать аккорд, поэтому переключение раскладки
+в Ex ставим на сокращенное сочетание =C-d=. (Придется помнить.)
+
+#+begin_src emacs-lisp :tangle yes
+(define-key evil-ex-search-keymap (kbd "C-d") #'toggle-input-method)
+(define-key evil-ex-map (kbd "C-d") #'toggle-input-method)
+#+end_src
+
+** Схлопывание текста
+
+Выбрал пакет =yafolding=. Объект схлопывания определяется по
+отступам. Есть три варианта схлопывания:
+- объекта,
+- родительского объекта,
+- всех объектов (может сильно тормозить).
+
+#+begin_src emacs-lisp :tangle yes
+(use-package yafolding
+	:ensure t
+	:config
+	(add-hook 'buffer-list-update-hook 'yafolding-mode))
+#+end_src
+
+У пакета по-умолчанию введены такие сочетания клавиш:
+- C-return    -- toggle element
+- C-S-return  -- hide parent element
+- C-M-return  -- toggle all
+
+Переопределим их, как привык в Doom'е:
+- =SPC y return=    -- toggle element
+- =SPC y p=         -- hide parent element
+- =SPC y f=         -- toggle all
+
+#+begin_src emacs-lisp :tangle yes
+(evil-define-key '(normal visual motion) 'global
+	(kbd "<leader> y RET") #'yafolding-toggle-element
+	(kbd "<leader> y p") #'yafolding-hide-parent-element
+	(kbd "<leader> y f") #'yafolding-toggle-all)
+#+end_src
+
+** Подсветка отступов
+
+Можно подсветить верткальньной "чертой" отступы в тексте. Почти всегда
+это удобно. Подсвечивать можно или символом "|", что не всегда
+работает гладко, или перекрашивая фон у символов (тут без проблем).
+
+#+begin_src emacs-lisp :tangle yes
+(use-package highlight-indent-guides
+	:ensure t
+    :config
+	(setq highlight-indent-guides-method 'column)
+	(add-hook 'prog-mode-hook 'highlight-indent-guides-mode)
+	(add-hook 'org-mode-hook 'highlight-indent-guides-mode))
+#+end_src
+
+#+RESULTS:
+   
+** Проверка орфографии
+
+Проверка орфографии делается на основе утилиты hunspell.
+
+Словари лежат в директории настроек редактора ../dictionaries/hunspell/.
+Чтобы утилита hunspell имела к ним доступ, установим переменную среды DICPATH.
+
+#+begin_src emacs-lisp :tangle yes
+(setenv "DICPATH" (concat my/config-dir "/dictionaries/hunspell/"))
+#+end_src
+
+Осталось настроить ispell. Код ниже работает как по русским, так и по английским словам.
+
+#+begin_src emacs-lisp :tangle yes
+(when (executable-find "hunspell")
+    (setq ispell-local-dictionary-alist '(("russian"
+             "[АБВГДЕЁЖЗИЙКЛМНОПРСТУФХЦЧШЩЬЫЪЭЮЯабвгдеёжзийклмнопрстуфхцчшщьыъэюяA-Za-z]"
+             "[^АБВГДЕЁЖЗИЙКЛМНОПРСТУФХЦЧШЩЬЫЪЭЮЯабвгдеёжзийклмнопрстуфхцчшщьыъэюяA-Za-z]"
+             ""  ;; было "[-']", но убрал, чтобы эти символы не мешали обнаружению ошибок.
+             nil ("-d" "ru_RU,en_US") nil utf-8))
+          ispell-program-name "hunspell"
+          ispell-dictionary "russian"
+          ispell-really-aspell nil
+          ispell-really-hunspell t
+          ispell-encoding8-command t
+          ispell-silently-savep t))
+#+end_src
+
+Включаем проверку синтаксиса на лету в emacs с помощью =flyspell-mode=.
+Автоматическое его включение ставим только на редактирование литературных
+текстов (text, org, markdown и т.п.).
+
+#+begin_src emacs-lisp :tangle yes
+(dolist (hook '(text-mode-hook
+                org-mode-hook
+                markdown-mode-hook))
+    (add-hook hook (lambda ()
+                       (flyspell-mode 1))))
+#+end_src
+
+Горячие клавиши для flyspell-mode оказались неудобными для меня. Выпилим их.
+
+#+begin_src emacs-lisp :tangle yes
+(assq-delete-all 'flyspell-mode minor-mode-map-alist)
+#+end_src
+
+Подсказки по исправлению слова зашиты на функцию =ispell-word=.
+
+** Сниппеты Yasnippet
+
+Здесь собрана работа со сниппетами.
+Грузим пакеты, указываем директорию со своими сниппетами.
+
+#+begin_src emacs-lisp :tangle yes
+(use-package yasnippet
+    :ensure t
+    :config
+    (add-to-list 'yas-snippet-dirs (concat my/config-dir "/snippets"))
+    (yas-global-mode 1)
+    )
+(use-package yasnippet-classic-snippets
+    :ensure t)
+(use-package yasnippet-snippets
+    :ensure t)
+(use-package ivy-yasnippet
+    :ensure t)
+#+end_src
+
+Горячие клавиши для выбора сниппета по его названию.
+
+#+begin_src emacs-lisp :tangle yes
+(evil-define-key nil 'global (kbd "<leader> i s") #'yas-insert-snippet)
+#+end_src
+
+** Закладки
+
+Пакет bm (Visual Bookmarks).
+
+#+begin_src emacs-lisp :tangle yes
+(use-package bm
+	:ensure t)
+#+end_src
+
+Восстановление при загрузке.
+
+#+begin_src emacs-lisp :tangle yes
+(setq bm-restore-repository-on-load t)
+#+end_src
+
+Переключение закладок по всем буферам при выполнении 'next'.
+
+#+begin_src emacs-lisp :tangle yes
+(setq bm-cycle-all-buffers t)
+#+end_src
+
+Где хранить постоянные файлы.
+
+#+begin_src emacs-lisp :tangle yes
+(setq bm-repository-file (concat user-emacs-directory "/bm-repository"))
+#+end_src
+
+Сохранение закладок.
+
+#+begin_src emacs-lisp :tangle yes
+(setq-default bm-buffer-persistence t)
+(add-hook 'kill-buffer-hook #'bm-buffer-save)
+#+end_src
+
+Сохранение закладок при удалении буфера.
+
+#+begin_src emacs-lisp :tangle yes
+(add-hook 'kill-emacs-hook #'(lambda ()
+                                 (bm-buffer-save-all)
+                                 (bm-repository-save)))
+#+end_src
+
+Сохранение буфера с закладками после сохранения самих закладок.
+
+#+begin_src emacs-lisp :tangle yes
+(add-hook 'after-save-hook #'bm-buffer-save)
+#+end_src
+
+Чтение репозитория из файла при старте.
+
+#+begin_src emacs-lisp :tangle yes
+(add-hook 'after-init-hook 'bm-repository-load)
+#+end_src
+
+Восстановление буфера с закладками.
+
+#+begin_src emacs-lisp :tangle yes
+(add-hook 'find-file-hooks   #'bm-buffer-restore)
+(add-hook 'after-revert-hook #'bm-buffer-restore)
+#+end_src
+
+Подстраховка с сохранением закладки при обновлении буфера.
+
+#+begin_src emacs-lisp :tangle yes
+(add-hook 'vc-before-checkin-hook #'bm-buffer-save)
+#+end_src
+
+Функция создания аннотированной ссылки.
+
+#+begin_src emacs-lisp :tangle yes
+(defun my/bm-bookmark-annotate ()
+	(interactive)
+	(bm-toggle)
+	(bm-bookmark-annotate))
+#+end_src
+
+Подстрахуемся на удаление закладок.
+
+#+begin_src emacs-lisp :tangle yes
+(defun my/bm-remove-all-current-buffer ()
+	(interactive)
+	(when (y-or-n-p "Remove all bookmarks in current buffer?")
+		(bm-remove-all-current-buffer)))
+
+(defun my/bm-remove-all-all-buffers ()
+	(interactive)
+	(when (yes-or-no-p "Remove all bookmarks in all buffers?")
+		(bm-remove-all-all-buffers)))
+#+end_src
+
+Горячие клавиши.
+
+#+begin_src emacs-lisp :tangle yes
+(evil-define-key nil 'global
+	(kbd "<leader> j m t") #'bm-toggle
+	(kbd "<leader> j m a") #'bm-bookmark-annotate
+	(kbd "<leader> j m s") #'bm-bookmark-show-annotation
+	(kbd "<leader> j m n") #'bm-next
+	(kbd "<leader> j m p") #'bm-previous
+	(kbd "<leader> j m l") #'bm-show
+	(kbd "<leader> j m L") #'bm-show-all
+	(kbd "<leader> j m T") #'my/bm-bookmark-annotate
+	(kbd "<leader> j m d") #'my/bm-remove-all-current-buffer
+	(kbd "<leader> j m D") #'my/bm-remove-all-all-buffers)
+#+end_src
+
+* Подсказки, выпадашки, автодополнения
+
+** Ivy - меню с поиском по частичному совпадению
+
+=Ivy= - одно из самых удобных меню с выбором элементов по частичному совпадению
+текста. Есть более новый =Vertico=, но сперва сделаю, к чему привык.
+
+#+begin_src emacs-lisp :tangle yes
+(use-package ivy
+    :ensure t
+    :config
+    (ivy-mode)
+    (setq ivy-use-virtual-buffers t)
+    (setq enable-recursive-minibuffers t))
+(use-package ivy-hydra
+    :ensure t)
+#+end_src
+
+Определим горячие клавиши на восстановление результатов последней сессии ivy.
+
+#+begin_src emacs-lisp :tangle yes
+(evil-define-key nil 'global (kbd "<leader> '") #'ivy-resume)
+#+end_src
+
+** Подсказки на клавиши
+
+При вводе клавишного аккорда получаем подсказку на его продолжение.
+
+#+begin_src emacs-lisp :tangle yes
+(use-package guide-key
+    :ensure t
+    :diminish guide-key-mode)
+(use-package which-key
+    :ensure t
+    :config
+    (which-key-mode 1))
+#+end_src
+
+Пакет ниже дает развернутые подсказки. Поставим такую на подсказку для клавиш.
+
+#+begin_src emacs-lisp :tangle yes
+(use-package helpful
+    :ensure t
+    :config
+    (evil-define-key nil 'global (kbd "<leader> h k") #'helpful-key))
+#+end_src
+
+** Counsel. Меню вызова функции с более полным описанием
+
+Здесь нужен пакет =counsel=. Функциями из него подменяем стандартные.
+
+#+begin_src emacs-lisp :tangle yes
+(use-package counsel
+    :ensure t)
+(use-package counsel-projectile
+    :ensure t)
+#+end_src
+
+Подменим стандартные функции на их counsel-аналог.
+Так, как это закомментарено ниже, не будет работать.
+Позже допилю другое решение.
+
+# #+begin_src emacs-lisp :tangle yes
+# (advice-add #'find-library :override #'counsel-find-library)
+# (advice-add #'info-lookup-symbol :override #'counsel-info-lookup-symbol)
+# (advice-add #'locate :override #'counsel-locate)
+# (global-set-key (kbd "<f2> u") 'counsel-unicode-char)
+# (global-set-key (kbd "C-c g") 'counsel-git)
+# (global-set-key (kbd "C-c j") 'counsel-git-grep)
+# (global-set-key (kbd "C-c k") 'counsel-ag)
+# (global-set-key (kbd "C-S-o") 'counsel-rhythmbox)
+# #+end_src
+
+Определяем действия =counsel= на горячие клавиши.
+
+#+begin_src emacs-lisp :tangle yes
+  (setq suggest-key-bindings t)
+  (global-set-key (kbd "M-x") 'counsel-M-x)
+  (global-set-key (kbd "C-r") #'counsel-minibuffer-history)
+  (evil-define-key nil 'global
+	  (kbd "<leader> :") #'counsel-M-x
+	  (kbd "<leader> h f") #'counsel-describe-function
+	  (kbd "<leader> h v") #'counsel-describe-variable
+	  (kbd "<leader> h p") #'describe-package
+	  (kbd "<leader> h o") #'counsel-describe-symbol
+	  (kbd "<leader> h t") #'counsel-load-theme)
+#+end_src
+
+** Company. Автодополнения
+
+Строим автодополнения через =Company= и =Ivy=.
+
+#+begin_src emacs-lisp :tangle yes
+(use-package company
+    :ensure t
+    :config
+    (add-hook 'after-init-hook 'global-company-mode))
+(use-package company-dict
+    :ensure t)
+(use-package company-box
+    :ensure t)
+(use-package company-restclient
+    :ensure t)
+(use-package ivy-hydra
+    :ensure t)
+(use-package company-shell
+    :ensure t)
+#+end_src
+
+** Наполнение полезным содержимым ivy-меню
+
+Этот код взят из Doom. Буков много, но и польза видна: показываются
+значения переменных прямо в меню.
+
+Ниже функция, которая выдает нужный формат для describe-variable.
+
+#+begin_src emacs-lisp :tangle yes
+(defun doom/ivy-rich-describe-variable-transformer (cand)
+	"Previews the value of the variable in the minibuffer"
+	(let* ((sym (intern cand))
+		   (val (and (boundp sym) (symbol-value sym)))
+		   (print-level 3))
+		(replace-regexp-in-string
+		 "[\n\t\^[\^M\^@\^G]" " "
+		 (cond ((booleanp val)
+				(propertize (format "%s" val) 'face
+							(if (null val)
+								'font-lock-comment-face
+								'success)))
+			   ((symbolp val)
+				(propertize (format "'%s" val)
+							'face 'highlight-quoted-symbol))
+			   ((keymapp val)
+				(propertize "<keymap>" 'face 'font-lock-constant-face))
+			   ((listp val)
+				(prin1-to-string val))
+			   ((stringp val)
+				(propertize (format "%S" val) 'face 'font-lock-string-face))
+			   ((numberp val)
+				(propertize (format "%s" val) 'face 'highlight-numbers-number))
+			   ((format "%s" val)))
+		 t)))
+#+end_src
+
+Теперь грузим пакет ivy-rich, который эту красоту и поддеживает.
+
+#+begin_src emacs-lisp :tangle yes
+(use-package ivy-rich
+	:ensure t
+	:config
+	(setq ivy-rich-display-transformers-list
+		  (list
+		   'counsel-describe-variable
+		   '(:columns
+			 ((counsel-describe-variable-transformer (:width 40)) ; the original transformer
+			  (doom/ivy-rich-describe-variable-transformer (:width 50)) ; display variable value
+			  (ivy-rich-counsel-variable-docstring (:face font-lock-doc-face))))
+		   'counsel-M-x
+		   '(:columns
+			 ((counsel-M-x-transformer (:width 60))
+			  (ivy-rich-counsel-function-docstring (:face font-lock-doc-face))))
+		   ;; Apply switch buffer transformers to `counsel-projectile-switch-to-buffer' as well
+		   'counsel-projectile-switch-to-buffer
+		   (plist-get ivy-rich-display-transformers-list 'ivy-switch-buffer)
+		   'counsel-bookmark
+		   '(:columns
+			 ((ivy-rich-candidate (:width 0.5))
+			  (ivy-rich-bookmark-filename-or-empty (:width 60))))
+		   ))
+	(ivy-rich-mode 1))
+#+end_src
+
+** Некоторые дополнения пакетов
+
+Копирую сюда установку некоторых пакетов из прошлых конфигов.
+Прокомментирую как-нибудь позже.
+
+#+begin_src emacs-lisp :tangle yes
+(use-package amx
+    :ensure t)
+(use-package flx
+    :ensure t)
+(use-package prescient
+    :ensure t)
+(use-package ivy-posframe
+    :ensure t)
+(use-package all-the-icons-ivy
+    :ensure t)
+#+end_src
+
+** Клавиши перемещения по минибуферу
+
+Вернем более привычное мне перемещение по строкам минибуферов, как было в Doom:
+Ctrl + jk. Собственно, из него и беру код ниже.
+
+#+begin_src emacs-lisp :tangle yes
+(setq my/default-minibuffer-maps (list minibuffer-local-map
+                                       minibuffer-local-ns-map
+                                       minibuffer-local-completion-map
+                                       minibuffer-local-must-match-map
+                                       minibuffer-local-isearch-map
+                                       read-expression-map
+                                       ivy-minibuffer-map
+                                       ivy-switch-buffer-map))
+
+(mapc (lambda (key-map)
+          (define-key key-map (kbd "C-j") #'next-line)
+          (define-key key-map (kbd "C-k") #'previous-line)
+          (define-key key-map (kbd "C-S-j") #'scroll-up-command)
+          (define-key key-map (kbd "C-S-k") #'scroll-down-command))
+      my/default-minibuffer-maps)
+
+(mapc (lambda (key-map)
+          (evil-define-key 'insert key-map (kbd "C-j") #'next-line)
+          (evil-define-key 'insert key-map (kbd "C-k") #'previous-line))
+      my/default-minibuffer-maps)
+
+(define-key read-expression-map (kbd "C-j") #'next-line-or-history-element)
+(define-key read-expression-map (kbd "C-k") #'previous-line-or-history-element)
+#+end_src
+
+* Поиск и выделение
+** Swiper. Удобный живой поиск текста по открытому буфферу
+
+Очень удобный поиск текста по открытому буферу. Результаты показываются в
+минибуфере по мере ввода поискового текста.
+
+#+begin_src emacs-lisp :tangle yes
+(use-package swiper
+    :ensure t)
+#+end_src
+
+Горячие клавиши для вызова поиска swiper.
+
+#+begin_src emacs-lisp :tangle yes
+(evil-define-key nil 'global
+    (kbd "<leader> s s") #'swiper
+    (kbd "<leader> s S") #'swiper-isearch-thing-at-point
+    (kbd "<leader> s b") #'counsel-grep-or-swiper)
+#+end_src
+
+** Поиск на стартовой странице Emacs
+
+Были проблемы поиска текста на стартовой странице Doom Emacs.
+Проблемы решены следующим способом.
+
+#+begin_src emacs-lisp :tangle yes
+(set-input-method 'russian-computer)
+(isearch-toggle-input-method)
+#+end_src
+
+** Выделение при поиске по тексту
+
+Отключаем выделение по всему тексту при поиске.
+
+#+begin_src emacs-lisp :tangle yes
+(setq evil-ex-search-highlight-all nil)
+#+end_src
+
+** Символ технического пробела `_'
+
+Emacs по-умолчанию не причисляет символ `_' к составу слова, что очень неудобно.
+Исправим положение.
+
+#+begin_src emacs-lisp :tangle yes
+(modify-syntax-entry ?_ "w")
+#+end_src
+
+** Чувствительность к регистру (прописные и строчные символы)
+
+Чувствительность нужна и важна (особенно при поиске).
+
+Есть три параметра настройки:
+- =sensitive=,
+- =insensitive=,
+- =smart=
+Возможно, =smart= был бы даже удобней. Не забыть вернуться и поэкспериментировать с ним.
+
+Use [M-x toggle-case-fold-search] to toggle mode.
+
+#+begin_src emacs-lisp :tangle yes
+(setq case-fold-search nil)  ; Use [M-x toggle-case-fold-search] to toggle mode.
+(setq evil-ex-search-case 'sensitive)  ; sensitive, insensitive, smart
+#+end_src
+
+** Imenu. Навигация по документу через меню
+
+Imenu - дает не только удобный способ навигации по документу, но и
+показывает его структуру.  Если это текстовый файл с разметкой (org),
+то определит в нем заголовки (оглавление).  Если это программный код,
+то определит в нем классы и функции.
+
+Определим глубину заголовков (два по-умолчанию - это очень мало).
+
+#+begin_src emacs-lisp :tangle yes
+(setq org-imenu-depth 8)
+#+end_src
+
+Определим горячие клавиши для навигации через imenu.
+
+#+begin_src emacs-lisp :tangle yes
+(evil-define-key nil 'global (kbd "<leader> s i") #'counsel-imenu)
+#+end_src
+
+Установим дополнтельный пакет, который в отдельном окне отображает
+оглавление.
+
+#+begin_src emacs-lisp :tangle yes
+(use-package imenu-list
+    :ensure t
+    :config
+    (evil-define-key nil 'global (kbd "<leader> s I") #'imenu-list-smart-toggle))
+#+end_src
+
+* Работа с вкладками (tab)
+
+** Новая именованная вкладка
+
+Создает новую вкладку и интерактивно назначает ей имя. Один прокол - полоса во вкладками почему-то сразу не показывается. Дерганье соответствующих функций показа не помогает.
+
+#+begin_src emacs-lisp :tangle yes
+(defun my/new-tab-with-name (tab-name)
+    (interactive (list (read-string "Enter a name for new tab: ")))
+    (tab-bar-new-tab)
+    (tab-rename tab-name)
+    (tab-bar-mode -1)
+    (message "Tab \"%s\" is active." tab-name))
+#+end_src
+
+Горячие клавиши для интерактивно именованной вкладки.
+
+#+begin_src emacs-lisp :tangle yes
+(global-set-key (kbd "C-x t a") #'my/new-tab-with-name)
+#+end_src
+
+* Работа с фреймами
+
+** Клавиши для работы с фреймами
+
+Здесь определим набор клавиш для привычных действий с фреймами.
+
+#+begin_src emacs-lisp :tangle yes
+(evil-define-key nil 'global
+    (kbd "<leader> o f") #'make-frame
+    (kbd "<leader> q f") #'delete-frame)
+#+end_src
+
+** Поиск фрейма по имени
+
+Понадобилось и такое. Результат - найденный фрейма с указанным именем или nil.
+(Для справки: Есть функция =select-frame-by-name=, которая по имени находит фрейм и активизирует его.)
+
+#+begin_src emacs-lisp :tangle yes
+(defun my/get-frame-by-name (name)
+    "If there is a frame named NAME, return it, else nil."
+    (-some (lambda (frame)
+               (when (equal name (frame-parameter frame 'name))
+                   frame))
+           (frame-list)))
+#+end_src
+
+* Работа с окнами
+
+** Клавиши для работы с окнами
+
+В целом, все уже есть в evil и вызывается по Ctrl-w.
+Но верну сочетания клавиш, к которым привык в Doom.
+
+#+begin_src emacs-lisp :tangle yes
+(evil-define-key nil 'global
+	(kbd "<leader> w d") #'evil-window-delete
+    (kbd "<leader> w r") #'evil-window-rotate-downwards
+    (kbd "<leader> w R") #'evil-window-rotate-upwards
+	(kbd "<leader> w C-l") #'evil-window-right
+	(kbd "<leader> w C-h") #'evil-window-left
+	(kbd "<leader> w C-j") #'evil-window-down
+	(kbd "<leader> w C-k") #'evil-window-up
+	(kbd "<leader> w C-S-l") #'evil-window-move-far-right
+	(kbd "<leader> w C-S-h") #'evil-window-move-far-left
+	(kbd "<leader> w C-S-j") #'evil-window-move-very-bottom
+	(kbd "<leader> w C-S-k") #'evil-window-move-very-top
+	)
+#+end_src
+
+Отдельно перетащим из Doom расширение окон по горизонтали и
+вертикально и горизонтально.
+
+#+begin_src emacs-lisp :tangle yes
+(defun doom/window-maximize-horizontally ()
+	"Delete all windows to the left and right of the current window."
+	(interactive)
+	(require 'windmove)
+	(save-excursion
+		(while (ignore-errors (windmove-left)) (delete-window))
+		(while (ignore-errors (windmove-right)) (delete-window))))
+
+(defun doom/window-maximize-vertically ()
+	"Delete all windows above and below the current window."
+	(interactive)
+	(require 'windmove)
+	(save-excursion
+		(while (ignore-errors (windmove-up)) (delete-window))
+		(while (ignore-errors (windmove-down)) (delete-window))))
+#+end_src
+
+И теперь определим горячие клавиши для "максимизации" окон.
+
+#+begin_src emacs-lisp :tangle yes
+(evil-define-key nil 'global
+	(kbd "<leader> w m m") #'delete-other-windows
+	(kbd "<leader> w m s") #'doom/window-maximize-horizontally
+	(kbd "<leader> w m v") #'doom/window-maximize-vertically)
+#+end_src
+
+** Нумерация окон
+
+Работа с окнами на основе их нумерации. Работу с оканми устанавливаем
+локальньно, в текущем фрейме (переменная =winum-scope=).
+
+#+begin_src emacs-lisp :tangle yes
+(use-package winum
+    :ensure t
+    :config
+    (winum-mode 1)
+    (setq winum-scope 'frame-local))
+#+end_src
+
+** Разделение рабочего пространства на заданное количество окон
+
+Взято из Spacemacs. Рабочее пространство разделяется по <leader>-w-<Num> на
+заданное количество окон (от одного до четырех). Буфера по окнам распределяются
+в порядке очереди и выбираются из текущего проекта.
+
+#+begin_src emacs-lisp :tangle yes
+(evil-define-key nil 'global
+    (kbd "<leader> w 1") #'spacemacs/window-split-single-column
+    (kbd "<leader> w 2") #'spacemacs/window-split-double-columns
+    (kbd "<leader> w 3") #'spacemacs/window-split-triple-columns
+    (kbd "<leader> w 4") #'spacemacs/window-split-grid)
+#+end_src
+
+** Переключение окон, как в Spacemacs
+
+Переключение окон по <leader>-<Num>.
+
+#+begin_src emacs-lisp :tangle yes
+(evil-define-key nil 'global
+    (kbd "<leader> 0") #'treemacs-select-window
+    (kbd "<leader> 1") #'winum-select-window-1
+    (kbd "<leader> 2") #'winum-select-window-2
+    (kbd "<leader> 3") #'winum-select-window-3
+    (kbd "<leader> 4") #'winum-select-window-4
+    (kbd "<leader> 5") #'winum-select-window-5
+    (kbd "<leader> 6") #'winum-select-window-6
+    (kbd "<leader> 7") #'winum-select-window-7
+    (kbd "<leader> 8") #'winum-select-window-8
+    (kbd "<leader> 9") #'winum-select-window-9)
+#+end_src
+
+** Разделение окна
+
+Вертикальное и горизонтальное разделение окна с переносом фокуса.
+
+#+begin_src emacs-lisp :tangle yes
+(defun my/split-window-right-and-focus ()
+    (interactive)
+    (split-window-right)
+    (windmove-right))
+
+(defun my/split-window-below-and-focus ()
+    (interactive)
+    (split-window-below)
+    (windmove-down))
+#+end_src
+
+Горячие клавиши для разделения окна (с переключением в новое окно и без
+переключения).
+
+#+begin_src emacs-lisp :tangle yes
+(evil-define-key nil 'global
+    (kbd "<leader> w v") #'evil-window-vsplit
+    (kbd "<leader> w V") #'my/split-window-right-and-focus
+    (kbd "<leader> w s") #'evil-window-split
+    (kbd "<leader> w S") #'my/split-window-below-and-focus)
+#+end_src
+
+** Ширина разделения окна
+
+Сделаем разделение окон по-заметнее.
+
+#+begin_src emacs-lisp :tangle yes
+(window-divider-mode 1)
+(setq window-divider-default-right-width 4)
+#+end_src
+
+* Работа с буферами
+
+Для работы части функций этого раздела используется код, взятый из Spacemacs. Код находится в файле [[./funcs.el][funcs.el]].
+
+** Клавиши для работы с буферами
+
+Здесь определим набор клавиш для привычных действий с буферами.
+
+#+begin_src emacs-lisp :tangle yes
+(evil-define-key nil 'global
+    ;; (kbd "<leader> b b") #'project-switch-to-buffer
+	;; (kbd "<leader> ,") #'project-switch-to-buffer
+    (kbd "<leader> b b") #'counsel-projectile-switch-to-buffer
+	;; (kbd "<leader> ,") #'counsel-projectile-switch-to-buffer
+    (kbd "<leader> b B") #'counsel-switch-buffer
+    (kbd "<leader> b d") #'kill-current-buffer)
+#+end_src
+
+#+RESULTS:
+
+** Отображение popup-буферов внизу окна и прочие настройки показа буферов
+
+Мне удобней работать с popup-окнами (например окно помощи "*Help*"),
+когда они появляются не сбоку фрейма, а снизу.  Делается через задание
+списка ACTION для функции =display-buffer=. Пример взял из описания
+функции.
+
+#+begin_src emacs-lisp :tangle yes
+(setq display-buffer-alist
+      '(
+        ;; Any new buffer
+        ("^\\*new .*")
+
+        ;; Dashboard
+        ("^\\*dashboard\\*$")
+
+        ;; Ilist
+        ("^\\*Ilist\\*$"
+         (display-buffer-reuse-window)
+         (window-width . 0.30))
+
+        ;; Org Src edit
+        ("^\\*Org Src .*\\*$")
+
+        ;; Clean Eshell
+        ("^\\*eshell\\*$")
+
+        ;; IELM
+        ("^\\*ielm\\*$"
+         (display-buffer-reuse-window display-buffer-same-window))
+
+        ;; Magit (status)
+        ("^magit: .*"
+         (display-buffer-reuse-window display-buffer-same-window))
+
+        ;; Magit log
+        ("^magit-log:.*"
+         (display-buffer-reuse-window display-buffer-same-window))
+
+        ;; Magit process
+        ("^magit-process:.*"
+         (display-buffer-reuse-window display-buffer-at-bottom)
+         (window-height . 0.40))
+
+        ;; Other buffers with name like "*Name*"
+        ("^\\*.*\\*$"
+         (display-buffer-reuse-window display-buffer-at-bottom)
+         (window-height . 0.40))))
+#+end_src
+
+** Открытие буфера, простое и с разделением окна
+
+Удобно открыть существующий буфер, разделив при этом активное окно.
+Функции Ivy сами решают, как делить окно: вертикально или горизонтально.
+
+Привяжем горячие клавиши на такое открытие буфера.
+
+#+begin_src emacs-lisp :tangle yes
+(evil-define-key nil 'global (kbd "<leader> b j") #'projectile-switch-to-buffer-other-window)
+(evil-define-key nil 'global (kbd "<leader> b J") #'counsel-switch-buffer-other-window)
+#+end_src
+
+** Перенос буферов между окнами
+
+Взято из Spacemacs для переноса буферов между окнами по клавишам <leader>-b-<Num>.
+
+#+begin_src emacs-lisp :tangle yes
+(defun my/move-buffer-to-window (windownum follow-focus-p)
+  "Moves a buffer to a window, using the my numbering. follow-focus-p
+controls whether focus moves to new window (with buffer), or stays on current"
+  (interactive)
+  (if (> windownum (length (window-list-1 nil nil t)))
+      (message "No window numbered %s" windownum)
+    (let ((b (current-buffer))
+          (w1 (selected-window))
+          (w2 (winum-get-window-by-number windownum)))
+      (unless (eq w1 w2)
+        (set-window-buffer w2 b)
+        (switch-to-prev-buffer)
+        (unrecord-window-buffer w1 b))
+      (when follow-focus-p
+        (select-window (winum-get-window-by-number windownum))))))
+
+(defun my/swap-buffers-to-window (windownum follow-focus-p)
+  "Swaps visible buffers between active window and selected window.
+follow-focus-p controls whether focus moves to new window (with buffer), or
+stays on current"
+  (interactive)
+  (if (> windownum (length (window-list-1 nil nil t)))
+      (message "No window numbered %s" windownum)
+    (let* ((b1 (current-buffer))
+           (w1 (selected-window))
+           (w2 (winum-get-window-by-number windownum))
+           (b2 (window-buffer w2)))
+      (unless (eq w1 w2)
+        (set-window-buffer w1 b2)
+        (set-window-buffer w2 b1)
+        (unrecord-window-buffer w1 b1)
+        (unrecord-window-buffer w2 b2)))
+    (when follow-focus-p (winum-select-window-by-number windownum))))
+
+(dotimes (i 9)
+  (let ((n (+ i 1)))
+    (eval `(defun ,(intern (format "buffer-to-window-%s" n)) (&optional arg)
+             ,(format "Move buffer to the window with number %i." n)
+             (interactive "P")
+             (if arg
+                 (my/swap-buffers-to-window ,n t)
+               (my/move-buffer-to-window ,n t))))
+    (eval `(defun ,(intern (format "move-buffer-window-no-follow-%s" n)) ()
+             (interactive)
+             (my/move-buffer-to-window ,n t)))
+    (eval `(defun ,(intern (format "swap-buffer-window-no-follow-%s" n)) ()
+             (interactive)
+             (my/swap-buffers-to-window ,n t)))
+    ))
+#+end_src
+
+Привязываем горячие клавиши для переноса буферов.
+
+#+begin_src emacs-lisp :tangle yes
+(evil-define-key nil 'global
+    (kbd "<leader> b 1") #'move-buffer-window-no-follow-1
+    (kbd "<leader> b 2") #'move-buffer-window-no-follow-2
+    (kbd "<leader> b 3") #'move-buffer-window-no-follow-3
+    (kbd "<leader> b 4") #'move-buffer-window-no-follow-4
+    (kbd "<leader> b 5") #'move-buffer-window-no-follow-5
+    (kbd "<leader> b 6") #'move-buffer-window-no-follow-6
+    (kbd "<leader> b 7") #'move-buffer-window-no-follow-7
+    (kbd "<leader> b 8") #'move-buffer-window-no-follow-8
+    (kbd "<leader> b 9") #'move-buffer-window-no-follow-9)
+#+end_src
+
+** Переключение показа по центру окна
+
+Здесь воспользуемся пакетом centered-window.
+
+#+begin_src emacs-lisp :tangle yes
+(use-package centered-window
+	:ensure t)
+#+end_src
+
+#+RESULTS:
+
+На широком окне неудобно читать длинные строчки.
+Запилим корячие клавиши переключения =centered-window-mode=.
+
+#+begin_src emacs-lisp :tangle yes
+(evil-define-key nil 'global (kbd "<leader> t m") #'centered-window-mode)
+#+end_src
+
+** Показ буферов, разобранных по проектам
+
+Удобно видеть список буферов, разобранный по проектам.
+Загрузим пакеты.
+
+#+begin_src emacs-lisp :tangle yes
+(use-package ibuffer-projectile
+    :ensure t)
+(use-package ibuffer-vc
+    :ensure t)
+#+end_src
+
+Красивый список вызывается командой =ibuffer=.
+В evil-mode запилим его вызов на команду ":bd".
+
+#+begin_src emacs-lisp :tangle yes
+(evil-ex-define-cmd "buffers" #'ibuffer)
+#+end_src
+
+** Srcatch буфер
+
+Функция вызова черновика.
+
+#+begin_src emacs-lisp :tangle yes
+(defun my/switch-to-scratch-buffer ()
+    (interactive)
+    (pop-to-buffer "*scratch*"))
+#+end_src
+
+Пока сделаем привычные клавиши на вызов черновика.
+
+#+begin_src emacs-lisp :tangle yes
+(evil-define-key nil 'global (kbd "<leader> x") #'my/switch-to-scratch-buffer)
+#+end_src
+
+* Работа с файлами
+
+** Клавиши для работы с файлами
+
+Здесь определим набор клавиш для привычных действий с файлами.
+
+#+begin_src emacs-lisp :tangle yes
+(evil-define-key nil 'global
+    (kbd "<leader> f s") #'save-buffer
+    (kbd "<leader> f f") #'counsel-find-file
+    (kbd "<leader> f d") #'counsel-find-file
+	(kbd "<leader> o -") #'dired-jump)
+#+end_src
+
+** Автоматическое обновление буферов при внешнем изменении их содержимого
+
+Этот параметр позволит обновлять буфера, если файлы, с ними связанные, были
+изменены вне Emacs:
+
+#+begin_src emacs-lisp :tangle yes
+(global-auto-revert-mode 1)
+#+end_src
+
+Аналогично этот параметр позволит автоматически обьновлять такие буфера, как
+Dired:
+
+#+begin_src emacs-lisp :tangle yes
+(setq global-auto-revert-non-file-buffers t)
+#+end_src
+
+** Открытие файла с разделением окна
+
+Открытие файла с разделением окна, вертикальным и горизонтальным.
+
+#+begin_src emacs-lisp :tangle yes
+(evil-define-key nil 'global
+    (kbd "<leader> f i") #'spacemacs/find-file-vsplit
+    (kbd "<leader> f n") #'spacemacs/find-file-split)
+#+end_src
+
+** Копирование в буфер обмена текущего имени файла
+
+При копировании имени файла в буфер обмена выводим его название.
+Также имя файла дублируем в системные буфера обмена.
+
+#+begin_src emacs-lisp :tangle yes
+  (defun my/yank-buffer-filename ()
+	  (interactive)
+	  (let ((text (buffer-file-name)))
+		  (evil-set-register ?\" text)
+		  (evil-set-register ?+ text)
+		  (evil-set-register ?* text)
+		  (evil-set-register ?0 text)
+		  (message text)))
+#+end_src
+
+Горячие клавиши для копирования в буфер имени текущего файла.
+
+#+begin_src emacs-lisp :tangle yes
+(evil-define-key nil 'global (kbd "<leader> f y") #'my/yank-buffer-filename)
+#+end_src
+
+** Dired. Настройка файлового менеджера
+
+Копирование файлов удобно делать в директорию, что открыта в ближайшем
+dired-окне. Для этого надо установить соответствующий флажок.
+
+#+begin_src emacs-lisp :tangle yes
+(setq dired-dwim-target t)
+#+end_src
+
+Файлы в Dired сортируются опциями команды "ls".
+Из коробки по-умолчанию стоит сортировка по размеру ("SXU").
+Изменим ее на сортировку по имени ("XSU"):
+
+#+begin_src emacs-lisp :tangle yes
+(setq dired-ls-sorting-switches "XSU")
+#+end_src
+
+Теперь раскрасим представление файлов. Делаем это пакетом dired-k.
+(С флажком dired-k-style='git файлы будут иметь git-пометки.)
+
+#+begin_src emacs-lisp :tangle yes
+(use-package dired-k
+    :ensure t
+    :config
+    (setq dired-k-human-readable t
+          dired-k-style 'git)
+    (add-hook 'dired-initial-position-hook 'dired-k)
+    (add-hook 'dired-after-readin-hook #'dired-k-no-revert)
+    )
+#+end_src
+
+** История сохраненных файлов
+
+Бывает нужно для ручной синхронизации файлов на машинах.
+
+Хранить истории будем в файле.
+
+#+begin_src emacs-lisp :tangle yes
+(defun my/files-history-save-file ()
+    (concat user-emacs-directory
+            "files-saving-history-"
+            (if (bound-and-true-p server-name) server-name "server")
+            ".el"))
+#+end_src
+
+Создадим хэш-таблицу сохраненных файлов: имя-файла - время сохранения.
+А еще создадим такую же хэш-таблицу, но для директорий.
+
+#+begin_src emacs-lisp :tangle yes
+(defvar my/files-saving-history (make-hash-table :test 'equal))
+(defvar my/directories-saving-history (make-hash-table :test 'equal))
+#+end_src
+
+Напишем функции загрузки и сохранения историй в файл.
+Функция чтения отработает только в случае пустых историй.
+
+#+begin_src emacs-lisp :tangle yes
+(defun my/soft-load-histories-from-file ()
+    (when (and (or (hash-table-empty-p my/files-saving-history)
+                   (hash-table-empty-p my/directories-saving-history))
+               (file-exists-p (my/files-history-save-file)))
+        (with-temp-buffer
+            (insert-file-contents (my/files-history-save-file))
+            (goto-char 0)
+            (setq my/directories-saving-history (read (current-buffer))
+                  my/files-saving-history (read (current-buffer))))))
+
+(defun my/save-histories-to-file ()
+    (with-temp-buffer
+        (prin1 my/directories-saving-history (current-buffer))
+        (prin1 my/files-saving-history (current-buffer))
+        (write-region (buffer-end -1) (buffer-end +1) (my/files-history-save-file))))
+#+end_src
+
+Добавлять файлы и директории в историю будем этой функцией.
+
+#+begin_src emacs-lisp :tangle yes
+(defun my/append-file-to-saving-history ()
+    (let* ((buffer (or (buffer-base-buffer) (current-buffer)))
+           (filename (buffer-file-name buffer))
+           (time-value (format-time-string "%Y-%m-%d %H:%M:%S")))
+        (when (and buffer filename time-value
+                   (file-exists-p filename))
+            (puthash filename time-value
+                     my/files-saving-history)
+            (puthash (file-name-directory filename) time-value
+                     my/directories-saving-history))))
+#+end_src
+
+Ниже функция сортирует историю сохранений по датам и выдает результат списком.
+
+#+begin_src emacs-lisp :tangle yes
+(defun my/sort-files-saving-history (fd-saving-history)
+    (let (saving-histry)
+        (maphash (lambda (key val)
+                     (push (list val key) saving-histry))
+                 fd-saving-history)
+        (sort saving-histry
+              (lambda (pair1 pair2)
+                  (string> (car pair1) (car pair2))))))
+#+end_src
+
+Теперь будем выбирать, какую историю показывать: файлов или директорий?
+Заведем соответствующую переключалку.
+
+#+begin_src emacs-lisp :tangle yes
+(defvar my/fd-saving-history 'files)
+
+(defun my/fd-saving-history (&optional ARG)
+    "Select mode for show siving history.
+ARG may be 'files, 'directories, 'toggle or nil.
+Return history hash-map."
+    (setq my/fd-saving-history (cond ( (or (eq ARG 'directories)
+                                           (and (eq ARG 'toggle)
+                                                (eq my/fd-saving-history 'files)))
+                                       'directories)
+                                     ( (or (eq ARG 'files)
+                                           (and (eq ARG 'toggle)
+                                                (eq my/fd-saving-history 'directories)))
+                                       'files)
+                                     ( t
+                                       my/fd-saving-history)))
+    (cond ( (eq my/fd-saving-history 'files)
+            my/files-saving-history)
+          ( (eq my/fd-saving-history 'directories)
+            my/directories-saving-history)))
+#+end_src
+
+Эта функция создает/обновляет буфер с историей сохранений, используя результат предыдущей функции.
+Сутки разделяем пустой строкой.
+Буфер переводим в org-mode и тексты файлов даем со ссылками.
+Название буфера сохранено в переменную [[elisp:(message my/files-saving-history-buffer-name)][my/files-saving-history-buffer-name]].
+
+#+begin_src emacs-lisp :tangle yes
+(defvar my/files-saving-history-buffer-name "*files-saving-history*")
+
+(defun my/update-buffer-for-files-saving-history (fd-saving-history)
+    (interactive)
+    (let* ((history-buffer (get-buffer-create my/files-saving-history-buffer-name))
+           (history (my/sort-files-saving-history fd-saving-history))
+           (date-result nil)
+
+           (insert-row (lambda (pair)
+                           (let* ((date-time (car pair))
+                                  (date (car (split-string date-time " +")))
+                                  (filename (cadr pair)))
+                               (when (and date-result (not (equal date date-result)))
+                                   (insert "\n"))
+                               (insert (concat date-time "  [[" filename "]]\n"))
+                               (setq date-result date)))))
+
+           (with-current-buffer history-buffer
+               (read-only-mode -1)
+               (erase-buffer)
+               (mapc insert-row history)
+               (org-mode)
+               (goto-char 0)
+               (org-next-link)
+               (read-only-mode 1))))
+#+end_src
+
+Дополнение хэш-таблицы и обновление буфера истории повесим на 'after-save-hook.
+Теперь каждый сохраненный файл оставляет свой след.
+
+#+begin_src emacs-lisp :tangle yes
+(add-hook 'after-save-hook
+          (lambda ()
+              (my/soft-load-histories-from-file)
+              (my/append-file-to-saving-history)
+              (my/update-buffer-for-files-saving-history (my/fd-saving-history))
+              (my/save-histories-to-file)))
+#+end_src
+
+Горячие клавиши для переключения между показом файлов и директорий.
+Первое нажатие вытягивает буфер с историей наверх.
+Остальные нажатия уже переключают показ.
+
+#+begin_src emacs-lisp :tangle yes
+(defun my/toggle-files-saving-history ()
+    (interactive)
+    (my/soft-load-histories-from-file)
+    (if (equal my/files-saving-history-buffer-name
+               (buffer-name (current-buffer)))
+        (my/update-buffer-for-files-saving-history (my/fd-saving-history 'toggle))
+        (switch-to-buffer my/files-saving-history-buffer-name))
+    (when (string-empty-p (buffer-string))
+        (my/update-buffer-for-files-saving-history (my/fd-saving-history)))
+    (message (symbol-name my/fd-saving-history)))
+
+(evil-define-key nil 'global (kbd "<leader> t h") #'my/toggle-files-saving-history)
+#+end_src
+
+** Открытие файла средствами операционной системы
+
+Очень неудобно, когда Emacs пытается открывать и показывать сам такие файлы,
+как PDF, ODT, DOCX и т.п. (речь о dired).
+Чтобы иметь возможность открывать файлы средствами операционной системы
+напишем функцию, под капотом у которой будет =gio open=.
+
+#+begin_src emacs-lisp :tangle yes
+(defun my/open-file-by-shell ()
+    (interactive)
+    (let ((filename (dired-get-filename)))
+        (when filename
+            (call-process "gio" nil 0 nil "open" filename))))
+#+end_src
+
+Горячие клавиши повесим на режим dired-mode.
+
+#+begin_src emacs-lisp :tangle yes
+(evil-define-key nil dired-mode-map (my/kbd-localleader "RET") #'my/open-file-by-shell)
+#+end_src
+
+** Логирование всплывающих сообщений
+
+Предполагается, что в системе настроено логирование всплывающих сообщений типа
+: $ notify-send "Test message" "Some text"
+и помещено в файл
+
+#+begin_src emacs-lisp :tangle yes
+(setq my/notify-log-filename (concat (getenv "HOME") "/.log/notify.log"))
+#+end_src
+
+Функция ниже создает буфер, где в реальном времени отображаются последние
+всплывшие сообщения.
+
+#+begin_src emacs-lisp :tangle yes
+(defun my/notify-log-open-notify-log ()
+    (interactive)
+    (let ((buffer-name "*notify-log*"))
+        (if (get-buffer buffer-name)
+                (switch-to-buffer buffer-name)
+            (start-process "notify-log" buffer-name "tail" "-n 50" "-f" my/notify-log-filename)
+            (switch-to-buffer buffer-name)
+            (special-mode)
+            ;; Highlighitng works only manually. :(
+            (font-lock-mode 1)
+            (font-lock-fontify-region (point-min) (point-max)))))
+#+end_src
+
+Горячие клавиши.
+
+#+begin_src emacs-lisp :tangle yes
+(evil-define-key nil 'global (kbd "<leader> t k") #'my/notify-log-open-notify-log)
+#+end_src
+
+* Рабочие пространства (workspaces, perspectives)
+
+Здесь происходит организация рабочих пространств в редакторе.
+Делается на основе модуля persp-mode (перспективы).  В идеале каждое
+пространство должно помнить свои вкладки и окна, а также табуляции.
+
+Установим пакет и назовем "нулевую" перспективу "main".
+
+#+begin_src emacs-lisp :tangle yes
+(with-eval-after-load "persp-mode"
+    (setq wg-morph-on nil)
+    (setq persp-autokill-buffer-on-remove 'kill-weak)
+    (setq persp-auto-save-opt 0)
+    (add-hook 'window-setup-hook #'(lambda () (persp-mode 1))))
+
+(use-package persp-mode
+    :ensure t
+    :init
+    (setq persp-nil-name "main")
+    :config)
+
+;; (use-package persp-projectile
+;;     :ensure t)
+#+end_src
+
+Все функции пакета доступны по префиксу "Ctrl-c p".
+Но для удобства определю клавиши, к которым привык в Doom.
+
+#+begin_src emacs-lisp :tangle yes
+(evil-define-key nil 'global
+    (kbd "<leader> TAB .") #'persp-frame-switch
+    (kbd "<leader> TAB r") #'persp-rename
+    (kbd "<leader> TAB d") #'persp-kill
+    (kbd "<leader> ,") #'persp-switch-to-buffer
+    (kbd "<leader> TAB k") #'persp-remove-buffer)
+#+end_src
+
+Отдельно сделаем показ имени текущей перспективы.
+
+#+begin_src emacs-lisp :tangle yes
+(evil-define-key nil 'global (kbd "<leader> TAB v") #'my/show-last-perspective)
+
+(defun my/show-last-perspective ()
+    (interactive)
+    (message persp-last-persp-name))
+#+end_src
+
+* Org
+
+** Начальная инициализация всей org-кухни
+
+Некоторые мелочи, как само собой разумеющееся:
+- поддержка идентификаторов,
+- автоотступ по заголовкам,
+- вычисление org-babel блоков без вопросов
+и т.п..
+
+#+begin_src emacs-lisp :tangle yes
+(use-package org
+	:ensure t
+	:config
+	(require 'org-id)
+	(add-hook 'org-mode-hook (lambda ()
+								 (setq org-adapt-indentation t)))
+	(setq org-confirm-babel-evaluate nil))
+#+end_src
+
+Подгрузим поддержку evil для org-mode, включая Агенду.
+
+#+begin_src emacs-lisp :tangle yes
+(use-package evil-org
+	:ensure t
+	:after org
+	:hook (org-mode . (lambda () evil-org-mode))
+	:config
+	(require 'evil-org-agenda)
+	(evil-org-agenda-set-keys))
+#+end_src
+
+** Клавиши для работы в org-mode
+
+Вернем привычные горячие клавиши из Doom для evil-mode.
+
+#+begin_src emacs-lisp :tangle yes
+(evil-define-key '(normal visual motion) org-mode-map
+	(kbd "[ s") #'evil-prev-flyspell-error
+	(kbd "] s") #'evil-next-flyspell-error
+	(kbd "S-M-[") #'org-backward-element
+	(kbd "S-M-]") #'org-forward-element
+	(kbd "g h") #'org-up-element
+	(kbd "g l") #'org-down-element
+	(kbd "[ [") #'evil-backward-section-begin
+	(kbd "[ ]") #'evil-backward-section-end
+	(kbd "] ]") #'evil-forward-section-begin
+	(kbd "] ]") #'evil-forward-section-end
+	(kbd "C-S-h") #'org-shiftleft
+	(kbd "C-S-l") #'org-shiftright
+	(kbd "M-h") #'org-metaleft
+	(kbd "M-l") #'org-metaright
+	(kbd "M-k") #'org-metaup
+	(kbd "M-j") #'org-metadown
+	(kbd "M-RET") #'org-meta-return
+	(my/kbd-localleader "l l") #'org-insert-link
+	(my/kbd-localleader "l t") #'org-toggle-link-display
+    (my/kbd-localleader "y") #'org-id-copy
+	)
+;; It's a magic and shaman's dances:
+(evil-define-key '(normal visual motion) org-mode-map
+	(kbd "[ c") #'org-babel-previous-src-block
+	(kbd "] c") #'org-babel-next-src-block
+	(kbd "[ l") #'org-previous-link
+	(kbd "] l") #'org-next-link
+	)
+(evil-define-key nil org-mode-map
+	(my/kbd-localleader "e") #'org-export-dispatch)
+(define-key org-mode-map (kbd "C-c C-j") #'counsel-org-goto)
+#+end_src
+
+Отрубим мешающиеся клавиши, что затирают творение выше.
+
+#+begin_src emacs-lisp :tangle yes
+(evil-define-key '(normal visual motion) evil-collection-unimpaired-mode-map
+	(kbd "[ l") nil
+	(kbd "] l") nil)
+#+end_src
+
+** Разнообразная реакция на Enter (RET)
+
+При нажатии Enter попробуем узнать тип объекта под курсором и в
+зависимости от него вызвать соответствующую функцию.
+
+Определим функцию для определения типа объекта под курсором.  Функция
+возвращает информацию о типе org-объекта, которая может быть одним из
+символов:
+- button
+- citation, citation-reference
+- headline
+- clock
+- footnote-reference
+- footnote-definition
+- planning, timestamp
+- table, table-row
+- table-cell
+- babel-call
+- statistics-cookie
+- src-block, inline-src-block
+- latex-fragment, latex-environment
+- link
+- link-image
+- item
+- paragraph
+
+#+begin_src emacs-lisp :tangle yes
+(defun my/object-type-at-point ()
+    (if (button-at (point))
+        'button
+        (let* ((context (org-element-context))
+               (type (org-element-type context)))
+            (while (and context
+                        (memq type '(verbatim
+                                     code
+                                     bold
+                                     italic
+                                     underline
+                                     strike-through
+                                     subscript
+                                     superscript)))
+                (setq context (org-element-property :parent context)
+                      type (org-element-type context)))
+            (my/org--correct-object-type type context))))
+
+(defun my/org--correct-object-type (type context)
+    (pcase type
+        (`link
+         (if (my/org--link-image-p context) 'link-image type))
+        (_
+         type)))
+
+(defun my/org--link-image-p (context)
+    (let* ((lineage (org-element-lineage context '(link) t))
+           (path (org-element-property :path lineage)))
+        (or (equal (org-element-property :type lineage) "img")
+            (and path (image-type-from-file-name path)))))
+#+end_src
+
+Теперь воткнем функцию-обработчик клавиши Enter. Содержимое
+обработчика будет пополняться по мере надобности.
+
+#+begin_src emacs-lisp :tangle yes
+(defun my/dwim-at-point (&optional arg)
+    (interactive "P")
+    (let ((type (my/object-type-at-point)))
+        (pcase type
+
+            (`link
+             (org-open-at-point arg))
+
+            (`link-image
+             (my/org-toggle-inline-images-in-subtree (org-element-at-point)))
+
+            ((or `latex-fragment `latex-environment)
+             (org-latex-preview arg))
+
+            (`item
+             (let ((match (and (org-at-item-checkbox-p)
+                               (match-string 1))))
+                 (org-toggle-checkbox (if (equal match "[ ]") '(16)))))  ; Set '-' to checkbox.
+
+            (_
+             (org-ctrl-c-ctrl-c arg))
+            )))
+
+(defun my/org-toggle-inline-images-in-subtree (object &optional refresh)
+    "Refresh inline image previews in the current heading/tree."
+    (let* ((beg (or (org-element-property :begin object)
+                    (if (org-before-first-heading-p)
+                        (save-excursion (point-min))
+                        (save-excursion (org-back-to-heading) (point)))))
+           (end (or (org-element-property :end object)
+                    (if (org-before-first-heading-p)
+                        (save-excursion (org-next-visible-heading 1) (point))
+                        (save-excursion (org-end-of-subtree) (point)))))
+           (overlays (cl-remove-if-not (lambda (ov)
+                                           (overlay-get ov 'org-image-overlay))
+                                       (ignore-errors (overlays-in beg end)))))
+        (dolist (ov overlays nil)
+            (delete-overlay ov)
+            (setq org-inline-image-overlays (delete ov org-inline-image-overlays)))
+        (when (or refresh (not overlays))
+            (org-display-inline-images t t beg end)
+            t)))
+#+end_src
+
+Определяем поведение клавиши Enter для evil.
+
+#+begin_src emacs-lisp :tangle yes
+(evil-define-key '(normal visual motion) org-mode-map
+    (kbd "RET") #'my/dwim-at-point)
+#+end_src
+
+** Открытие org-ссылки в том же окне
+
+Открывать org-ссылку в другом окне оказалось очень неудобно. Сделаем
+открытие ссылки в том же окне, где и сам org-файл. Правило это
+задается в списке =org-link-frame-select=. Заменим
+вызов 'find-file-other-window на 'find-file.
+
+#+begin_src emacs-lisp :tangle yes
+(let* ((pair (assq 'file org-link-frame-setup)))
+    (setcdr pair 'find-file))
+#+end_src
+
+** Директория для org-файлов и прочей org-кухни
+
+If you use `org' and don't want your org files in the default location below, change `org-directory'. It must be set before org loads!
+
+#+begin_src emacs-lisp :tangle yes
+(setq org-directory (concat (getenv "HOME") "/org"))
+#+end_src
+
+** Подгрузка остальных пакетов
+
+#+begin_src emacs-lisp :tangle yes
+(use-package org-cliplink
+	:ensure t)
+(use-package orgit
+	:ensure t)
+(use-package ox-clip
+	:ensure t)
+(use-package toc-org
+	:ensure t)
+(use-package restclient
+	:ensure t)
+(use-package company-restclient
+	:ensure t)
+(use-package know-your-http-well
+	:ensure t)
+#+end_src
+
+** Подгрузка пакетов для запуска org-babel блоков
+   :PROPERTIES:
+   :ID:       c98e419e-f7e9-456d-b8f3-5037f0af775b
+   :END:
+
+#+begin_src emacs-lisp :tangle yes
+(use-package ob-async
+	:ensure t)
+(use-package ob-go
+	:ensure t)
+(use-package ob-restclient
+	:ensure t)
+(use-package ob-restclient
+	:ensure t)
+(use-package ob-rust
+    :ensure t)
+#+end_src
+
+** Перенос длинных строк по словам
+
+В org-mode удобно видеть перенос строк по словам.
+
+Чтобы сделать простой перенос строк, надо вызвать функцию
+=toggle-truncate-lines=, а чтобы перенос строк был по словам, надо
+добавить к ней вызов =toggle-word-wrap=.  Определим функцию, которая
+объединяет эти два вызова.
+
+#+begin_src emacs-lisp :tangle yes
+(defun my/set-word-wrap ()
+	(interactive)
+	(toggle-word-wrap)
+	(toggle-truncate-lines))
+#+end_src
+
+Теперь добавим обработчик для режима org-mode. Но надо быть
+осторожным: если где-то будет добавлен такой же обработчик на
+text-mode, то он отменит перенос строк. :)
+
+#+begin_src emacs-lisp :tangle yes
+(add-hook 'org-mode-hook #'my/set-word-wrap)
+#+end_src
+
+А на функцию выше повесим горячие клавиши (пригодится).
+
+#+begin_src emacs-lisp :tangle yes
+(evil-define-key nil 'global (kbd "<leader> t w") #'my/set-word-wrap)
+#+end_src
+
+** Поддержка org-календаря
+
+Определим клавиши навигации по org-календарю на привычные "hjkl".
+
+#+begin_src emacs-lisp :tangle yes
+(define-key org-read-date-minibuffer-local-map (kbd "M-h") (lambda () (interactive) (org-eval-in-calendar '(calendar-backward-day 1))))
+(define-key org-read-date-minibuffer-local-map (kbd "M-l") (lambda () (interactive) (org-eval-in-calendar '(calendar-forward-day 1))))
+(define-key org-read-date-minibuffer-local-map (kbd "M-k") (lambda () (interactive) (org-eval-in-calendar '(calendar-backward-week 1))))
+(define-key org-read-date-minibuffer-local-map (kbd "M-j") (lambda () (interactive) (org-eval-in-calendar '(calendar-forward-week 1))))
+(define-key org-read-date-minibuffer-local-map (kbd "M-H") (lambda () (interactive) (org-eval-in-calendar '(calendar-backward-month 1))))
+(define-key org-read-date-minibuffer-local-map (kbd "M-L") (lambda () (interactive) (org-eval-in-calendar '(calendar-forward-month 1))))
+(define-key org-read-date-minibuffer-local-map (kbd "M-K") (lambda () (interactive) (org-eval-in-calendar '(calendar-backward-year 1))))
+(define-key org-read-date-minibuffer-local-map (kbd "M-J") (lambda () (interactive) (org-eval-in-calendar '(calendar-forward-year 1))))
+#+end_src
+   
+** Карсивые метки списков
+
+Поставим красивые метки списков (bullets) посредством пакета =org-bullets=.
+
+#+begin_src emacs-lisp :tangle yes
+(use-package org-bullets
+    :ensure t
+    :config
+    (add-hook 'org-mode-hook (lambda () (org-bullets-mode 1))))
+#+end_src
+
+** Отступы в src-блоках
+
+Убираем бесячий автоотступ при сохранении src-блоков.
+
+#+begin_src emacs-lisp :tangle yes
+(setq org-src-preserve-indentation t)
+#+end_src
+
+** Автоматическое схлопывание org-babel блоков
+
+Есть способ схлопывать все org-babel блоки на открытии org-файла.
+Делается это или глобально через установку переменной =org-hide-block-startup=,
+или через установку таких вот взамоисключающих заголовков в нужных org-файлах:
+
+: #+STARTUP: hideblocks
+: #+STARTUP: nohideblocks
+
+Для выборочного схлопывания/показа блоков напишем обрботчик даух новых аргументов:
+- =:hidden=  - блок показывается схлопнутым,
+- =:visible= - блок блок показывается развернутым.
+Эти аргументы можно применять в сочетании с командами выше (=nohideblocks=, =hideblocks=).
+
+#+begin_src emacs-lisp :tangle yes
+(defun my/individual-visibility-source-blocks ()
+    "Fold blocks with argument :hidden in the current buffer."
+    (interactive)
+    (let ((block-types '(center-block comment-block dynamic-block example-block
+                         export-block quote-block special-block src-block verse-block)))
+        (org-block-map
+         (lambda ()
+             (let ((element (org-element-at-point)))
+                 (when (member (org-element-type element) block-types)
+                     (let ((arguments (cl-third (org-babel-get-src-block-info t))))
+                         (cond ((cl-assoc ':hidden arguments)
+                                (org-hide-block-toggle t nil element))
+                               ((cl-assoc ':visible arguments)
+                                (org-hide-block-toggle 'off nil element))))))))))
+#+end_src
+
+Обработчик, представленный выше, будет срабатывать при открытии org-документа.
+
+#+begin_src emacs-lisp :tangle yes
+(add-hook 'org-mode-hook #'my/individual-visibility-source-blocks)
+#+end_src
+
+Скрытие блоков слетает на применении org-cycle,
+поэтому запилим горячие клавиши для принудительного схлопывания/показа:
+- org-babel блоков с аргументами =:hidden= или =:visible=,
+- всех org-babel блоков в буфере.
+
+#+begin_src emacs-lisp :tangle yes
+(evil-define-key nil org-mode-map
+	(my/kbd-localleader "s o") #'my/individual-visibility-source-blocks
+	(my/kbd-localleader "s O") #'org-hide-block-all)
+#+end_src
+
+** Параметры экспортирования из org-mode
+
+Более полно про параметры экспорта можно прочитать на [[https://orgmode.org/manual/Export-Settings.html][странице документации]].
+
+Убираем TeX-овые над/подстрочные шрифты.
+Включить для отдельных документов можно опцией: "#+options: ^:t"
+
+#+begin_src emacs-lisp :tangle yes
+(setq org-export-with-sub-superscripts nil)
+#+end_src
+
+Убираем автоматические номера из заголовков.
+Включить для отдельных документов можно опцией: "#+options: num:t"
+
+#+begin_src emacs-lisp :tangle yes
+(setq org-export-with-section-numbers nil)
+#+end_src
+
+Соблюдаем все переносы строк, что и в исходном org-файле.
+Включить для отдельных документов можно опцией: "#+options: \n:t"
+(Пришел к тому, что надо убрать.)
+
+#+begin_example emacs-lisp :tangle yes
+(setq org-export-preserve-breaks t)
+#+end_example
+
+Убираем автора из экспорта.
+Включить для отдельных документов можно опцией: "#+options: author:t"
+
+#+begin_src emacs-lisp :tangle yes
+(setq org-export-with-author nil)
+#+end_src
+
+Убираем оглавление путем указания ему неопределенного места.
+Включить для отдельных документов можно опцией: "#+options: toc:t"
+Подробнее смотри на [[https://orgmode.org/manual/Table-of-Contents.html][странице документации по оглавлению]].
+
+#+begin_src emacs-lisp :tangle yes
+(setq org-export-with-toc nil)
+#+end_src
+
+** Экспорт в PDF через Latex
+
+Русский шрифт заработает совместно с установкой:
+
+#+begin_example bash
+# Ubuntu:
+sudo apt install texlive-lang-cyrillic
+# Arch Linux:
+sudo pacman -S texlive-langcyrillic
+sudo pacman -S texlive-latexextra
+#+end_example
+
+В настройки по-умолчанию (=org-latex-default-packages-alist=) уже прописаны следующие заголовки (файл [[./custom.el][custom.el]]):
+
+#+begin_quote
+#+latex_header: \usepackage[utf8x]{inputenc}
+#+latex_header: \usepackage[T2A]{fontenc}
+#+latex_header: \usepackage[russian,english]{babel}
+#+end_quote
+
+** LaTeX preview. Формулы проямо в org-тексте
+
+Здесь не будет настроек, а только памятка, чтобы вспоминать, как этим пользоваться.
+
+Сперва требуется установить =dvipng= (я установил еще вдогонку =preview-latex-style=):
+#+begin_example bash
+# Ubuntu:
+sudo apt install dvipng preview-latex-style
+# Arch Linux: устанавливается вместе с пакетом texlive-bin.
+#+end_example
+
+Этого достаточно! Теперь можно вставлять прямо в org-текст TeX'овские штуки:
+
+| вторая степень          | $$x^2$$            |
+| корень из дискриминанта | $$\sqrt{b^2-4ac}$$ |
+
+Чтобы показать это надо или выделить текст с формулами, или навести курсор на нужную формулу,
+после чего вызвать функцию =(org-latex-preview)= (стандартные клавиши - =C-v C-x C-l= и просто =RET= для Doom).
+
+Чтобы формулы показывались сразу при открытии org-файла, нужно в заголовке startup указать значение =latexpreview=.
+
+При экспорте в LaTeX+PDF все формулы будут преобразованы в соответствующие изображения.
+
+И еще маленькое удобство: при экспорте во что угодно спецсимволы типа \lambda, \Sigma изображаются соответстущими символами греческого алфавита.
+
+** LaTeX preview. Ручное изменение размеров формул (костыль)
+
+На одном из ноутов формулы стали не выше текстовой строки.
+Для этого сделаем костыль по увеличению и уменьшению формул.
+
+#+begin_src emacs-lisp :tangle yes
+(defun my/latex-preview-scale-set (scale)
+    (if (> scale 0.0)
+            (setq org-format-latex-options (plist-put org-format-latex-options
+                                                      :scale (float scale)))
+        (plist-get org-format-latex-options :scale)))
+
+(defun my/latex-preview-scale-inc ()
+    (let ((prev-scale (plist-get org-format-latex-options :scale)))
+        (my/latex-preview-scale-set (+ prev-scale 1.0))))
+
+(defun my/latex-preview-scale-dec ()
+    (let ((prev-scale (plist-get org-format-latex-options :scale)))
+        (my/latex-preview-scale-set (- prev-scale 1.0))))
+#+end_src
+
+Вешаем на горячие клавиши и приделываем сообщения. Поскольку быстрее всего сразу
+назначить величину масштаба (например 4), то первой предусмотрим такую операцию.
+Остальные две - увеличить и уменьшить.
+
+#+begin_src emacs-lisp :tangle yes
+(defun my/set-scael-for-latex-preview (scale)
+	(interactive (list (read-string "Enter LaTeX preview scale: ")))
+	(my/latex-preview-scale-set (float (string-to-number scale)))
+	(message "Latex scale = %f"
+			 (plist-get org-format-latex-options :scale)))
+
+(defun my/increace-scale-for-latex-preview ()
+	(interactive)
+	(my/latex-preview-scale-inc)
+	(message "Latex scale = %f"
+			 (plist-get org-format-latex-options :scale)))
+
+(defun my/decreace-scale-for-latex-preview ()
+	(interactive)
+	(my/latex-preview-scale-dec)
+	(message "Latex scale = %f"
+			 (plist-get org-format-latex-options :scale)))
+
+(evil-define-key nil org-mode-map
+	(my/kbd-localleader "j s") #'my/set-scael-for-latex-preview
+	(my/kbd-localleader "j k") #'my/increace-scale-for-latex-preview
+	(my/kbd-localleader "j j") #'my/decreace-scale-for-latex-preview)
+#+end_src
+
+** Копирование ссылки в буфер обмена
+
+Быстрое вытаскивание ссылки из org-текста. Ссылка копируется сразу в три регистра: `+', `*' и `"'.
+
+#+begin_src emacs-lisp :tangle yes
+(defun my/org-copy-link-url ()
+    (interactive)
+    (kill-new (org-element-property :raw-link (org-element-context)))
+    (let ((text (evil-get-register ?\")))
+        (evil-set-register ?+ text)
+        (evil-set-register ?* text)
+        (evil-set-register ?0 text)
+        (message text)))
+#+end_src
+
+Горячие клавиши для копирования ссылки.
+
+#+begin_src emacs-lisp :tangle yes
+(evil-define-key nil org-mode-map (my/kbd-localleader "l y") #'my/org-copy-link-url)
+#+end_src
+
+** Преобразование URL в ссылку с именем задачи или файла
+
+Часто в org-документах перевожу URL задач из Jira типа:
+: https://....ru/jira/TASK-123
+в ссылки, подобные этой:
+: [[https://....ru/jura/TASK-123][TASK-123]]
+
+Чтобы сократить время на редактирование таких ссылок, сделаем функцию.
+Она принимает контекст org-элемента под курсором и в случае, если это URL,
+создает ссылку, как показано выше.
+
+Функция делает то же самое и для ссылок на файлы.
+
+Параметром является ссылка на функцию преобразования сырой ссылки. Нужно это для
+создания ссылки на открытие файла системой.
+
+#+begin_src emacs-lisp :tangle yes
+(defun my/make-task-link--common (&optional raw-link-converter)
+    (let* ((element (org-element-context))
+           (type (org-element-property :type element))
+           (raw-link (org-element-property :raw-link element))
+           (link (if raw-link-converter
+                         (funcall raw-link-converter type raw-link)
+                     raw-link))
+           (is-url (org-url-p raw-link)))
+        (when (or is-url
+                  (equal type "file"))
+            (let* ((start (org-element-property :begin element))
+                   (end (org-element-property :end element))
+                   (path (org-element-property :path element))
+                   (parts (seq-filter (lambda (str)
+                                          (not (string-empty-p str)))
+                                      (split-string path "/")))
+                   (task-name (car (last parts))))
+                (delete-region start end)
+                (insert (concat "[[" link "][" task-name "]]" (if is-url " " "")))
+                (goto-char start)))))
+#+end_src
+
+Для файлов может быть полезна ссылка сразу на его открытие в системе (gio open).
+Напишем функцию преобразования пути файла в его открытие.
+
+#+begin_src emacs-lisp :tangle yes
+(defun my/make-link-for-call--convert-file-raw-link-for-call (type raw-link)
+    (if (equal type "file")
+            (concat "elisp:(call-process \"gio\" nil 0 nil \"open\" \"" raw-link "\")")
+        raw-link))
+#+end_src
+
+Пара конечных функций для горячих клавиш ("ссылка" и "открытие файла").
+
+#+begin_src emacs-lisp :tangle yes
+(defun my/make-task-link ()
+    (interactive)
+    (my/make-task-link--common))
+
+(defun my/make-link-for-call ()
+    (interactive)
+    (my/make-task-link--common #'my/make-link-for-call--convert-file-raw-link-for-call))
+#+end_src
+
+Добавляем горячие клавиши.
+
+#+begin_src emacs-lisp :tangle yes
+(evil-define-key nil org-mode-map
+	(my/kbd-localleader "l m") #'my/make-task-link
+	(my/kbd-localleader "l M") #'my/make-link-for-call)
+#+end_src
+
+** Схлопывание столбцов в таблицах
+
+Для наглядности бывает нужно схлопнуть ширину какого-либо столбца в таблице. Проще, конечно, отключить перенос строк функцией =toggle-truncate-lines=.
+
+Повесим схлопывание столбцов на горячую клавишу.
+
+#+begin_src emacs-lisp :tangle yes
+(evil-define-key nil org-mode-map (my/kbd-localleader "b g") #'org-table-toggle-column-width)
+#+end_src
+
+** Показ картинок-результатов выполнения org-babel блоков
+
+Картинки отрисовываются сразу после выполнения org-babel блоков.
+
+#+begin_src emacs-lisp :tangle yes
+(add-hook 'org-babel-after-execute-hook 'org-display-inline-images 'append)
+#+end_src
+
+** Показ времени выполнения babel-блока
+
+Здесь вычисляется время выполнения babel-блока.
+Результат пойдет в регистры ="= и, внимание!, =t=.
+
+#+begin_src emacs-lisp :tangle yes
+(defun my/time-call-decorator (time-call &rest args)
+    "Decorator for execiting of org-mode babel.
+
+The decorator measures time of babel execution,
+shows it in message and put the result into registers `\"' and `t'."
+    ;; (message "Ohai %s" args)
+    (let ((start-time (float-time))
+          (delta 0.0)
+          (formatted-delta "")
+          (result (apply time-call args)))
+        (setq delta (- (float-time) start-time))
+        (setq formatted-delta (format "%f sec" delta))
+        (evil-set-register ?\" formatted-delta)
+        (evil-set-register ?t formatted-delta)
+        (message "Execution time is %f seconds" delta)
+        result))
+#+end_src
+
+В elisp есть подобие декоратора к функции.
+Делается посредством функции =advice-add=.
+Ниже в ее параметрах используется параметр =:around=.
+Чтобы убрать декоратор, есть функция =advice-remove=.
+
+Вешаем декоратор для подсчета времени на функцию =org-babel-execute-src-block=.
+
+#+begin_src emacs-lisp :tangle yes
+(advice-add 'org-babel-execute-src-block :around #'my/time-call-decorator)
+#+end_src
+
+Чтобы убрать декоратор к вычислению babel, надо выполнить это:
+
+#+begin_example
+(advice-remove 'org-babel-execute-src-block #'my/time-call-decorator)
+#+end_example
+
+** Слайды и презентации
+
+Для показа интерактивных презентаций воспользуемся пакетом
+=org-tree-slide=.
+
+#+begin_src emacs-lisp :tangle yes
+(use-package org-tree-slide
+	:ensure t)
+#+end_src
+
+Однако, в чистом виде слайды выглядят некрасиво. Будем облагораживать
+вид презентаций вручную.
+
+Определим функции, которые скрывают и показывают операторные скобки
+`#+begin_...' - `#+end_...' через изменение цвета текста. Цвет
+запоминается на время в стек и из него же достается для восстановления
+исходного состояния.
+
+#+begin_src emacs-lisp :tangle yes
+(setq my/begin:end-block-delimiters nil)
+
+(defun my/hide-begin:end-block-delimiters ()
+    (let ((begin-color (face-foreground 'org-block-begin-line nil 'default))
+          (end-color (face-foreground 'org-block-end-line nil 'default)))
+        (setq my/begin:end-block-delimiters
+              (cons `(,begin-color . ,end-color) my/begin:end-block-delimiters))
+        (set-face-attribute 'org-block-begin-line nil
+                            :foreground (face-background 'org-block-begin-line nil 'default))
+        (set-face-attribute 'org-block-end-line nil
+                            :foreground (face-background 'org-block-end-line nil 'default))))
+
+(defun my/show-begin:end-block-delimiters ()
+    (let ((colors (car my/begin:end-block-delimiters)))
+        (setq my/begin:end-block-delimiters (cdr my/begin:end-block-delimiters))
+        (set-face-attribute 'org-block-begin-line nil :foreground (or (car colors) 'unspecified))
+        (set-face-attribute 'org-block-end-line nil :foreground (or (cdr colors) 'unspecifie))))
+#+end_src
+
+Теперь определим функции, которые:
+- отцентрируют текст (пакет =centered-window-mode=),
+- скроют отвлекающие от слайда внимание элементы.
+
+#+begin_src emacs-lisp :tangle yes
+(defun my/slide-view-on ()
+    "Prepare window for org-tree-slide-mode."
+    (interactive)
+    (if (eq major-mode 'org-mode)
+            (progn
+                (my/hide-begin:end-block-delimiters)
+                ;; (doom-disable-line-numbers-h)
+				(my/set-word-wrap)
+                (my/hide-header-line)
+                (highlight-indent-guides-mode -1)
+                (centered-window-mode 1)
+                (org-tree-slide-mode 1))
+        (message "For org-mode only!")))
+
+(defun my/slide-view-off ()
+    "Returt window state from org-tree-slide-mode."
+    (interactive)
+    (if (eq major-mode 'org-mode)
+            (progn
+                (centered-window-mode -1)
+                (highlight-indent-guides-mode 1)
+                (my/show-header-line)
+                (my/show-begin:end-block-delimiters)
+                ;; (doom-enable-line-numbers-h)
+				(my/set-word-wrap)
+                (org-tree-slide-mode -1))
+        (message "For org-mode only!")))
+#+end_src
+
+Сделаем переключатель режима презентации и обычного режима редактирования.
+
+#+begin_src emacs-lisp :tangle yes
+(setq my/slide-view-state nil)
+
+(defun my/slide-view-toggle ()
+    "Toggle window state for org-tree-slide-mode."
+    (interactive)
+    (setq my/slide-view-state (not my/slide-view-state))
+    (if my/slide-view-state
+            (my/slide-view-on)
+        (my/slide-view-off)))
+#+end_src
+
+Повесим переключение в режим показа презентации на горячие клавиши.
+
+#+begin_src emacs-lisp :tangle yes
+(evil-define-key nil org-mode-map (kbd "<leader> t c") #'my/slide-view-toggle)
+#+end_src
+
+А это из документации к org-tree-slide, листаем слайды.
+
+#+begin_src emacs-lisp :tangle yes
+(with-eval-after-load "org-tree-slide"
+    (define-key org-tree-slide-mode-map (kbd "<f9>") 'org-tree-slide-move-previous-tree)
+    (define-key org-tree-slide-mode-map (kbd "<f10>") 'org-tree-slide-move-next-tree))
+#+end_src
+
+** Новый буфер в режиме org-mode
+
+Очень часто открываю новый буфер, после чего устанавливаюему режим org-mode. Автоматизируем эти действия.
+
+#+begin_src emacs-lisp :tangle yes
+(defun my/open-new-buffer-in-org-mode ()
+    (interactive)
+    (let ((buffer (generate-new-buffer "*new Org-mode*")))
+        (set-window-buffer nil buffer)
+        (with-current-buffer buffer
+            (org-mode))))
+#+end_src
+
+И горячие клавиши к созданию нового org-буфера.
+
+#+begin_src emacs-lisp :tangle yes
+(evil-define-key nil 'global (kbd "<leader> b o") #'my/open-new-buffer-in-org-mode)
+#+end_src
+
+** Agenda
+
+Настраиваем Агенду.
+
+#+begin_src emacs-lisp :tangle yes
+(require 'org-agenda)
+(setq-default org-agenda-deadline-faces '((1.001 . error)
+                                          (1.0 . org-warning)
+                                          (0.5 . org-upcoming-deadline)
+                                          (0.0 . org-upcoming-distant-deadline))
+              org-agenda-window-setup 'current-window
+              org-agenda-skip-unavailable-files t
+              org-agenda-span 'month
+              org-agenda-start-on-weekday nil
+              org-agenda-start-day "-3d"
+              org-agenda-inhibit-startup t)
+(evil-define-key '(normal visual motion) org-agenda-mode-map (kbd "SPC") nil)
+#+end_src
+
+(Вид Агенды еще предстоит доделать. По непонятной мне причине агенда
+не раскрашена цветами.)
+
+Здесь автоматизированы мои действия по созданию вкладки с agenda'ой.
+Открытие новой вкладки (tab) со списком задач
+Повесим эти действия на горячие клавиши.
+
+#+begin_src emacs-lisp :tangle yes
+(defun my/new-tab-with-agenda-list ()
+    (interactive)
+    (my/new-tab-with-name "agenda")
+    (org-agenda-list)
+    (delete-other-windows))
+
+(evil-define-key nil 'global
+    (kbd "<leader> o a a") #'org-agenda
+    (kbd "<leader> o A") #'org-agenda
+    (kbd "<leader> o a n") #'my/new-tab-with-agenda-list)
+#+end_src
+
+Докатим привычные горячие клавиши из Doom для работы с TODO.
+
+#+begin_src emacs-lisp :tangle yes
+(evil-define-key nil org-mode-map
+    (my/kbd-localleader "t") #'org-todo
+    (my/kbd-localleader "d s") #'org-schedule
+    (my/kbd-localleader "d d") #'org-deadline
+    )
+#+end_src
+
+** Agenda. Статусы задач
+
+Здесь определяются нужные мне статусы задач.
+
+#+begin_src emacs-lisp :tangle yes
+(setq my/org-todo-keywords
+      '((sequence "TODO(t)" "IN-WORK(w)" "PAUSE(p)" "|" "DONE(d)" "CANCELED(c)" "SOMETIME(s)")))
+(setq org-todo-keywords my/org-todo-keywords)
+(defun my/set-org-todo-keywords ()  ; Принудительное восстановление статусов задач.
+    (interactive)
+    (setq org-todo-keywords my/org-todo-keywords))
+#+end_src
+
+Навесим теперь статусы, куда сработают.
+
+#+begin_src emacs-lisp :tangle yes
+(add-hook 'org-agenda-mode-hook #'my/set-org-todo-keywords)
+(my/set-org-todo-keywords)
+#+end_src
+
+** Journal
+
+Ведение дневника и ежедневных заметок.
+
+Установим пакеты.
+
+#+begin_src emacs-lisp :tangle yes
+(use-package org-journal
+    :ensure t
+    :config
+    (setq org-journal-dir (concat org-directory "/journal")))
+#+end_src
+
+И горячие клавиши.
+
+#+begin_src emacs-lisp :tangle yes
+(evil-define-key nil 'global
+    (kbd "<leader> n j j") #'org-journal-new-entry
+    (kbd "<leader> n j J") #'org-journal-new-scheduled-entry
+    (kbd "<leader> n j d") #'org-journal-new-date-entry
+    (kbd "<leader> n j s") #'org-journal-search-forever)
+#+end_src
+
+#+RESULTS:
+
+* Терминалы
+
+** eshell
+
+Настроим приглашение для eshell.
+
+/TODO: Что-то не так с настройками приглашения в командной строке./
+
+#+begin_src emacs-lisp :tangle yes
+;; (setq eshell-prompt-function
+;;       (lambda ()
+;;           (concat (eshell/pwd)
+;;                   " " (my/git-current-branch)
+;;                   " λ ")))
+
+(defun my/git-current-branch ()
+    "Return current git-branch or empty string."
+    (let ((branch (shell-command-to-string
+                   "git branch 2>/dev/null | grep \'^*\' | colrm 1 2 | tr -d \'\\n\'")))
+        (if (string-empty-p branch)
+                ""
+            (concat "[" branch "]"))))
+#+end_src
+
+Вызов терминала eshell в popwin.
+
+/TODO: Код в отладке. Предстоит добавить удаление окна и прочее./
+
+#+begin_src emacs-lisp :tangle yes
+(defun my/popup-eshell ()
+    (interactive)
+    (let* ((buffer-name "*popup:eshell*")
+           (buffer (get-buffer-create buffer-name)))
+        (with-current-buffer buffer
+            (eshell-mode))
+        (pop-to-buffer buffer)))
+#+end_src
+
+Запилим горячие клавиши на вызов окошка eshell.
+
+#+begin_src emacs-lisp :tangle yes
+(evil-define-key nil 'global
+    (kbd "<leader> o e") #'my/popup-eshell
+    (kbd "<leader> o E") #'eshell)
+#+end_src
+
+** vterm
+
+Установим пакет.
+
+#+begin_src emacs-lisp :tangle yes
+(use-package vterm
+    :ensure t)
+#+end_src
+
+Привычные горячие клавиши.
+
+#+begin_src emacs-lisp :tangle yes
+(evil-define-key nil 'global
+    (kbd "<leader> o t") #'vterm-other-window
+    (kbd "<leader> o T") #'vterm)
+#+end_src
+
+* Проекты, рабочие пространства
+
+** Projectile
+
+Крайне удобное средство для работы с проектами. Директории проектов распознаются
+по наличию в них .git или файла .projectile.
+
+Загрузим необходимые пакеты и сразу запретим Counsel предварительный
+показ буферов.
+
+#+begin_src emacs-lisp :tangle yes
+(use-package projectile
+    :ensure t
+    :config
+    (projectile-load-known-projects))
+(use-package counsel-projectile
+    :ensure t)
+(use-package ibuffer-projectile
+    :ensure t
+    :config
+    (setq counsel-projectile-preview-buffers nil))
+(use-package ibuffer-vc
+    :ensure t)
+#+end_src
+
+Сам Projectile запоминать ранее открытые проекты не будет. Сделаем это за него.
+Сперва определим функцию для запоминания текущего проекта.
+
+#+begin_src emacs-lisp :tangle yes
+(defun my/projectile-save-current-project (dir)
+    (when (projectile-discover-projects-in-directory dir)
+        (projectile-save-known-projects)))
+#+end_src
+
+Теперь перехватим соответствующие hook'и, где проверим наличие проекта в текущей
+директории (живет в переменой default-directory).
+
+#+begin_src emacs-lisp :tangle yes
+(let ((hooks (list 'find-file-hook
+                   'dired-mode-hook
+                   'projectile-find-file-hook
+                   'projectile-find-dir-hook)))
+    (mapc (lambda (hook)
+              (add-hook hook
+                        (lambda ()
+                            (my/projectile-save-current-project default-directory))))
+          hooks))
+#+end_src
+
+Определим горячие клавиши для работы с проектами.
+
+#+begin_src emacs-lisp :tangle yes
+(evil-define-key nil 'global
+    (kbd "<leader> p p") #'counsel-projectile-switch-project
+    (kbd "<leader> p f") #'counsel-projectile-find-file
+    ;; (kbd "<leader> p c") #'project-compile
+    (kbd "<leader> p c") #'projectile-compile-project
+    (kbd "<leader> p R") #'projectile-run-project
+    (kbd "<leader> p T") #'projectile-test-project
+    (kbd "<leader> /") #'counsel-projectile-rg
+    (kbd "<leader> ,") #'counsel-projectile-switch-to-buffer)
+#+end_src
+
+** Исключение файлов из поиска по проектам
+
+Здесь исключим всякий файловый мусор, дабы не мешался при поиске по проектам.
+Тут собраны в основном исключения для Python-проектов.
+
+#+begin_src emacs-lisp :tangle yes
+(setq grep-find-ignored-directories '("SCCS" "RCS" "CVS" "MCVS" ".src" ".svn" ".git" ".hg" ".bzr" "_MTN" "_darcs" "{arch}" "__pycache__" "build" "develop-eggs" "dist" "dist_local" "eggs" ".eggs" "sdist" ".pytest_cache" "env" "venv" "ENV" "env.bak" "venv.bak" ".mypy_cache")
+      helm-grep-ignored-directories '("SCCS/" "RCS/" "CVS/" "MCVS/" ".svn/" ".git/" ".hg/" ".bzr/" "_MTN/" "_darcs/" "{arch}/" ".gvfs/" "__pycache__/" "build/" "develop-eggs/" "dist/" "dist_local/" "eggs/" ".eggs/" "sdist/" ".pytest_cache/" "env/" "venv/" "ENV/" "env.bak/" "venv.bak/" ".mypy_cache/")
+      projectile-globally-ignored-directories '("~/.emacs.d/.local/" "~/.emacs.d/.local/" "~/.emacs.d/.local/" ".idea" ".vscode" ".ensime_cache" ".eunit" ".git" ".hg" ".fslckout" "_FOSSIL_" ".bzr" "_darcs" ".tox" ".svn" ".stack-work" ".ccls-cache" ".cache" ".clangd" "__pycache__" "build" "develop-eggs" "dist" "dist_local" "eggs" ".eggs" "sdist" ".pytest_cache" "env" "venv" "ENV" "env.bak" "venv.bak" ".mypy_cache")
+      projectile-globally-ignored-file-suffixes '(".elc" ".pyc" ".o" ".coverage" ".cache" ".ipynb_checkpoints" ".egg" ".pyo" ".pyd" ".cover" ".egg-info")
+      projectile-globally-ignored-files '(".DS_Store" "TAGS" "tags")
+)
+#+end_src
+
+И еще докинем исключения для списков ранее открытых файлов.
+
+#+begin_src emacs-lisp :tangle yes
+(setq recentf-exclude '("/\\(\\(\\(COMMIT\\|NOTES\\|PULLREQ\\|MERGEREQ\\|TAG\\)_EDIT\\|MERGE_\\|\\)MSG\\|\\(BRANCH\\|EDIT\\)_DESCRIPTION\\)\\'" "ssh:" "SSH:")
+      )
+#+end_src
+
+* Инструменты внешние
+
+** Treemacs
+
+Дерево проектов. Полезная штука для анализа незнакомого кода. Немного глючит, но
+со временем выравнивается.
+
+#+begin_src emacs-lisp :tangle yes
+(use-package treemacs
+    :ensure t)
+(use-package treemacs-projectile
+    :ensure t)
+#+end_src
+
+Горячие клавиши для вызова дерева проектов.
+
+#+begin_src emacs-lisp :tangle yes
+(evil-define-key nil 'global
+    (kbd "<leader> o p") #'treemacs
+    (kbd "<leader> o P") #'treemacs-find-file)
+#+end_src
+
+Вызов меню для treemacs.
+
+#+begin_src emacs-lisp :tangle yes
+(evil-define-key 'normal treemacs-mode-map (kbd "?") #'treemacs-common-helpful-hydra)
+#+end_src
+
+** Magit
+
+Один из самых лучших и удобных клиентов для Git.
+
+Загрузим необходимые пакеты и определим некоторые базовые клавиши.
+
+#+begin_src emacs-lisp :tangle yes
+  (use-package magit
+	  :ensure t
+	  :config
+	  ;; Safe leader SPC:
+	  (define-key magit-mode-map (kbd "SPC") nil)
+	  (define-key magit-section-mode-map (kbd "SPC") nil)
+	  (define-key magit-revision-mode-map (kbd "SPC") nil)
+	  ;; Define some keys:
+	  (evil-define-key nil 'global
+		  (kbd "<leader> g g") #'magit-status
+		  (kbd "<leader> g b") #'magit-branch-checkout
+		  (kbd "<leader> g /") #'magit-dispatch)
+	  )
+  (use-package magit-gitflow
+	  :ensure t)
+  (use-package magit-popup
+	  :ensure t)
+  (use-package magit-todos
+	  :ensure t)
+#+end_src
+
+#+RESULTS:
+
+Запилим горячие клавиши на полезные операции. Итак:
+
+Горячие клавиши для лога текущей ветки.
+
+#+begin_src emacs-lisp :tangle yes
+(evil-define-key nil 'global (kbd "<leader> g u") #'magit-log-head)
+#+end_src
+
+Горячие клавиши для лога файла в активном буфере.
+
+#+begin_src emacs-lisp :tangle yes
+(evil-define-key nil 'global (kbd "<leader> g h") #'magit-log-buffer-file)
+#+end_src
+
+Горячие клавиши для просмотра логов от git-команд.
+
+#+begin_src emacs-lisp :tangle yes
+(evil-define-key nil 'global (kbd "<leader> g p") #'magit-process-buffer)
+(evil-define-key 'normal magit-diff-mode-map (kbd "<leader> g p") #'magit-process-buffer)
+#+end_src
+
+Горячие клавиши для выкачки информации по всем веткам (magit-fetch-all).
+
+#+begin_src emacs-lisp :tangle yes
+(evil-define-key nil 'global (kbd "<leader> g a") #'magit-fetch-all)
+#+end_src
+
+Блеймер (подробный)
+
+#+begin_src emacs-lisp :tangle yes
+(evil-define-key nil 'global (kbd "<leader> g B") #'magit-blame-addition)
+#+end_src
+
+** Подсветка разницы с HEAD в каждой строке
+
+# Ставим пакет =diff-hl= с подсветкой. Для каждой строки будет подсвечиваться
+# разница с HEAD контроля версий, если таковая имеется.
+# 
+# #+begin_src emacs-lisp :tangle yes
+# (use-package diff-hl
+#     :ensure t
+#     :config
+#     (global-diff-hl-mode))
+# #+end_src
+# 
+# Связываем diff-hl с Magit.
+# 
+# #+begin_src emacs-lisp :tangle yes
+# (add-hook 'magit-pre-refresh-hook 'diff-hl-magit-pre-refresh)
+# (add-hook 'magit-post-refresh-hook 'diff-hl-magit-post-refresh)
+# #+end_src
+
+Теперь к цветному фону добавим символы с помощью пакета =Git-gutter=.
+
+#+begin_src emacs-lisp :tangle yes
+(use-package git-gutter-fringe
+	  :ensure t
+	  :config
+	  (global-git-gutter-mode t)
+	  (setq git-gutter:update-interval 1))
+#+end_src
+
+** Blamer (смотрелка заголовков последних коммитов в коде)
+
+Пример скопирован [[https://github.com/Artawower/blamer.el][отсюда]]. Запомню его тут, чтобы долго не искать.
+
+#+begin_example emacs-lisp :tangle yes
+(use-package blamer
+  :bind (("s-i" . blamer-show-commit-info))
+  :defer 20
+  :custom
+  (blamer-idle-time 0.3)
+  (blamer-min-offset 70)
+  :custom-face
+  (blamer-face ((t :foreground "#7a88cf"
+                    :background nil
+                    :height 140
+                    :italic t)))
+  :config
+  (global-blamer-mode 1))
+#+end_example
+
+Теперь сделаем свою конфигурацию.
+
+#+begin_src emacs-lisp :tangle yes
+(use-package blamer
+    :ensure t
+    :config
+    (global-blamer-mode -1))
+#+end_src
+
+Посадим на горячие клавиши переключение blamer-mode.
+
+#+begin_src emacs-lisp :tangle yes
+(evil-define-key nil 'global (kbd "<leader> g m") #'blamer-mode)
+#+end_src
+
+** Docker
+
+Установка пакетов для работы с docker.
+
+#+begin_src emacs-lisp :tangle yes
+(use-package docker
+    :ensure t)
+(use-package docker-tramp
+    :ensure t)
+(use-package dockerfile-mode
+    :ensure t)
+#+end_src
+
+Горячие клавиши для работы с docker. Тут хватает только вызова
+основной функции, а далее по меню все понятно.
+
+#+begin_src emacs-lisp :tangle yes
+(evil-define-key nil 'global (kbd "<leader> o D") #'docker)
+#+end_src
+
+** Календарь, как его представление
+
+Включение модуля "calendar" позволяет смотреть свои дела из Agenda в виде календаря.
+
+#+begin_src emacs-lisp :tangle yes
+(use-package calfw
+	:ensure t
+	:config
+	(setq cfw:face-item-separator-color nil
+		  cfw:render-line-breaker 'cfw:render-line-breaker-none
+		  cfw:fchar-junction ?╋
+		  cfw:fchar-vertical-line ?┃
+		  cfw:fchar-horizontal-line ?━
+		  cfw:fchar-left-junction ?┣
+		  cfw:fchar-right-junction ?┫
+		  cfw:fchar-top-junction ?┯
+		  cfw:fchar-top-left-corner ?┏
+		  cfw:fchar-top-right-corner ?┓))
+
+(use-package calfw-org
+	:ensure t)
+(use-package calfw-cal
+	:ensure t
+	:commands (cfw:cal-create-source))
+
+(use-package calfw-ical
+	:ensure t
+	:commands (cfw:ical-create-source))
+
+;; (use-package org-gcal
+;; 	:defer t)
+#+end_src
+
+Отключим показ ненужных праздников:
+
+#+begin_src emacs-lisp :tangle yes
+(setq cfw:display-calendar-holidays nil)
+#+end_src
+
+Ниже запилим сочетания клавиш.
+
+Вызов буфера с cfw-календарем:
+
+#+begin_src emacs-lisp :tangle yes
+(evil-define-key nil 'global (kbd "<leader> o a c") #'cfw:open-org-calendar)
+#+end_src
+
+Вызов Agenda для выбранного дня:
+
+#+begin_src emacs-lisp :tangle yes
+(define-key cfw:calendar-mode-map "d" #'cfw:org-open-agenda-day)
+#+end_src
+
+* Инструменты свои
+  
+** Словарик под StarDict
+
+Как установить словарик с нуля?
+
+1. Установить утилиту sdcv:
+   : sudo pacman -S sdcv
+2. В Emacs добавить два пакета:
+   - sdcv
+   - posframe
+3. Скачать словари из http://download.huzheng.org/dict.org/ .
+
+Установим необходимые пакеты.
+
+#+begin_src emacs-lisp :tangle yes
+(use-package sdcv
+    :ensure t)
+(use-package posframe
+    :ensure t)
+#+end_src
+
+Общий путь, где лежит словарик.
+
+#+begin_src emacs-lisp :tangle yes
+(setq my/sdcv-path (concat my/config-dir "/dictionaries/Lingvo-stardict"))
+#+end_src
+
+Чтобы утилита sdcv видела словари, выставим к ним путь в переменную среды.
+
+#+begin_src emacs-lisp :tangle yes
+(setenv "STARDICT_DATA_DIR" my/sdcv-path)
+(require 'sdcv)
+(setq sdcv-dictionary-data-dir my/sdcv-path)
+#+end_src
+
+Горячие клавиши.
+
+#+begin_src emacs-lisp :tangle yes
+(evil-define-key nil 'global
+    (kbd "<leader> s g") #'sdcv-search-input
+    (kbd "<leader> s w") #'sdcv-search-pointer)
+#+end_src
+
+** Калькулятор на Python
+
+Из удобств установлен пакетик =live-py-mode=. Установим его.
+
+#+begin_src emacs-lisp :tangle yes
+(use-package live-py-mode
+    :ensure t)
+#+end_src
+
+При запуске =M-x live-py-mode= в открытом py-файле (ассоциация буфера
+с файлом - это важно, при этом сам файл на диске может и
+отсутствовать) окошко делится пополам, и в правом окне видим
+результаты python-выражений из левого окна. Получился такой удобный
+python-калькулятор (и не только).
+
+Запилим функцию для быстрого создания калькулятора из всего
+вышесказанного.
+
+Ниже имя файла для буфера с 'калькулятором' и имя фрейма для него.
+
+#+begin_src emacs-lisp :tangle yes
+(setq my/calculator-python-filename "_calculator-python.py"
+      my/calculator-python-framename "*-calculator-python-*")
+
+(defun my/calculator--get-python-filename ()
+    (let ((filename (concat (temporary-file-directory)
+                            "/" my/calculator-python-filename)))
+        (string-replace "//" "/" filename)))
+#+end_src
+
+Позаботимся о вставке выделенного текста в буфер 'калькулятора'.
+
+#+begin_src emacs-lisp :tangle yes
+(defun my/get-selection-and-deselect ()
+    "Return selected text in current buffer or empty string."
+    (if (region-active-p)
+            (let ((selection (buffer-substring-no-properties (region-beginning) (region-end))))
+                (deactivate-mark)
+                selection)
+        ""))
+#+end_src
+
+'Калькулятор' создается в отдельном фрейме.  Если перед этим в
+активном буфере был выделен текст, то этот текст будет добавлен в
+буфер 'калькулятора'.  Результат кода ниже - функция, которая
+открывает или закрывает фрейм с калькулятором (если тот был открыт).
+
+#+begin_src emacs-lisp :tangle yes
+(defun my/calculator-python-open ()
+    "Open a frame with 'calulator' on live-py-mode."
+    (interactive)
+    (let* ((selection (my/get-selection-and-deselect))
+           (buffer (find-file-noselect (my/calculator--get-python-filename)))
+           (frame (make-frame)))
+        (select-frame-set-input-focus frame)
+        (set-frame-name my/calculator-python-framename)
+        (switch-to-buffer buffer)
+        (live-py-mode)
+        (when (not (string-empty-p selection))
+            (goto-char (point-max))
+            (if (> (point-max) 1)
+                    (progn (insert "\n\n")
+                           (save-excursion (insert "# -----\n")
+                                           (insert selection)))
+                (save-excursion (insert selection))))
+        (set-buffer-modified-p nil)))
+
+(defun my/calculator-python-close (frame)
+    "Delete the frame. Raise calculator buffer and set it to unmodified."
+    (select-frame-set-input-focus frame)
+    (switch-to-buffer my/calculator-python-filename)
+    (live-py-mode -1)
+    (set-buffer-modified-p nil)
+    (let ((text (buffer-string)))
+        (delete-frame nil t)
+        (with-current-buffer (find-file-noselect (my/calculator--get-python-filename))
+            (erase-buffer)
+            (insert text)
+            (set-buffer-modified-p nil))))
+
+(defun my/calculator-python-toggle ()
+    "Open or close frame with 'calulator' on live-py-mode."
+    (interactive)
+    (let ((frame (my/get-frame-by-name my/calculator-python-framename)))
+        (if frame
+                (my/calculator-python-close frame)
+            (my/calculator-python-open))))
+#+end_src
+
+Горячие клавиши для python-калькулятора.
+
+#+begin_src emacs-lisp :tangle yes
+(evil-define-key nil 'global (kbd "<leader> o c") #'my/calculator-python-toggle)
+#+end_src
+
+* LSP сервер
+
+** Установка
+
+Грузим lsp-mode пакет. Инструкция тут: [[https://emacs-lsp.github.io/lsp-mode/page/installation/][LSP Mode - LSP support for Emacs]].
+
+#+begin_src emacs-lisp :tangle yes
+(use-package lsp-mode
+    :ensure t)
+#+end_src
+
+На странице пакета рекомендуют загрузить следующие пакеты:
+- [[https://emacs-lsp.github.io/lsp-ui/#intro][lsp-ui]]        - for fancy sideline, popup documentation, VScode-like peek UI, etc.
+- [[https://github.com/flycheck/flycheck][flycheck]]      - if you prefer the more popular flycheck over renewed flymake. lsp-mode will automatically pick it up.
+- [[https://github.com/company-mode/company-mode][company-mode]]  - /(Installed)/ for completion popups.
+- [[https://github.com/emacs-lsp/lsp-treemacs][lsp-treemacs]]  - for various tree based UI controls (symbols, errors overview, call hierarchy, etc.)
+- [[https://github.com/emacs-lsp/helm-lsp][helm-lsp]]      - provides on type completion alternative of xref-apropos using helm.
+- [[https://github.com/emacs-lsp/lsp-ivy][lsp-ivy]]       - provides on type completion alternative of xref-apropos using ivy.
+- [[https://emacs-lsp.github.io/dap-mode][dap-mode]]      - if your language is supported by the debugger.
+
+#+begin_src emacs-lisp :tangle yes
+(use-package lsp-ui
+    :ensure t
+    :init
+    ;; (setq lsp-ui-sideline-code-actions-prefix "💡")
+    :config
+    (add-hook 'lsp-mode-hook #'lsp-ui-mode))
+(use-package flycheck
+    :ensure t
+    :init
+    (global-flycheck-mode))
+(use-package lsp-treemacs
+    :ensure t)
+(use-package helm-lsp
+    :ensure t)
+(use-package lsp-ivy
+    :ensure t)
+(use-package dap-mode
+    :ensure t)
+#+end_src
+
+** Общие настройки
+
+Информацию по списку LSP-серверов можно посмотреть [[https://emacs-lsp.github.io/lsp-mode/page/languages/][тут]].
+
+Настройка визуальных особенностей LSP-серверов (взято [[https://emacs-lsp.github.io/lsp-mode/tutorials/how-to-turn-off/][отюда]]).
+Оставлен такой комментарий, но работает и без этого замечания:
+#+begin_quote
+"Don't forget to set these variables *before* loading lsp-mode, otherwise they won't have effect"
+#+end_quote
+
+Symbol highlighting (подсветка имен).
+
+#+begin_src emacs-lisp :tangle yes
+(setq lsp-enable-symbol-highlighting t)
+#+end_src
+
+lsp-ui-doc - on hover dialogs. (всплывающие подсказки).
+- cursor hover (keep mouse hover)
+- mouse hover (keep cursor hover)
+Здесь запретим самопоказ всплывающих подсказок по клавишным переходам
+и оставим для перехода мышью.
+
+Положение поставим верхнее ('top), а если будет не удобно, то можно
+сделать рядом с курсором ('at-point).
+
+#+begin_src emacs-lisp :tangle yes
+(setq lsp-ui-doc-enable t)
+(setq lsp-ui-doc-show-with-cursor nil)
+(setq lsp-ui-doc-show-with-mouse t)
+(setq lsp-ui-doc-position 'top)
+#+end_src
+
+Информацию об объекте можно показывать не только через lsp-ui в
+сплывающем окне, но и через eldoc в минибуфере. Чтобы информация от
+eldoc была полной, выставим соответствующий флажок.
+
+#+begin_src emacs-lisp :tangle yes
+(setq lsp-eldoc-render-all t)
+#+end_src
+
+Lenses (показ количества ссылок).
+
+#+begin_src emacs-lisp :tangle yes
+(setq lsp-lens-enable nil)
+#+end_src
+
+Headerline (где находимся - отображение в headline).
+
+#+begin_src emacs-lisp :tangle yes
+(setq lsp-headerline-breadcrumb-enable t)
+#+end_src
+
+Sideline code actions (действия над кодом (желтые лампочки)).
+- whole sideline via
+- code actions
+
+#+begin_src emacs-lisp :tangle yes
+(setq lsp-ui-sideline-enable t)
+(setq lsp-ui-sideline-show-code-actions t)
+#+end_src
+
+Sideline hover symbols (какая-то информация по коду).
+- disable whole sideline via
+- hide only hover symbols
+
+#+begin_src emacs-lisp :tangle yes
+(setq lsp-ui-sideline-enable t)
+(setq lsp-ui-sideline-show-hover nil)
+#+end_src
+
+Modeline code actions (действия над кодом в строке статуса).
+
+#+begin_src emacs-lisp :tangle yes
+(setq lsp-modeline-code-actions-enable t)
+#+end_src
+
+Разрешаем или запрещаем проверку на ошибки LSP-сервером.
+(Для Python у LSP отвратительная проверка - отменим ее в пользу альтернативной.)
+
+#+begin_src emacs-lisp :tangle yes
+(setq lsp-diagnostics-disabled-modes (list 'python-mode))
+#+end_src
+
+Еще отменим LSP для imenu - тоже плохо справляется.
+
+#+begin_src emacs-lisp :tangle yes
+(setq lsp-enable-imenu nil)
+#+end_src
+
+Flycheck (or flymake if no flycheck is present).
+Все значения можно найти [[https://emacs-lsp.github.io/lsp-mode/page/settings/diagnostics/][тут]] в этом списке:
+
+: Type: (choice (const :tag Pick flycheck if present and fallback to flymake :auto)
+:               (const :tag Pick flycheck :flycheck)
+:               (const :tag Pick flymake :flymake)
+:               (const :tag Use neither flymake nor lsp :none)
+:               (const :tag Prefer flymake t)
+:               (const :tag Prefer flycheck nil))
+
+#+begin_src emacs-lisp :tangle yes
+(setq lsp-diagnostics-provider :auto)  ;; may be ':auto
+;; (setq lsp-diagnostics-provider :flycheck)  ;; may be ':auto
+#+end_src
+
+Sideline diagnostics (тексты ошибок).
+- disable whole sideline via
+- hide only errors
+
+#+begin_src emacs-lisp :tangle yes
+(setq lsp-ui-sideline-enable t)
+(setq lsp-ui-sideline-show-diagnostics t)
+#+end_src
+
+Eldoc (информация по объекту в строке состояния).
+
+#+begin_src emacs-lisp :tangle yes
+(setq lsp-eldoc-enable-hover t)
+#+end_src
+
+Modeline diagnostics statistics (показ числа ошибок в строке состояния).
+
+#+begin_src emacs-lisp :tangle yes
+(setq lsp-modeline-diagnostics-enable t)
+#+end_src
+
+Signature help (показ типа объекта внизу экрана).
+
+#+begin_src emacs-lisp :tangle yes
+(setq lsp-signature-auto-activate '(:on-trigger-char :on-server-request))   ;; you could manually request them via `lsp-signature-activate
+#+end_src
+
+Signature help documentation (keep the signatures) (показ текста документации по объекту внизу экрана).
+
+#+begin_src emacs-lisp :tangle yes
+(setq lsp-signature-render-documentation t)
+#+end_src
+
+Completion (company-mode) (автодополнение с выпадашкой).
+
+#+begin_src emacs-lisp :tangle yes
+(setq lsp-completion-provider :capf)
+#+end_src
+
+Completion item detail (детали в выпадашке автодополнения).
+
+#+begin_src emacs-lisp :tangle yes
+(setq lsp-completion-show-detail t)
+#+end_src
+
+Completion item kind (тип объекта в выпадашке автодополнения).
+
+#+begin_src emacs-lisp :tangle yes
+(setq lsp-completion-show-kind t)
+#+end_src
+
+** Клавиши для работы
+
+Повесим всплывающую подсказку на клавишу Enter, а в минибуфере - на "K".
+Удаление минибуфера с подсказкой тоже удобно сделать по той же
+клавише, что и ее вызов.
+
+#+begin_src emacs-lisp :tangle yes
+(defun my/eldoc ()
+    (interactive)
+    (if-let (eldoc-window (get-buffer-window "*eldoc*"))
+        (delete-window eldoc-window)
+        (eldoc t)))
+
+(evil-define-key 'normal prog-mode-map
+    (kbd "RET") #'lsp-ui-doc-show
+    (kbd "K") #'my/eldoc)
+#+end_src
+
+Добавим ставшую привычной из Doom навигацию по коду.
+
+#+begin_src emacs-lisp :tangle yes
+(evil-define-key nil prog-mode-map
+    (kbd "<leader> c d") #'lsp-find-definition
+    (kbd "<leader> c D") #'lsp-find-references)
+#+end_src
+
+* Программирование
+
+** Подсказки компилятору для обработки org-babel блоков
+
+Подскажем редактору, как обрабатывать org-babel блоки.
+Здесь дружим org-babel со всеми установленными языками.
+
+(!) Но прежде чем дружить блоки с языками, надо загрузить сответствующую
+поддержку ob-блоков. Подгрузку смотри в [[id:c98e419e-f7e9-456d-b8f3-5037f0af775b][разделе]] главы Org.
+
+#+begin_src emacs-lisp :tangle yes
+(org-babel-do-load-languages
+   'org-babel-load-languages
+   '((shell . t)
+     (plantuml . t)
+     (python . t)
+     (haskell . t)
+     (rust . t)))
+#+end_src
+
+** Навигация по ошибкам
+
+Запилим горячие клавиши для перемещения по ошибкам на основе flycheck.
+
+#+begin_src emacs-lisp :tangle yes
+(evil-define-key nil 'global
+    (kbd "<leader> e p") #'flycheck-previous-error
+    (kbd "<leader> e n") #'flycheck-next-error)
+#+end_src
+
+** Markdown
+
+Устанавливаем пакеты для поддержки markdown.
+
+#+begin_src emacs-lisp :tangle yes
+(use-package markdown-toc
+	:ensure t)
+#+end_src
+
+#+RESULTS:
+
+Для markdown-файлов нужен просмотр. Сделаем его через утилиту
+=retext=. Утилита хороша тем, что в режиме просмотра тут же
+перерисовывает содержимое при изменениях в исходном файле. Это
+особенно удобно при работе в плиточных оконных менеджерах.
+
+Устанавливаем утилиту =retext= так:
+
+#+begin_example bash
+sudo apt install retext
+#+end_example
+
+Пишем код для предпросмотра markdown-файлов.
+
+#+begin_src emacs-lisp :tangle yes
+(defun my/markdown-preview-file ()
+    "Preview a markdown file by `retext' utilite."
+    (interactive)
+    (start-process "Markdown-Preview-by-Retext"
+                   "*markdown-retext-preview*"
+                   "retext" "--preview" (buffer-file-name)))
+                   ;; "retext" "--preview" (shell-quote-argument (buffer-file-name))))  ; Оставлено для памяти.
+#+end_src
+
+Вешаем предпросмотр на горячие клавиши.
+
+#+begin_src emacs-lisp :tangle yes
+(eval-after-load 'markdown-mode
+	'(evil-define-key nil markdown-mode-map (my/kbd-localleader "p") #'my/markdown-preview-file))
+#+end_src
+
+** PlantUML
+
+Загружаем пакеты для поддержки Plantuml.
+По-умолчанию на выходе стоит "svg"-файл (есть еще "png" и "txt").
+Это неудобно для темных тем, поскольку все буквы идут черным цветом.
+Перейдем на "png" по-умолчанию.
+
+#+begin_src emacs-lisp :tangle yes
+(use-package plantuml-mode
+	:ensure t
+	:init
+	(let ((jar-path (concat user-emacs-directory "/.local/plantuml.jar")))
+		(setq plantuml-jar-path jar-path
+			  org-plantuml-jar-path jar-path))
+	:config
+    (plantuml-set-output-type "png"))
+#+end_src
+
+Подгрузим автоматом jar-файл.
+
+#+begin_src emacs-lisp :tangle yes
+(unless (file-exists-p plantuml-jar-path)
+    (plantuml-download-jar))
+#+end_src
+
+Горячая клавиша для автодополнения.
+
+#+begin_src emacs-lisp :tangle yes
+(evil-define-key 'insert plantuml-mode-map (kbd "TAB") #'plantuml-complete-symbol)
+#+end_src
+
+Горячая клавиша для показа диаграмы в вертикально разделенной половине окна.
+
+#+begin_src emacs-lisp :tangle yes
+(defun my/plantuml-preview ()
+    (interactive)
+    (save-excursion
+        (plantuml-preview 4)
+        ;;(plantuml-preview-current-block 4)
+        (doom/escape)))
+
+(evil-define-key 'normal plantuml-mode-map (kbd "RET") #'my/plantuml-preview)
+#+end_src
+
+UTF-8 - наше всё! :)
+
+#+begin_src emacs-lisp :tangle yes
+(add-to-list 'org-babel-default-header-args:plantuml
+			 '(:cmdline . "-charset utf-8"))
+#+end_src
+
+Настроим параметр :file для plantuml-блоков по-умолчанию. Если параметр
+:file не указан, то создаем временный файл с картинкой (для этого есть
+функция =org-babel-temp-file=). Это нужно для рисования схем и
+картинок без лишних телодвижений.
+
+#+begin_src emacs-lisp :tangle yes
+(defun my/org-babel-execute:plantuml (func &rest args)
+	(let* ((body (car args))
+		   (params (cadr args))
+		   (out-file-p (cdr (assq :file params)))
+		   (out-file (or out-file-p
+						 (org-babel-temp-file "plantuml-" ".png")))
+		   (new-params (if out-file-p
+						   params
+						   (cons `(:file . ,out-file) params)))
+		   (result (apply func (list body new-params))))
+		(if out-file-p
+			result
+			out-file)))
+
+(advice-add #'org-babel-execute:plantuml
+			:around #'my/org-babel-execute:plantuml)
+#+end_src
+
+** Python
+
+Установим основные пакеты. Какие-то будут впрок.
+
+/Шпаргалка:/
+:   - if doom-module:+pyright
+:     - doom-package:lsp-pyright
+
+#+begin_src emacs-lisp :tangle yes
+(use-package python
+    :ensure t)
+(use-package python-mode
+    :ensure t)
+(use-package pipenv
+    :ensure t)
+(use-package pip-requirements
+    :ensure t)
+(use-package pyvenv
+    :ensure t
+    :config
+    (add-hook 'python-mode-local-vars-hook #'pyvenv-track-virtualenv)
+    (add-to-list 'global-mode-string
+                 '(pyvenv-virtual-env-name (" venv:" pyvenv-virtual-env-name " "))
+                 'append))
+(use-package pyenv-mode
+    :ensure t)
+(use-package pyimport
+    :ensure t)
+(use-package py-isort
+    :ensure t)
+(use-package python-pytest 
+    :ensure t)
+#+end_src
+
+Настройка LSP сервера. Ориентируемся на Pyright, он более устойчивый и
+легковесный, чем Mspyls.
+
+Pyright может не скачаться с серверов, поэтому при удачной попытке его
+лучше сохранить. Лежит сервер в директории
+: ~/.emacs.d/.cache/lsp/npm/pyright
+
+Сперва грузим соответствующий пакет для его поддержки.
+
+#+begin_src emacs-lisp :tangle yes
+(use-package lsp-pyright
+    :ensure t
+    :hook (python-mode . (lambda ()
+                             (unless (equal (buffer-file-name)
+                                            (my/calculator--get-python-filename))
+                                 (require 'lsp-pyright)
+                                 (lsp)))))  ; or lsp-deferred
+#+end_src
+
+У сервера есть *проблема*: Ошибка в буфере *stderr* имеет следующее описание:
+: Process terminated. Couldn't find a valid ICU package installed on the
+: system. Set the configuration flag System.Globalization.Invariant to
+: true if you want to run with no globalization support.
+И лечится установкой где-нибудь в [[/etc/profile]] переменной:
+: export DOTNET_SYSTEM_GLOBALIZATION_INVARIANT=1
+
+Теперь устанавливаем сам сервер.
+
+#+begin_src emacs-lisp :tangle yes
+(lsp-ensure-server 'pyright)
+#+end_src
+
+** Python. Pyvenv
+
+Если работаем в одном демоне с несколькими проектами, то удобно будет
+иметь быструю менюшку для выбора ранее открытых виртуальных
+сред. Запилим такую.
+
+Для начала повесим обвязку на pyvenv-activate.
+
+#+begin_src emacs-lisp :tangle yes
+(setq my/pyvenv-activated-paths (make-hash-table :test 'equal))
+
+(defun my/pyvenv-activate-path-saver (func &rest args)
+    (let ((path (car args)))
+        (puthash path nil my/pyvenv-activated-paths)
+        (apply func args)))
+
+(advice-add 'pyvenv-activate :around #'my/pyvenv-activate-path-saver)
+#+end_src
+
+Один /важный момент/ с пакетом =Conda=! Ему тоже надо накидывать путь
+в виртуальную среду, и тогда он будет видеть ее объекты! Запилим для
+этого собственную функцию активации виртуальной среды.
+
+#+begin_src emacs-lisp :tangle yes
+(defun my/pyvenv-activate (directory)
+    (interactive (list (read-directory-name "Activate venv: " nil nil nil
+                                            pyvenv-default-virtual-env-name)))
+    (setq directory (expand-file-name directory))
+    (pyvenv-activate directory)
+    (when (fboundp 'conda-env-activate-path)
+        (conda-env-activate-path directory)))
+#+end_src
+
+Теперь сделаем выбор из ранее открытых директорий виртуальных сред.
+Сделаем попытку подтянуть наверх пути из текущего проекта.
+
+#+begin_src emacs-lisp :tangle yes
+(defun my/pyvenv-select-path ()
+    "Select one of opened Python virtual environment paths."
+    (interactive)
+    (if (= 0 (hash-table-count my/pyvenv-activated-paths))
+            (message "The history of Pyvenv activating is empty.")
+        (let ((path (ivy-read "Select Python virtual environment path:"
+                              (my/--sort-pyvenv-paths my/pyvenv-activated-paths
+                                                      (projectile-project-root)))))
+            (unless (string-empty-p path)
+                (pyvenv-activate path)
+                (when (fboundp 'conda-env-activate-path)
+                    (conda-env-activate-path path))
+                (message (format "Pyvenv is activated: %s" path))))))
+
+(defun my/--sort-pyvenv-paths (paths-hashmap path-prefix)
+    (let ((ensured-prefix (if path-prefix path-prefix ""))
+          (with-prefix)
+          (without-prefix)
+          (result))
+        (maphash (lambda (key val)
+                     (if (string-search ensured-prefix key)
+                             (setq with-prefix (cons key with-prefix))
+                         (setq without-prefix (cons key without-prefix))))
+                 paths-hashmap)
+        (mapc (lambda (path)
+                  (setq result (cons path result)))
+              without-prefix)
+        (mapc (lambda (path)
+                  (setq result (cons path result)))
+              with-prefix)
+        result))
+#+end_src
+
+И горячие клавиши на активацию и на выбор путей:
+
+#+begin_src emacs-lisp :tangle yes
+(evil-define-key nil python-mode-map
+    (kbd "<leader> e a") #'my/pyvenv-activate
+    (kbd "<leader> e i") #'my/pyvenv-select-path)
+#+end_src
+
+** Haskell
+
+Устанавливаем пакет для Haskell и поддержку LPS для него.
+
+#+begin_src emacs-lisp :tangle yes
+(use-package haskell-mode
+    :ensure t)
+(use-package lsp-haskell
+    :ensure t
+    :config
+    (add-hook 'haskell-mode-hook #'lsp)
+    (add-hook 'haskell-literate-mode-hook #'lsp)
+    ;; (customize-group 'lsp-haskell)
+    )
+#+end_src
+
+#+RESULTS:
+
+Для org-mode удобно раз и навсегда включить полезные расширения языка.
+
+#+begin_src emacs-lisp :tangle yes
+(add-to-list 'haskell-process-args-ghci "-XDuplicateRecordFields")
+(add-to-list 'haskell-process-args-ghci "-XOverloadedStrings")
+(add-to-list 'haskell-process-args-ghci "-XDeriveGeneric")
+(add-to-list 'haskell-process-args-ghci "-package aeson")
+#+end_src
+
+Автоотступы. Ставим четверки вместо двоек.
+
+#+begin_src emacs-lisp :tangle yes
+(setq haskell-indentation-starter-offset 4
+      haskell-indentation-where-pre-offset 4
+      haskell-indentation-left-offset 4
+      haskell-indentation-where-post-offset 4
+      haskell-indentation-layout-offset 4)
+#+end_src
+
+** Rust
+
+(!) Чтобы заработал LSP-сервер для Rust,
+необходимо установить утилиту =rust-analyzer=:
+: sudo pacman -S rust-analyzer
+
+Много полезных настроек можно посмотреть тут:
+[[https://robert.kra.hn/posts/rust-emacs-setup/][Configuring Emacs for Rust development]].
+
+Устанавливаем необходимые пакеты. (Все есть в одном пакете rustic, а
+ob-rust для работы с org-babel блоками устанавливается [[id:c98e419e-f7e9-456d-b8f3-5037f0af775b][выше]]).
+
+#+begin_src emacs-lisp :tangle yes
+(use-package rustic
+    :ensure t)
+#+end_src

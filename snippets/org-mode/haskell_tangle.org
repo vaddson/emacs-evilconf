@@ -1,0 +1,7 @@
+# -*- mode: snippet -*-
+# name: Haskell Tangle
+# key: haskell_tangle_
+# --
+#+begin_src haskell :tangle ${1:filename}.hs :noweb yes
+$0
+#+end_src

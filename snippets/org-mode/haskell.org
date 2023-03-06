@@ -1,0 +1,7 @@
+# -*- mode: snippet -*-
+# name: haskell
+# key: haskell_
+# --
+#+begin_src haskell
+$0
+#+end_src

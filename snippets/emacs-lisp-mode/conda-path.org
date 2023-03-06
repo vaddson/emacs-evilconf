@@ -1,0 +1,8 @@
+# -*- mode: snippet -*-
+# name: conda-path-dir-local
+# key: conda-path-dir-local_
+# --
+;; Put it into .dir-locals.el file in your python-project directory.
+(
+ (python-mode . ((eval . (conda-env-activate-path (concat (projectile-project-root) "${1:src/env/}")))))
+ )

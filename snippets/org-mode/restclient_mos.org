@@ -1,0 +1,20 @@
+# -*- mode: snippet -*-
+# name: Rest Client for Mos
+# key: restclient_mos
+# --
+#+name: ${1:json_result}
+#+begin_src restclient :results value :wrap export json :cache yes
+$0
+#+end_src
+
+#+begin_src python :var json_result=$1 :results pp :wrap export js
+def vals(container, *fields):
+    return [container[field] for field in fields]
+
+import json
+data = json.loads(json_result)
+return [
+    vals(doc, "id", "index", "title", "url", "rank")
+    for doc in data["results"]
+]
+#+end_src
