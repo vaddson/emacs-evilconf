@@ -100,14 +100,14 @@
 ;;; use-package for вид GUI
 #+end_src
 
-* Пока редактор загружается, изменим ему внешний вид, но не до конца
+* Пока редактор загружается, поправим ему внешний вид
 
 ** Меню и панель инструментов (menu and toolbar)
 
 Скроем лишние элементы управления, как меню, полосы прокрутки и прочее.
 
 #+begin_src emacs-lisp :tangle yes
-(menu-bar-mode     -1)  ;; Отключфем графическое меню.
+(menu-bar-mode     -1)  ;; Отключаем графическое меню.
 (tool-bar-mode     -1)  ;; Отключаем tool-bar.
 (scroll-bar-mode   -1)  ;; Отключаем полосу прокрутки.
 #+end_src
@@ -124,7 +124,7 @@
     (load-theme 'doom-one t)
     ;; (load-theme 'doom-gruvbox-light t)
     ;; (load-theme 'doom-gruvbox t)
-    ;; (load-theme 'doom-monokai-classic t)
+    ;; (load-theme 'doom-molokai t)
     )
 #+end_src
 
@@ -2442,20 +2442,21 @@ If you use `org' and don't want your org files in the default location below, ch
 	:ensure t)
 #+end_src
 
-** Подгрузка пакетов для запуска org-babel блоков
+** Подгрузка пакетов для запуска скриптов в org-babel блоках
    :PROPERTIES:
    :ID:       c98e419e-f7e9-456d-b8f3-5037f0af775b
    :END:
 
+Подгружаем пакеты для запуска скриптов в org-babel блоках.
+Поддержка языков прописывается в [[id:cb53569d-930e-42f1-925b-8c3b660f9c4d][разделе]] программирования.
+
 #+begin_src emacs-lisp :tangle yes
 (use-package ob-async
-	:ensure t)
+    :ensure t)
 (use-package ob-go
-	:ensure t)
+    :ensure t)
 (use-package ob-restclient
-	:ensure t)
-(use-package ob-restclient
-	:ensure t)
+    :ensure t)
 (use-package ob-rust
     :ensure t)
 #+end_src
@@ -3230,12 +3231,22 @@ shows it in message and put the result into registers `\"' and `t'."
     :ensure t)
 #+end_src
 
-Горячие клавиши для вызова дерева проектов.
+Горячие клавиши для вызова дерева проектов.  Добавим переход в окно
+treemacs при показе текущего файла в дереве проекта.
 
 #+begin_src emacs-lisp :tangle yes
+(defun my/treemacs-find-file-and-select-tree-window ()
+    (interactive)
+    (treemacs-find-file)
+    (treemacs-select-window))
+
 (evil-define-key nil 'global
     (kbd "<leader> o p") #'treemacs
-    (kbd "<leader> o P") #'treemacs-find-file)
+    (kbd "<leader> o P") #'my/treemacs-find-file-and-select-tree-window)
+
+(evil-define-key 'normal treemacs-mode-map
+    (kbd ">") #'treemacs-increase-width
+    (kbd "<") #'treemacs-decrease-width)
 #+end_src
 
 Вызов меню для treemacs.
@@ -3808,6 +3819,9 @@ Completion item kind (тип объекта в выпадашке автодоп
 * Программирование
 
 ** Подсказки компилятору для обработки org-babel блоков
+   :PROPERTIES:
+   :ID:       cb53569d-930e-42f1-925b-8c3b660f9c4d
+   :END:
 
 Подскажем редактору, как обрабатывать org-babel блоки.
 Здесь дружим org-babel со всеми установленными языками.
@@ -3882,6 +3896,28 @@ sudo apt install retext
 
 #+begin_src emacs-lisp :tangle yes
 (use-package yaml-mode
+    :ensure t)
+#+end_src
+
+** Json
+
+#+begin_src emacs-lisp :tangle yes
+(use-package json-mode
+    :ensure t)
+#+end_src   
+
+** Make
+
+#+begin_src emacs-lisp :tangle yes
+(require 'make-mode)
+#+end_src
+
+#+RESULTS:
+
+** Vimrc
+
+#+begin_src emacs-lisp :tangle yes
+(use-package vimrc-mode
     :ensure t)
 #+end_src
 
