@@ -113,6 +113,9 @@
 #+end_src
 
 ** Красивые темы и установка темы по-умолчанию
+   :PROPERTIES:
+   :ID:       40986685-fc80-45b7-ab77-4cac074fea9f
+   :END:
 
 Загружаем красивые темы и устанавливаем одну из них.
 Стараемся успеть до загрузки всех остальных настроек.
@@ -651,6 +654,51 @@ Find application name in my/application-name variable."
 (global-set-key (kbd "C--") #'text-scale-decrease)
 #+end_src
 
+* Демоны
+
+Мне удобно для работы запускать несколько демонов Emacs.
+Визуально их различаю цветовыми темами. Например:
+- "notes" - теплая тема,
+- "dev"   - холодная тема,
+- "rest"  - холодная тема с прозрачностью.
+
+Установим каждому демону тему на старте.
+
+#+begin_src emacs-lisp :tangle yes
+(pcase (daemonp)
+    ("notes"
+     (load-theme 'doom-molokai t))
+
+    ("dev"
+     (load-theme 'doom-one t))
+
+    ("rest"
+     (setq my/transparency_level 1)
+     (load-theme 'doom-one t)))
+#+end_src
+
+А тема по-умолчанию задается на [[id:40986685-fc80-45b7-ab77-4cac074fea9f][старте]].
+
+Клиентов к демонам запускаю по ярлыкам из [[/usr/share/applications/]].
+Если при вызове клиента демон не был запущен, то он запускается.
+Пример ярлыка для клиента от демона "notes" (файл emacs_notes.desktop):
+
+#+begin_src conf
+[Desktop Entry]
+Name=Emacs Notes
+GenericName=Text Editor
+Comment=Edit text
+MimeType=text/english;text/plain;text/x-makefile;text/x-c++hdr;text/x-c++src;text/x-chdr;text/x-csrc;text/x-java;text/x-moc;text/x-pascal;text/x-tcl;text/x-tex;application/x-shellscript;text/x-c;text/x-c++;
+Exec=emacsclient -a "" -c -s notes
+Icon=emacs
+Type=Application
+Terminal=false
+Categories=Development;TextEditor;
+StartupWMClass=Emacs
+Keywords=Text;Editor;
+#+end_src
+
+
 * Регистры и операции с ними
 
 ** Общий буфер обмена для Emacs и ОС
@@ -1169,6 +1217,23 @@ from urllib.parse import quote, unquote
     :ensure t)
 (use-package counsel-projectile
     :ensure t)
+#+end_src
+
+Уберем "^" из начала поисковой строки в counsel и вообще в Ivy.
+
+#+begin_src emacs-lisp :tangle yes
+(setq ivy-initial-inputs-alist
+      '((counsel-minor . "+")
+        (counsel-package . "+")
+        (counsel-org-capture . "")
+        (counsel-M-x . "")
+        (counsel-describe-symbol . "")
+        (org-refile . "")
+        (org-agenda-refile . "")
+        (org-capture-refile . "")
+        (Man-completion-table . "")
+        (woman . "")))
+
 #+end_src
 
 Подменим стандартные функции на их counsel-аналог.
