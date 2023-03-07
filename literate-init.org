@@ -398,10 +398,10 @@
 
 #+begin_src emacs-lisp :tangle yes
 (add-hook 'after-make-frame-functions
-		  (lambda (frame)
-			  (my/select-frame-font-for-monitor frame
-												my/global-font
-												my/global-font-inc)))
+          (lambda (frame)
+              (my/select-frame-font-for-monitor frame
+                                                my/global-font
+                                                my/global-font-inc)))
 #+end_src
 
 Не всегда получится правильно угадать и выставить шрифт
@@ -410,9 +410,9 @@
 #+begin_src emacs-lisp :tangle yes
 (defun my/correct-font-in-current-frame ()
     (interactive)
-	(my/select-frame-font-for-monitor nil
-									  my/global-font
-									  my/global-font-inc))
+    (my/select-frame-font-for-monitor nil
+                                      my/global-font
+                                      my/global-font-inc))
 
 (evil-define-key nil 'global (kbd "<leader> e d") #'my/correct-font-in-current-frame)
 #+end_src
@@ -1508,13 +1508,16 @@ Imenu - дает не только удобный способ навигаци�
     (interactive (list (read-string "Enter workspace name: ")))
     (when persp-name
         (let* ((frame-text (my/make-title-bar-text persp-name))
-               (frame (or (my/get-frame-by-name frame-text)
-                          (make-frame))))
-            (select-frame-set-input-focus frame)
-            (my/set-title-bar persp-name)
-            (switch-to-buffer "*dashboard*")
-            (persp-switch persp-name)
-            (message (concat "Workspace '" persp-name "' is selected.")))))
+               (frame (my/get-frame-by-name frame-text)))
+            (if frame
+                    (select-frame-set-input-focus frame)
+                (setq frame (make-frame))
+                (select-frame-set-input-focus frame)
+                (my/set-title-bar persp-name)
+                (switch-to-buffer "*dashboard*")
+                (delete-other-windows)
+                (persp-switch persp-name)
+                (message (concat "Workspace '" persp-name "' is selected."))))))
 #+end_src
 
 Здесь определим набор клавиш для привычных действий с фреймами.
