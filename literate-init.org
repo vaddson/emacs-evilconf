@@ -1511,13 +1511,28 @@ Imenu - дает не только удобный способ навигаци�
                (frame (my/get-frame-by-name frame-text)))
             (if frame
                     (select-frame-set-input-focus frame)
-                (setq frame (make-frame))
-                (select-frame-set-input-focus frame)
-                (my/set-title-bar persp-name)
-                (switch-to-buffer "*dashboard*")
-                (delete-other-windows)
-                (persp-switch persp-name)
-                (message (concat "Workspace '" persp-name "' is selected."))))))
+                (my/prepare-frame-for-workspace persp-name
+                                                (make-frame))))))
+
+(defun my/prepare-frame-for-workspace (persp-name frame)
+    (select-frame-set-input-focus frame)
+    (my/set-title-bar persp-name)
+    (switch-to-buffer "*dashboard*")
+    (delete-other-windows)
+    (persp-switch persp-name)
+    (message (concat "Workspace '" persp-name "' is selected.")))
+#+end_src
+
+Выбрать/создать перспективу с изменением заголовка удобно сделать и
+для текущего активного фрейма.  Это пригодится после вызова нового
+emacs-клиента.
+
+#+begin_src emacs-lisp :tangle yes
+(defun my/set-title-bar-and-workspace-interactive (persp-name)
+    (interactive (list (read-string "Enter workspace name: ")))
+    (when persp-name
+        (my/prepare-frame-for-workspace persp-name
+                                        (selected-frame))))
 #+end_src
 
 Здесь определим набор клавиш для привычных действий с фреймами.
@@ -1525,7 +1540,8 @@ Imenu - дает не только удобный способ навигаци�
 #+begin_src emacs-lisp :tangle yes
 (evil-define-key nil 'global
     (kbd "<leader> o f") #'my/make-frame-and-switch-perpective
-    (kbd "<leader> q f") #'delete-frame)
+    (kbd "<leader> q f") #'delete-frame
+    (kbd "<leader> n I") #'my/set-title-bar-and-workspace-interactive)
 #+end_src
 
 ** Поиск фрейма по имени
@@ -1733,6 +1749,10 @@ Imenu - дает не только удобный способ навигаци�
 
         ;; Magit log
         ("^magit-log:.*"
+         (display-buffer-reuse-window display-buffer-same-window))
+
+        ;; Magit refs
+        ("^magit-refs:.*"
          (display-buffer-reuse-window display-buffer-same-window))
 
         ;; Magit process
@@ -3238,6 +3258,8 @@ shows it in message and put the result into registers `\"' and `t'."
 	  (define-key magit-mode-map (kbd "SPC") nil)
 	  (define-key magit-section-mode-map (kbd "SPC") nil)
 	  (define-key magit-revision-mode-map (kbd "SPC") nil)
+	  (define-key magit-refs-mode-map (kbd "SPC") nil)
+	  (define-key magit-diff-mode-map (kbd "SPC") nil)
 	  ;; Define some keys:
 	  (evil-define-key nil 'global
 		  (kbd "<leader> g g") #'magit-status
@@ -3251,8 +3273,6 @@ shows it in message and put the result into registers `\"' and `t'."
   (use-package magit-todos
 	  :ensure t)
 #+end_src
-
-#+RESULTS:
 
 Запилим горячие клавиши на полезные операции. Итак:
 
