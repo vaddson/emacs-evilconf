@@ -4180,6 +4180,34 @@ UTF-8 - наше всё! :)
     :ensure t)
 #+end_src
 
+Путь к настройкам линтера PyLint.
+
+#+begin_src emacs-lisp :tangle yes
+(setq flycheck-pylintrc (list "pylintrc"
+                              ".pylintrc"
+                              ;; "pyproject.toml"
+                              "setup.cfg"
+                              (concat (getenv "HOME") "/.config/pylintrc")))
+#+end_src
+
+Путь к настройкам линтера flake8.
+
+#+begin_src emacs-lisp :tangle yes
+(setq flycheck-flake8rc (list ".flake8"
+                              "setup.cfg"
+                              "tox.ini"
+                              (concat (getenv "HOME") "/.config/flake8")))
+#+end_src
+
+Путь к настройкам линтера mypy.
+
+#+begin_src emacs-lisp :tangle yes
+(setq flycheck-python-mypy-config (list "mypy.ini"
+                                        ;; "pyproject.toml"
+                                        "setup.cfg"
+                                        (concat (getenv "HOME") "/.config/mypy/config")))
+#+end_src
+
 Настройка LSP сервера. Ориентируемся на Pyright, он более устойчивый и
 легковесный, чем Mspyls.
 
