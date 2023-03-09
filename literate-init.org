@@ -100,6 +100,12 @@
 ;;; use-package for вид GUI
 #+end_src
 
+Не будем кошмарить логом с ошибками, если там только предупреждения.
+
+#+begin_src emacs-lisp :tangle yes
+(setq warning-minimum-level :error)
+#+end_src
+
 * Пока редактор загружается, поправим ему внешний вид
 
 ** Меню и панель инструментов (menu and toolbar)
@@ -197,6 +203,8 @@
   :PROPERTIES:
   :ID:       cc78f980-e959-4169-b667-4b40109e08a7
   :END:
+
+** Установка и настройка
 
 Сразу ставим пакет =evil= и включаем эмуляцию редактора Vim. Здесь же
 ставим замену табуляций на пробелы для команды =evil-indent=.
@@ -342,6 +350,82 @@
 #+begin_src emacs-lisp :tangle yes
 ;; Eval expression
 (evil-define-key nil 'global (kbd "<leader> ;") #'pp-eval-expression)
+#+end_src
+
+** Настройка поведения клавиш для evil-mode, как в Vim.
+
+Перемещение по строкам и внутри них хоть и сделано в evil-mode, но
+работает как-то все равно с огрехами. Поэтому сделаем костыль, в
+котором четко определим, как должна работать навигация.
+
+Здесь включается, как в Vim, реакция на "dd", "V" и т.п.. "Допил
+напильником" ниже.
+
+#+begin_src emacs-lisp :tangle yes
+(setq evil-respect-visual-line-mode nil)
+#+end_src
+
+Перемещение курсора, как в Vim, независимо от `global-visual-mode' и
+прочих "удобств".
+
+#+begin_src emacs-lisp :tangle yes
+(define-key evil-normal-state-map (kbd "j") #'evil-next-line)
+(define-key evil-visual-state-map (kbd "j") #'evil-next-line)
+(define-key evil-normal-state-map (kbd "g j") #'evil-next-visual-line)
+(define-key evil-visual-state-map (kbd "g j") #'evil-next-visual-line)
+(define-key evil-normal-state-map (kbd "k") #'evil-previous-line)
+(define-key evil-visual-state-map (kbd "k") #'evil-previous-line)
+(define-key evil-normal-state-map (kbd "g k") #'evil-previous-visual-line)
+(define-key evil-visual-state-map (kbd "g k") #'evil-previous-visual-line)
+(define-key evil-normal-state-map (kbd "$") #'evil-end-of-line)
+(define-key evil-visual-state-map (kbd "$") #'evil-end-of-line)
+(define-key evil-normal-state-map (kbd "^") #'evil-first-non-blank)
+(define-key evil-visual-state-map (kbd "^") #'evil-first-non-blank)
+(define-key evil-normal-state-map (kbd "0") #'evil-beginning-of-line)
+(define-key evil-visual-state-map (kbd "0") #'evil-beginning-of-line)
+
+(define-key evil-normal-state-map (kbd "A") #'my/evil-append-line)
+(defun my/evil-append-line ()
+    (interactive)
+    (evil-end-of-line)
+    (evil-append 1))
+
+(define-key evil-normal-state-map (kbd "I") #'my/evil-insert-line)
+(defun my/evil-insert-line ()
+    (interactive)
+    (evil-first-non-blank)
+    (evil-insert 1))
+
+(define-key evil-normal-state-map (kbd "D") #'my/evil-delete-line)
+(defun my/evil-delete-line ()
+    (interactive)
+    (save-excursion
+        (let ((beg (point))
+              (end))
+            (evil-end-of-line)
+            (setq end (point))
+            (evil-delete-line beg end))))
+
+(define-key evil-normal-state-map (kbd "C") #'my/evil-change-line)
+(defun my/evil-change-line ()
+    (interactive)
+    (save-excursion
+        (let ((beg (point))
+              (end))
+            (evil-end-of-line)
+            (setq end (min (buffer-end +1) (+ 1 (point))))
+            (evil-change beg end))))
+
+(define-key evil-normal-state-map (kbd "S") #'my/evil-change-whole-line)
+(defun my/evil-change-whole-line ()
+    (interactive)
+    (let ((beg)
+          (end))
+        (evil-first-non-blank)
+        (setq beg (point))
+        (evil-end-of-line)
+        (setq end (min (buffer-end +1) (+ 1 (point))))
+        (evil-change beg end)))
 #+end_src
 
 * Внешний вид GUI
@@ -697,7 +781,6 @@ Categories=Development;TextEditor;
 StartupWMClass=Emacs
 Keywords=Text;Editor;
 #+end_src
-
 
 * Регистры и операции с ними
 
@@ -2319,6 +2402,8 @@ Return history hash-map."
 	(kbd "S-M-]") #'org-forward-element
 	(kbd "g h") #'org-up-element
 	(kbd "g l") #'org-down-element
+	(kbd "g k") nil
+	(kbd "g j") nil
 	(kbd "[ [") #'evil-backward-section-begin
 	(kbd "[ ]") #'evil-backward-section-end
 	(kbd "] ]") #'evil-forward-section-begin
