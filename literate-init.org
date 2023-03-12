@@ -13,17 +13,14 @@
    там ссылку).
 2. Скопировать файл init.el в директорию ~/.emacs.d/ .
 3. Запустить Emacs.
-4. Дождаться установки пакетов. По ходу установки отвечать на вопросы.
+4. Дождаться установки пакетов. По ходу установки отвечать на вопросы утвердительно.
 
-*Какой редактор здесь строится?*
-- Делаю редактор с Vim-раскладкой для редактирования.
-  Vim включается через систему пакетов EVIL.  Чтобы не связываться с
-  Vim-редактированием, лучше оставить загрузку evil-пакетов, но
-  отключить вызов функции =evil-mode= в разделе [[id:cc78f980-e959-4169-b667-4b40109e08a7][Evil]]. Далее можно
-  назначить везде свои горячие клавиши, где они тут определены через
-  функции =my/leader-der=, =my/localleader-def= и =my/define-key=.
-- Практически вся необходимая мне функциональность из Doom восстановлена.
-  Можно отправляться в свободное плаванье.
+*Как перейти c Vim (EVIL) на стандартную раскладку Emacs?*
+1. В разделе "[[id:44f272c6-5f95-440f-8a1f-1766fe438feb][Включение Evil по всему редактору]]" установить
+   переменную my/evil в nil:
+   : (setq my/evil nil)
+2. Это все. Все раскладки должны сохраниться, а префикс-лидер к ним по-умолчанию
+   станет =Ctrl-s=.
 
 * Отладка
 
@@ -66,6 +63,22 @@
       user-mail-address "vaddson@vaddson.aaa")
 #+end_src
 
+** Включение Evil по всему редактору
+   :PROPERTIES:
+   :ID:       44f272c6-5f95-440f-8a1f-1766fe438feb
+   :END:
+
+Здесь выбирается режим редактирования.  По-умолчанию это Vim (EVIL).
+Чтобы переключиться на Emacs, надо сбросить переменную =my/evil= в nil.
+
+#+begin_src emacs-lisp :tangle yes
+(setq my/evil t)  ;; For Vim keys.
+;; (setq my/evil nil)  ;; For Emacs keys.
+#+end_src
+
+Префикс-лидер для Vim установлен в =Space=, для Emacs - =Control-s=.
+Эти префиксы задаются в разделе "[[id:03e1b30d-e7f1-42ac-bc0b-71a9b2970fcf][General (назначение клавиш на помощь evil)]]".
+   
 * Подготовка к установке пакетов из репозиториев
 
 Подцепим репозиторий melpa.
@@ -218,69 +231,73 @@
     (setq evil-want-keybinding nil)
     :config
     (setq-default indent-tabs-mode nil)
-    (setq evil-indent-convert-tabs t)
+    (setq evil-indent-convert-tabs t))
+#+end_src
+
+Включаем Evil.
+
+#+begin_src emacs-lisp :tangle yes
+(when my/evil
     (evil-mode))
 #+end_src
 
 Устанавливаем evil-клавиши для всего, что есть.
 
-Устанавливаем сразу все карты клавиш функцией evil-collection-init.
-В комментарии оставлено все, что там есть.
+Устанавливаем сразу все карты клавиш функцией =evil-collection-init=.
+Список того, что там еще есть:
+- evil-collection-bm-setup
+- evil-collection-calendar-setup
+- evil-collection-calendar-setup-org-bindings
+- evil-collection-comint-setup
+- evil-collection-compile-setup
+- evil-collection-custom-setup
+- evil-collection-debug-setup
+- evil-collection-diff-mode-setup
+- evil-collection-dired-setup
+- evil-collection-edebug-setup
+- evil-collection-ediff-setup
+- evil-collection-eglot-setup
+- evil-collection-elisp-mode-setup
+- evil-collection-elisp-refs-setup
+- evil-collection-epa-setup
+- evil-collection-eshell-setup
+- evil-collection-eshell-setup-keys
+- evil-collection-finder-setup
+- evil-collection-flycheck-setup
+- evil-collection-flymake-setup
+- evil-collection-grep-setup
+- evil-collection-help-setup
+- evil-collection-helpful-setup
+- evil-collection-ibuffer-setup
+- evil-collection-imenu-setup
+- evil-collection-indent-setup
+- evil-collection-info-setup
+- evil-collection-ivy-setup
+- evil-collection-log-edit-setup
+- evil-collection-magit-section-setup
+- evil-collection-magit-setup
+- evil-collection-magit-todos-setup
+- evil-collection-man-setup
+- evil-collection-markdown-mode-setup
+- evil-collection-org-roam-setup
+- evil-collection-org-setup
+- evil-collection-package-menu-setup
+- evil-collection-popup-setup
+- evil-collection-python-setup
+- evil-collection-setup
+- evil-collection-sh-script-setup
+- evil-collection-so-long-setup
+- evil-collection-vc-git-setup
+- evil-collection-view-setup
+- evil-collection-wgrep-setup
+- evil-collection-which-key-setup
+- evil-collection-xref-setup
 
 #+begin_src emacs-lisp :tangle yes
 (use-package evil-collection
     :ensure t
     :config
-    (evil-collection-init)
-    ;; (evil-collection-bm-setup)
-    ;; (evil-collection-calendar-setup)
-    ;; (evil-collection-calendar-setup-org-bindings)
-    ;; (evil-collection-comint-setup)
-    ;; (evil-collection-compile-setup)
-    ;; (evil-collection-custom-setup)
-    ;; (evil-collection-debug-setup)
-    ;; (evil-collection-diff-mode-setup)
-    ;; (evil-collection-dired-setup)
-    ;; (evil-collection-edebug-setup)
-    ;; (evil-collection-ediff-setup)
-    ;; (evil-collection-eglot-setup)
-    ;; (evil-collection-elisp-mode-setup)
-    ;; (evil-collection-elisp-refs-setup)
-    ;; (evil-collection-epa-setup)
-    ;; (evil-collection-eshell-setup)
-    ;; (evil-collection-eshell-setup-keys)
-    ;; (evil-collection-finder-setup)
-    ;; (evil-collection-flycheck-setup)
-    ;; (evil-collection-flymake-setup)
-    ;; (evil-collection-grep-setup)
-    ;; (evil-collection-help-setup)
-    ;; (evil-collection-helpful-setup)
-    ;; (evil-collection-ibuffer-setup)
-    ;; (evil-collection-imenu-setup)
-    ;; (evil-collection-indent-setup)
-    ;; (evil-collection-info-setup)
-    ;; (evil-collection-ivy-setup)
-    ;; (evil-collection-log-edit-setup)
-    ;; (evil-collection-magit-section-setup)
-    ;; (evil-collection-magit-setup)
-    ;; (evil-collection-magit-todos-setup)
-    ;; (evil-collection-man-setup)
-    ;; (evil-collection-markdown-mode-setup)
-    ;; (evil-collection-org-roam-setup)
-    ;; (evil-collection-org-setup)
-    ;; (evil-collection-package-menu-setup)
-    ;; (evil-collection-popup-setup)
-    ;; (evil-collection-python-setup)
-    ;; (evil-collection-setup)
-    ;; (evil-collection-sh-script-setup)
-    ;; (evil-collection-so-long-setup)
-    ;; (evil-collection-vc-git-setup)
-    ;; (evil-collection-view-setup)
-    ;; (evil-collection-wgrep-setup)
-    ;; (evil-collection-which-key-setup)
-    ;; (evil-collection-xref-setup)
-    ;; Safe my leader key.
-    )
+    (evil-collection-init))
 #+end_src
 
 Догружаем остальной ворох пакетов для evil.
@@ -317,14 +334,22 @@
 #+end_src
 
 ** General (назначение клавиш на помощь evil)
+   :PROPERTIES:
+   :ID:       03e1b30d-e7f1-42ac-bc0b-71a9b2970fcf
+   :END:
 
 Клавиши leader (пробел или M-m) и localleader (m).
 
 #+begin_src emacs-lisp :tangle yes
-(setq my/leader "SPC"
-      my/leader-non-normal "M-m")
-(setq my/localleader "SPC m"
-      my/localleader-non-normal "M-m m")
+(if my/evil
+    (progn (setq my/leader "SPC"
+                 my/leader-non-normal "M-m")
+           (setq my/localleader "SPC m"
+                 my/localleader-non-normal "M-m m"))
+    (progn (setq my/leader "C-s"
+                 my/leader-non-normal "C-s")
+           (setq my/localleader "C-s m"
+                 my/localleader-non-normal "C-s m")))
 #+end_src
 
 Для определения клавиш лучше переключиться на пакет =general=.
@@ -340,39 +365,41 @@
 Определим на основе general-define-key свои функции назначения клавиш.
 
 #+begin_src emacs-lisp :tangle yes
-(defun my/leader-def (states keymaps &rest args)
-    (apply 'my/--define-key
-           my/leader
-           my/leader-non-normal
-           states
-           keymaps
-           args))
+(defmacro my/leader-def (states keymaps &rest args)
+    `(my/--define-key my/leader
+                      my/leader-non-normal
+                      ,states
+                      ,keymaps
+                      ,@args))
 
-(defun my/localleader-def (states keymaps &rest args)
-    (apply 'my/--define-key
-           my/localleader
-           my/localleader-non-normal
-           states
-           keymaps
-           args))
+(defmacro my/localleader-def (states keymaps &rest args)
+    `(my/--define-key my/localleader
+                      my/localleader-non-normal
+                      ,states
+                      ,keymaps
+                      ,@args))
 
-(defun my/define-key (states keymaps &rest args)
-    (setq states (or states
-                     '(normal visual insert replace moniton emacs)))
-    (apply 'general-define-key
-           :states states
-           :keymaps keymaps
-           args))
+(defmacro my/evil-define-key (states keymaps &rest args)
+    (when my/evil
+        (setq states (or states
+                         '(normal visual insert replace moniton emacs)))
+        `(general-define-key :states ',states
+                             :keymaps ',keymaps
+                             ,@args)))
 
-(defun my/--define-key (leader leader-non-normal states keymaps &rest args)
-    (setq states (or states
-                     '(normal visual insert replace moniton emacs)))
-    (apply 'general-define-key
-           :states states
-           :keymaps keymaps
-           :prefix leader
-           :non-normal-prefix leader-non-normal
-           args))
+(defmacro my/--define-key (leader leader-non-normal states keymaps &rest args)
+    (if my/evil
+        (progn
+            (setq states (or states
+                             '(normal visual insert replace moniton emacs)))
+            `(general-define-key :states ',states
+                                 :keymaps ',keymaps
+                                 :prefix ,leader
+                                 :non-normal-prefix ,leader-non-normal
+                                 ,@args))
+        `(general-define-key :keymaps ',keymaps
+                             :prefix ,leader
+                             ,@args)))
 #+end_src
 
 Назначим некоторые полезные сочетания клавиш.
@@ -2455,7 +2482,7 @@ Return history hash-map."
 Вернем привычные горячие клавиши из Doom для evil-mode.
 
 #+begin_src emacs-lisp :tangle yes
-(my/define-key '(normal visual motion) 'org-mode-map
+(my/evil-define-key '(normal visual motion) 'org-mode-map
 	"[ s" #'evil-prev-flyspell-error
 	"] s" #'evil-next-flyspell-error
 	"S-M-[" #'org-backward-element
@@ -2480,11 +2507,11 @@ Return history hash-map."
 	"l t" #'org-toggle-link-display
     "y" #'org-id-copy)
 ;; It's a magic and shaman's dances:
-(my/define-key '(normal visual motion) 'org-mode-map
+(my/evil-define-key '(normal visual motion) 'org-mode-map
 	"[ c" #'org-babel-previous-src-block
 	"] c" #'org-babel-next-src-block)
 ;; It's a magic and shaman's dances:
-(my/define-key '(normal visual motion) 'org-mode-map
+(my/evil-define-key '(normal visual motion) 'org-mode-map
     "[ l" #'org-previous-link
     "] l" #'org-next-link)
 (my/localleader-def nil 'org-mode-map
@@ -2495,7 +2522,7 @@ Return history hash-map."
 Отрубим мешающиеся клавиши, что затирают творение выше.
 
 #+begin_src emacs-lisp :tangle yes
-(my/define-key '(normal visual motion) 'evil-collection-unimpaired-mode-map
+(my/evil-define-key '(normal visual motion) 'evil-collection-unimpaired-mode-map
 	"[ l" nil
 	"] l" nil)
 #+end_src
@@ -2610,7 +2637,7 @@ Return history hash-map."
 Определяем поведение клавиши Enter для evil.
 
 #+begin_src emacs-lisp :tangle yes
-(my/define-key '(normal visual motion) 'org-mode-map
+(my/evil-define-key '(normal visual motion) 'org-mode-map
                "RET" #'my/dwim-at-point)
 #+end_src
 
@@ -3468,7 +3495,7 @@ treemacs при показе текущего файла в дереве про�
     "o p" #'treemacs
     "o P" #'my/treemacs-find-file-and-select-tree-window)
 
-(my/define-key 'normal 'treemacs-mode-map
+(my/evil-define-key 'normal 'treemacs-mode-map
     ">" #'treemacs-increase-width
     "<" #'treemacs-decrease-width)
 #+end_src
@@ -3476,7 +3503,7 @@ treemacs при показе текущего файла в дереве про�
 Вызов меню для treemacs.
 
 #+begin_src emacs-lisp :tangle yes
-(my/define-key 'normal 'treemacs-mode-map
+(my/evil-define-key 'normal 'treemacs-mode-map
     "?" #'treemacs-common-helpful-hydra)
                
 #+end_src
@@ -4033,7 +4060,7 @@ Completion item kind (тип объекта в выпадашке автодоп
         (delete-window eldoc-window)
         (eldoc t)))
 
-(my/define-key 'normal 'prog-mode-map
+(my/evil-define-key 'normal 'prog-mode-map
     "RET" #'lsp-ui-doc-show
     "K" #'my/eldoc)
 #+end_src
@@ -4185,7 +4212,7 @@ sudo apt install retext
 Горячая клавиша для автодополнения.
 
 #+begin_src emacs-lisp :tangle yes
-(my/define-key 'insert 'plantuml-mode-map
+(my/evil-define-key 'insert 'plantuml-mode-map
                "TAB" #'plantuml-complete-symbol)
 #+end_src
 
@@ -4199,7 +4226,7 @@ sudo apt install retext
         ;;(plantuml-preview-current-block 4)
         (doom/escape)))
 
-(my/define-key 'normal 'plantuml-mode-map
+(my/evil-define-key 'normal 'plantuml-mode-map
                "RET" #'my/plantuml-preview)
 #+end_src
 
