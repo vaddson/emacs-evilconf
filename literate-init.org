@@ -76,7 +76,7 @@
 ;; (setq my/evil nil)  ;; For Emacs keys.
 #+end_src
 
-Префикс-лидер для Vim установлен в =Space=, для Emacs - =Control-s=.
+Префикс-лидер для Vim установлен в =пробел=, для Emacs - =Ctrl-s=.
 Эти префиксы задаются в разделе "[[id:03e1b30d-e7f1-42ac-bc0b-71a9b2970fcf][General (назначение клавиш на помощь evil)]]".
    
 * Подготовка к установке пакетов из репозиториев
@@ -338,18 +338,19 @@
    :ID:       03e1b30d-e7f1-42ac-bc0b-71a9b2970fcf
    :END:
 
-Клавиши leader (пробел или M-m) и localleader (m).
+Клавиши leader (=пробел= или =M-m=) и localleader (с добавкой =m=).
+Для режима редактирования Emacs лидеры переопределяются в =Ctrl-s=.
 
 #+begin_src emacs-lisp :tangle yes
 (if my/evil
-    (progn (setq my/leader "SPC"
-                 my/leader-non-normal "M-m")
-           (setq my/localleader "SPC m"
-                 my/localleader-non-normal "M-m m"))
-    (progn (setq my/leader "C-s"
-                 my/leader-non-normal "C-s")
-           (setq my/localleader "C-s m"
-                 my/localleader-non-normal "C-s m")))
+    (setq my/leader "SPC"
+          my/leader-non-normal "M-m"
+          my/localleader "SPC m"
+          my/localleader-non-normal "M-m m")
+    (setq my/leader "C-s"
+          my/leader-non-normal "C-s"
+          my/localleader "C-s m"
+          my/localleader-non-normal "C-s m"))
 #+end_src
 
 Для определения клавиш лучше переключиться на пакет =general=.
