@@ -957,26 +957,56 @@ Keywords=Text;Editor;
 В =evil-mode= самая удобная нумерация строк - относительная. Выставим ее и
 добавим немного шаманства для беспроблемной ее отрисовки.
 
-#+begin_src emacs-lisp :tangle yes
-(use-package linum-relative
-    :ensure t
-    :config
-    (setq linum-relative-backend 'display-line-numbers-mode))
-#+end_src
-
-Теперь надо установить нумерацию строк по-умолчанию для соответствующих режимов.
+Зададим в переменной нумерацию строк по-умолчанию.
 
 #+begin_src emacs-lisp :tangle yes
-(add-hook 'text-mode-hook (lambda () (linum-relative-mode 1)))
-(add-hook 'prog-mode-hook (lambda () (linum-relative-mode 1)))
-(add-hook 'org-mode-hook (lambda () (linum-relative-mode 1)))
+(if my/evil
+    (setq my/display-line-numbers 'relative)
+    (setq my/display-line-numbers 'value))
 #+end_src
 
-Горячие клавиши на нумерцию строк.
+Определим функции переключения нумерации строк.
+
+#+begin_src emacs-lisp :tangle yes
+(defun my/display-line-numbers (&optional arg)
+    (interactive)
+    (cond ((not arg)
+           (if display-line-numbers
+               (setq-local display-line-numbers nil)
+               (setq-local display-line-numbers my/display-line-numbers)))
+          ((or (equal t arg) (> arg 0))
+           (setq-local display-line-numbers my/display-line-numbers))
+          ((< arg 0)
+           (setq-local display-line-numbers nil))))
+
+(defun my/display-next-line-numbers ()
+    (interactive)
+    (pcase display-line-numbers
+        (`relative
+         (setq-local display-line-numbers 'value))
+        (`value
+         (setq-local display-line-numbers nil))
+        (_
+         (setq-local display-line-numbers 'relative))))
+#+end_src
+
+Теперь покажем номера строк для текстовых и программных режимов.
+
+#+begin_src emacs-lisp :tangle yes
+(add-hook 'text-mode-hook (lambda () (my/display-line-numbers 1)))
+(add-hook 'prog-mode-hook (lambda () (my/display-line-numbers 1)))
+(add-hook 'org-mode-hook (lambda () (my/display-line-numbers 1)))
+#+end_src
+
+Горячие клавиши смены показа нумерации строк.
 
 #+begin_src emacs-lisp :tangle yes
 (my/leader-def nil 'override
-    "t l" #'linum-relative-toggle)
+    "t l" #'my/display-next-line-numbers
+    "t L" '((lambda ()
+                (interactive)
+                (my/display-line-numbers 1))
+            :which-key "Default line numbers"))
 #+end_src
 
 ** Wgrep. Отслеживаем не сохраненное во всех буферах
