@@ -844,10 +844,11 @@ Keywords=Text;Editor;
 
 ** Общий буфер обмена для Emacs и ОС
 
-Запретим. Раздельные с ОС буфера обмена удобней.
+Запретим для evil. Раздельные с ОС буфера обмена здесь удобней.
 
 #+begin_src emacs-lisp :tangle yes
-(setq x-select-enable-clipboard nil)
+(when my/evil
+    (setq x-select-enable-clipboard nil))
 #+end_src
 
 ** Быстрая работа с регистрами `+' и `"'
