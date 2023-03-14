@@ -406,7 +406,8 @@
 Назначим некоторые полезные сочетания клавиш.
 
 #+begin_src emacs-lisp :tangle yes
-(my/leader-def nil 'override ";" 'pp-eval-expression)
+(my/leader-def nil 'override
+               ";" '(pp-eval-expression :which-key "Eval LISP expression"))
 #+end_src
 
 ** Настройка поведения клавиш для evil-mode, как в Vim.
@@ -620,24 +621,24 @@
 3. достаточно прозрачный (не пользуюсь, но, может, пригодится). :)
 
 #+begin_src emacs-lisp :tangle yes
-(defvar my/transparency_level 0
+(defvar my/transparency-level 0
     "Transparence level for Emacs environment. Values: 0, 1 or 2.")
 
-(defun my/change_transparency ()
+(defun my/change-transparency ()
     "Toggles transparency of Emacs between 3 settings (none, mild, moderate)."
     (interactive)
-    (setq my/transparency_level (mod (+ 1 my/transparency_level) 3))
+    (setq my/transparency-level (mod (+ 1 my/transparency-level) 3))
     (my/set-transparency))
 
 (defun my/set-transparency (&optional frame)
-    "Set current transparency from my/transparency_level variable."
+    "Set current transparency from my/transparency-level variable."
     (interactive)
     (let ((true-frame (or frame (selected-frame))))
-    (cond ((= my/transparency_level 0)
+    (cond ((= my/transparency-level 0)
            (set-frame-parameter true-frame 'alpha '(100 . 100)))
-          ((= my/transparency_level 1)
+          ((= my/transparency-level 1)
            (set-frame-parameter true-frame 'alpha '(85 . 85)))
-          ((= my/transparency_level 2)
+          ((= my/transparency-level 2)
            (set-frame-parameter true-frame 'alpha '(65 . 65))))))
 #+end_src
 
@@ -651,7 +652,7 @@
 
 #+begin_src emacs-lisp :tangle yes
 (my/leader-def nil 'override
-    "t t" #'my/change_transparency
+    "t t" #'my/change-transparency
     "t T" #'my/set-transparency)
 #+end_src
 
@@ -729,7 +730,7 @@ Find application name in my/application-name variable."
 
 #+begin_src emacs-lisp :tangle yes
 (my/leader-def nil 'override
-    "n i" #'my/set-title-bar-interactive)
+    "n i" '(my/set-title-bar-interactive :which-key "Set frame title"))
 #+end_src
 
 Ниже устанавливаем формат заголовка по умолчанию.
@@ -816,7 +817,7 @@ Find application name in my/application-name variable."
      (load-theme 'doom-one t))
 
     ("rest"
-     (setq my/transparency_level 1)
+     (setq my/transparency-level 1)
      (load-theme 'doom-one t)))
 #+end_src
 
@@ -860,24 +861,26 @@ Keywords=Text;Editor;
 Ниже код копирует содержимое регистра `+' в регистр `"' по =C-,=. Далее можно пользоваться =C-y= для вставки.
 
 #+begin_src emacs-lisp :tangle yes
-(global-set-key (kbd "C-,")
-                (lambda ()
-                    (interactive)
-                    (let ((text (evil-get-register ?+)))
-                        (evil-set-register ?\" text)
-                        (minibuffer-message (concat "Register `\"': " text)))))
+(defun my/copy-system-clipboard-to-emacs ()
+    (interactive)
+    (let ((text (evil-get-register ?+)))
+        (evil-set-register ?\" text)
+        (minibuffer-message (concat "Register `\"': " text))))
+
+(global-set-key (kbd "C-,") #'my/copy-system-clipboard-to-emacs)
 #+end_src
 
 Аналогично в обратную сторону, из регистра `"' в `+' и `*'.
 
 #+begin_src emacs-lisp :tangle yes
-(global-set-key (kbd "C-;")
-                (lambda ()
-                    (interactive)
-                    (let ((text (evil-get-register ?\")))
-                        (evil-set-register ?+ text)
-                        (evil-set-register ?* text)
-                        (minibuffer-message (concat "Registers `+' and `*': " text)))))
+(defun my/copy-emacs-clipboard-to-system ()
+    (interactive)
+    (let ((text (evil-get-register ?\")))
+        (evil-set-register ?+ text)
+        (evil-set-register ?* text)
+        (minibuffer-message (concat "Registers `+' and `*': " text))))
+
+(global-set-key (kbd "C-;") #'my/copy-emacs-clipboard-to-system)
 #+end_src
 
 * Редактирование текста и интерфейс к нему
@@ -1002,7 +1005,8 @@ Keywords=Text;Editor;
 
 #+begin_src emacs-lisp :tangle yes
 (my/leader-def nil 'override
-    "t l" #'my/display-next-line-numbers
+    "t l" '(my/display-next-line-numbers
+            :which-key "Change line numbers")
     "t L" '((lambda ()
                 (interactive)
                 (my/display-line-numbers 1))
@@ -1397,7 +1401,7 @@ from urllib.parse import quote, unquote
     :ensure t
     :config
     (my/leader-def nil 'override
-        "h k" #'helpful-key))
+        "h k" '(helpful-key :which-key "Describe key")))
 #+end_src
 
 ** Counsel. Меню вызова функции с более полным описанием
@@ -1450,12 +1454,12 @@ from urllib.parse import quote, unquote
   (global-set-key (kbd "M-x") 'counsel-M-x)
   (global-set-key (kbd "C-r") #'counsel-minibuffer-history)
   (my/leader-def nil 'override
-	  ":" #'counsel-M-x
-	  "h f" #'counsel-describe-function
-	  "h v" #'counsel-describe-variable
-	  "h p" #'describe-package
-	  "h o" #'counsel-describe-symbol
-	  "h t" #'counsel-load-theme)
+	  ":" '(counsel-M-x :which-key "M-x")
+	  "h f" '(counsel-describe-function :which-key "Describe function")
+	  "h v" '(counsel-describe-variable :which-key "Describe variable")
+	  "h p" '(describe-package :which-key "Describe package")
+	  "h o" '(counsel-describe-symbol :which-key "Descrive symbol")
+	  "h t" '(counsel-load-theme :which-key "Load visual theme"))
 #+end_src
 
 ** Company. Автодополнения
@@ -1592,6 +1596,7 @@ Ctrl + jk. Собственно, из него и беру код ниже.
 #+end_src
 
 * Поиск и выделение
+
 ** Swiper. Удобный живой поиск текста по открытому буфферу
 
 Очень удобный поиск текста по открытому буферу. Результаты показываются в
@@ -1606,9 +1611,9 @@ Ctrl + jk. Собственно, из него и беру код ниже.
 
 #+begin_src emacs-lisp :tangle yes
 (my/leader-def nil 'override
-    "s s" #'swiper
-    "s S" #'swiper-isearch-thing-at-point
-    "s b" #'counsel-grep-or-swiper)
+    "s s" '(swiper :which-key "Search buffer")
+    "s S" '(swiper-isearch-thing-at-point :which-key "Search buffer for thing at point")
+    "s b" '(counsel-grep-or-swiper :which-key "Grep or search buffer"))
 #+end_src
 
 ** Поиск на стартовой странице Emacs
@@ -1646,13 +1651,13 @@ Emacs по-умолчанию не причисляет символ `_' к со
 - =sensitive=,
 - =insensitive=,
 - =smart=
-Возможно, =smart= был бы даже удобней. Не забыть вернуться и поэкспериментировать с ним.
+Возможно, =smart= даже удобней.
 
 Use [M-x toggle-case-fold-search] to toggle mode.
 
 #+begin_src emacs-lisp :tangle yes
 (setq case-fold-search nil)  ; Use [M-x toggle-case-fold-search] to toggle mode.
-(setq evil-ex-search-case 'sensitive)  ; sensitive, insensitive, smart
+(setq evil-ex-search-case 'smart)  ; sensitive, insensitive, smart
 #+end_src
 
 ** Imenu. Навигация по документу через меню
@@ -1672,7 +1677,7 @@ Imenu - дает не только удобный способ навигаци�
 
 #+begin_src emacs-lisp :tangle yes
 (my/leader-def nil 'override
-    "s i" #'counsel-imenu)
+    "s i" '(counsel-imenu :which-key "IMenu"))
 #+end_src
 
 Установим дополнтельный пакет, который в отдельном окне отображает
@@ -1682,7 +1687,8 @@ Imenu - дает не только удобный способ навигаци�
 (use-package imenu-list
     :ensure t
     :config
-    (evil-define-key nil 'global (kbd "<leader> s I") #'imenu-list-smart-toggle))
+    (my/leader-def nil 'override
+                   "s I" '(imenu-list-smart-toggle :which-key "IMenu content")))
 #+end_src
 
 * Рабочие пространства (workspaces, perspectives)
@@ -1715,18 +1721,18 @@ Imenu - дает не только удобный способ навигаци�
 
 #+begin_src emacs-lisp :tangle yes
 (my/leader-def nil 'override
-    "TAB ." #'persp-frame-switch
-    "TAB r" #'persp-rename
-    "TAB d" #'persp-kill
-    "," #'persp-switch-to-buffer
-    "TAB k" #'persp-remove-buffer)
+    "TAB ." '(persp-frame-switch :which-key "Switch or create workspace")
+    "TAB r" '(persp-rename :which-key "Rename workspace")
+    "TAB d" '(persp-kill :which-key "Delete workspace")
+    "," '(persp-switch-to-buffer :which-key "Switch buffer in workspace")
+    "TAB k" '(persp-remove-buffer :which-key "Remove buffer from workspace"))
 #+end_src
 
 Отдельно сделаем показ имени последней перспективы.
 
 #+begin_src emacs-lisp :tangle yes
 (my/leader-def nil 'override
-    "TAB v" #'my/show-last-perspective)
+    "TAB v" '(my/show-last-perspective :which-key "Show last workspace"))
 
 (defun my/show-last-perspective ()
     (interactive)
@@ -1758,7 +1764,7 @@ Imenu - дает не только удобный способ навигаци�
 
 ** Поиск фрейма по имени
 
-Понадобилось и такое. Результат - найденный фрейма с указанным именем или nil.
+Поиск фрейма по имени. Результат - найденный фрейма с указанным именем или nil.
 (Для справки: Есть функция =select-frame-by-name=, которая по имени находит фрейм и активизирует его.)
 
 #+begin_src emacs-lisp :tangle yes
@@ -1812,9 +1818,9 @@ emacs-клиента.
 
 #+begin_src emacs-lisp :tangle yes
 (my/leader-def nil 'override
-    "o f" #'my/make-frame-and-switch-perpective
-    "q f" #'delete-frame
-    "n I" #'my/set-title-bar-and-workspace-interactive)
+    "o f" '(my/make-frame-and-switch-perpective :which-key "Make frame and switch workspace")
+    "q f" '(delete-frame :which-key "Delete frame")
+    "n I" '(my/set-title-bar-and-workspace-interactive :which-key "Set title for frame and workspace"))
 #+end_src
 
 * Работа с окнами
@@ -1892,10 +1898,10 @@ emacs-клиента.
 
 #+begin_src emacs-lisp :tangle yes
 (my/leader-def nil 'override
-    "w 1" #'spacemacs/window-split-single-column
-    "w 2" #'spacemacs/window-split-double-columns
-    "w 3" #'spacemacs/window-split-triple-columns
-    "w 4" #'spacemacs/window-split-grid)
+    "w 1" '(spacemacs/window-split-single-column :which-key "Window split single column")
+    "w 2" '(spacemacs/window-split-double-columns :which-key "Window split double columns")
+    "w 3" '(spacemacs/window-split-triple-columns :which-key "Window split triple columns")
+    "w 4" '(spacemacs/window-split-grid :which-key "Window split grid"))
 #+end_src
 
 ** Переключение окон, как в Spacemacs
@@ -1904,16 +1910,16 @@ emacs-клиента.
 
 #+begin_src emacs-lisp :tangle yes
 (my/leader-def nil 'override
-    "0" #'treemacs-select-window
-    "1" #'winum-select-window-1
-    "2" #'winum-select-window-2
-    "3" #'winum-select-window-3
-    "4" #'winum-select-window-4
-    "5" #'winum-select-window-5
-    "6" #'winum-select-window-6
-    "7" #'winum-select-window-7
-    "8" #'winum-select-window-8
-    "9" #'winum-select-window-9)
+    "0" '(treemacs-select-window :which-key "Select window 0")
+    "1" '(winum-select-window-1 :which-key "Select window 1")
+    "2" '(winum-select-window-2 :which-key "Select window 2")
+    "3" '(winum-select-window-3 :which-key "Select window 3")
+    "4" '(winum-select-window-4 :which-key "Select window 4")
+    "5" '(winum-select-window-5 :which-key "Select window 5")
+    "6" '(winum-select-window-6 :which-key "Select window 6")
+    "7" '(winum-select-window-7 :which-key "Select window 7")
+    "8" '(winum-select-window-8 :which-key "Select window 8")
+    "9" '(winum-select-window-9 :which-key "Select window 9"))
 #+end_src
 
 ** Разделение окна
@@ -1937,10 +1943,10 @@ emacs-клиента.
 
 #+begin_src emacs-lisp :tangle yes
 (my/leader-def nil 'override
-    "w v" #'evil-window-vsplit
-    "w V" #'my/split-window-right-and-focus
-    "w s" #'evil-window-split
-    "w S" #'my/split-window-below-and-focus)
+    "w v" '(evil-window-vsplit :which-key "Split window vertical")
+    "w V" '(my/split-window-right-and-focus :which-key "Split window vertical with focus")
+    "w s" '(evil-window-split :which-key "Split window horizontally")
+    "w S" '(my/split-window-below-and-focus :which-key "Split window horizontally with focus"))
 #+end_src
 
 ** Ширина разделения окна
@@ -1964,10 +1970,10 @@ emacs-клиента.
 (my/leader-def nil 'override
     ;; "b b" #'project-switch-to-buffer
     ;; "," #'project-switch-to-buffer
-    "b b" #'counsel-projectile-switch-to-buffer
+    "b b" '(counsel-projectile-switch-to-buffer :which-key "Switch buffer in project")
     ;; "," #'counsel-projectile-switch-to-buffer
-    "b B" #'counsel-switch-buffer
-    "b d" #'kill-current-buffer)
+    "b B" '(counsel-switch-buffer :which-key "Switch buffer")
+    "b d" '(kill-current-buffer :which-key "Kill buffer"))
 #+end_src
 
 ** Отображение popup-буферов внизу окна и прочие настройки показа буферов
@@ -2037,8 +2043,8 @@ emacs-клиента.
 
 #+begin_src emacs-lisp :tangle yes
 (my/leader-def nil 'override
-    "b j" #'projectile-switch-to-buffer-other-window
-    "b J" #'counsel-switch-buffer-other-window)
+    "b j" '(projectile-switch-to-buffer-other-window :which-key "Switch buffer in project with other window")
+    "b J" '(counsel-switch-buffer-other-window :which-key "Switch buffer with other window"))
 #+end_src
 
 ** Перенос буферов между окнами
@@ -2101,15 +2107,15 @@ stays on current"
 
 #+begin_src emacs-lisp :tangle yes
 (my/leader-def nil 'override
-    "b 1" #'move-buffer-window-no-follow-1
-    "b 2" #'move-buffer-window-no-follow-2
-    "b 3" #'move-buffer-window-no-follow-3
-    "b 4" #'move-buffer-window-no-follow-4
-    "b 5" #'move-buffer-window-no-follow-5
-    "b 6" #'move-buffer-window-no-follow-6
-    "b 7" #'move-buffer-window-no-follow-7
-    "b 8" #'move-buffer-window-no-follow-8
-    "b 9" #'move-buffer-window-no-follow-9)
+    "b 1" '(move-buffer-window-no-follow-1 :which-key "Move buffer to window 1")
+    "b 2" '(move-buffer-window-no-follow-2 :which-key "Move buffer to window 2")
+    "b 3" '(move-buffer-window-no-follow-3 :which-key "Move buffer to window 3")
+    "b 4" '(move-buffer-window-no-follow-4 :which-key "Move buffer to window 4")
+    "b 5" '(move-buffer-window-no-follow-5 :which-key "Move buffer to window 5")
+    "b 6" '(move-buffer-window-no-follow-6 :which-key "Move buffer to window 6")
+    "b 7" '(move-buffer-window-no-follow-7 :which-key "Move buffer to window 7")
+    "b 8" '(move-buffer-window-no-follow-8 :which-key "Move buffer to window 8")
+    "b 9" '(move-buffer-window-no-follow-9 :which-key "Move buffer to window 9"))
 #+end_src
 
 ** Переключение показа по центру окна
@@ -2173,10 +2179,10 @@ stays on current"
 
 #+begin_src emacs-lisp :tangle yes
 (my/leader-def nil 'override
-    "f s" #'save-buffer
-    "f f" #'counsel-find-file
-    "f d" #'counsel-find-file
-	"o -" #'dired-jump)
+    "f s" '(save-buffer :which-key "Save file or buffer")
+    "f f" '(counsel-find-file :which-key "Open file")
+    "f d" '(counsel-find-file :which-key "Open directory or file")
+	"o -" '(dired-jump :which-key "Open directory and select file"))
 #+end_src
 
 ** Автоматическое обновление буферов при внешнем изменении их содержимого
@@ -2201,8 +2207,8 @@ Dired:
 
 #+begin_src emacs-lisp :tangle yes
 (my/leader-def nil 'override
-    "f i" #'spacemacs/find-file-vsplit
-    "f n" #'spacemacs/find-file-split)
+    "f i" '(spacemacs/find-file-vsplit :which-key "Open file vsplit")
+    "f n" '(spacemacs/find-file-split :which-key "Open file split"))
 #+end_src
 
 ** Копирование в буфер обмена текущего имени файла
@@ -2840,8 +2846,8 @@ text-mode, то он отменит перенос строк. :)
 
 #+begin_src emacs-lisp :tangle yes
 (my/localleader-def nil 'org-mode-map
-	"s o" #'my/individual-visibility-source-blocks
-	"s O" #'org-hide-block-all)
+	"s o" '(my/individual-visibility-source-blocks :which-key "Fold :hidden src-blocks")
+	"s O" '(org-hide-block-all :which-key "Fold all stc-blocks except :visual"))
 #+end_src
 
 ** Параметры экспортирования из org-mode
@@ -3297,8 +3303,8 @@ shows it in message and put the result into registers `\"' and `t'."
     (delete-other-windows))
 
 (my/leader-def nil 'override
-    "o a a" #'org-agenda
-    "o A" #'org-agenda
+    "o a a" '(org-agenda :which-key "Agenda")
+    "o A" '(org-agenda :which-key "Agenda")
     "o a n" #'my/new-tab-with-agenda-list)
 #+end_src
 
@@ -3470,13 +3476,13 @@ shows it in message and put the result into registers `\"' and `t'."
 
 #+begin_src emacs-lisp :tangle yes
 (my/leader-def nil 'override
-    "p p" #'counsel-projectile-switch-project
-    "p f" #'counsel-projectile-find-file
+    "p p" '(counsel-projectile-switch-project :which-key "Switch project")
+    "p f" '(counsel-projectile-find-file :which-key "Open file in project")
     ;; "p c" #'project-compile
-    "p c" #'projectile-compile-project
-    "p R" #'projectile-run-project
-    "p T" #'projectile-test-project
-    "/" #'counsel-projectile-rg)
+    "p c" '(projectile-compile-project :which-key "Compile in project")
+    "p R" '(projectile-run-project :which-key "Run project")
+    "p T" '(projectile-test-project :which-key "Test project")
+    "/" '(counsel-projectile-rg :which-key "Search project"))
 #+end_src
 
 ** Исключение файлов из поиска по проектам
@@ -3525,7 +3531,8 @@ treemacs при показе текущего файла в дереве про�
 
 (my/leader-def nil 'override
     "o p" #'treemacs
-    "o P" #'my/treemacs-find-file-and-select-tree-window)
+    "o P" #'my/treemacs-find-file-and-select-tree-window
+    "o w" #'treemacs-add-project-to-workspace)
 
 (my/evil-define-key 'normal 'treemacs-mode-map
     ">" #'treemacs-increase-width
@@ -3605,24 +3612,7 @@ treemacs при показе текущего файла в дереве про�
 
 ** Подсветка разницы с HEAD в каждой строке
 
-# Ставим пакет =diff-hl= с подсветкой. Для каждой строки будет подсвечиваться
-# разница с HEAD контроля версий, если таковая имеется.
-# 
-# #+begin_src emacs-lisp :tangle yes
-# (use-package diff-hl
-#     :ensure t
-#     :config
-#     (global-diff-hl-mode))
-# #+end_src
-# 
-# Связываем diff-hl с Magit.
-# 
-# #+begin_src emacs-lisp :tangle yes
-# (add-hook 'magit-pre-refresh-hook 'diff-hl-magit-pre-refresh)
-# (add-hook 'magit-post-refresh-hook 'diff-hl-magit-post-refresh)
-# #+end_src
-
-Теперь к цветному фону добавим символы с помощью пакета =Git-gutter=.
+Метки строк по состоянию в Git добавим через пакет =Git-gutter=.
 
 #+begin_src emacs-lisp :tangle yes
 (use-package git-gutter-fringe
@@ -3783,8 +3773,8 @@ treemacs при показе текущего файла в дереве про�
 
 #+begin_src emacs-lisp :tangle yes
 (my/leader-def nil 'override
-    "s g" #'sdcv-search-input
-    "s w" #'sdcv-search-pointer)
+    "s g" '(sdcv-search-input :which-key "Dictionary search word by input")
+    "s w" '(sdcv-search-pointer :which-key "Dictionary search at point"))
 #+end_src
 
 ** Калькулятор на Python
@@ -3880,7 +3870,7 @@ python-калькулятор (и не только).
 
 #+begin_src emacs-lisp :tangle yes
 (my/leader-def nil 'override
-    "o c" #'my/calculator-python-toggle)
+    "o c" '(my/calculator-python-toggle :which-key "Calculator live on Python"))
 #+end_src
 
 * LSP сервер
@@ -4101,8 +4091,8 @@ Completion item kind (тип объекта в выпадашке автодоп
 
 #+begin_src emacs-lisp :tangle yes
 (my/leader-def nil 'prog-mode-map
-    "c d" #'lsp-find-definition
-    "c D" #'lsp-find-references)
+    "c d" '(lsp-find-definition :which-key "Jump to definition")
+    "c D" '(lsp-find-references :which-key "Jump to references"))
 #+end_src
 
 * Программирование
@@ -4134,8 +4124,8 @@ Completion item kind (тип объекта в выпадашке автодоп
 
 #+begin_src emacs-lisp :tangle yes
 (my/leader-def nil 'override
-    "e p" #'flycheck-previous-error
-    "e n" #'flycheck-next-error)
+    "e p" '(flycheck-previous-error :which-key "Jump to previous error")
+    "e n" '(flycheck-next-error :which-key "Jump to next error"))
 #+end_src
 
 ** Markdown
@@ -4221,12 +4211,12 @@ sudo apt install retext
 
 #+begin_src emacs-lisp :tangle yes
 (use-package plantuml-mode
-	:ensure t
-	:init
-	(let ((jar-path (concat user-emacs-directory "/.local/plantuml.jar")))
-		(setq plantuml-jar-path jar-path
-			  org-plantuml-jar-path jar-path))
-	:config
+    :ensure t
+    :init
+    (let ((jar-path (concat user-emacs-directory "/.local/plantuml.jar")))
+        (setq plantuml-jar-path jar-path
+              org-plantuml-jar-path jar-path))
+    :config
     (setq plantuml-default-exec-mode
           (cond ((file-exists-p plantuml-jar-path) 'jar)
                 ((executable-find "plantuml") 'executable)
@@ -4255,18 +4245,19 @@ sudo apt install retext
     (interactive)
     (save-excursion
         (plantuml-preview 4)
-        ;;(plantuml-preview-current-block 4)
-        (doom/escape)))
+        ;; (plantuml-preview-current-block 4)
+        ;; (doom/escape)
+        ))
 
 (my/evil-define-key 'normal 'plantuml-mode-map
-               "RET" #'my/plantuml-preview)
+                    "RET" #'my/plantuml-preview)
 #+end_src
 
 UTF-8 - наше всё! :)
 
 #+begin_src emacs-lisp :tangle yes
 (add-to-list 'org-babel-default-header-args:plantuml
-			 '(:cmdline . "-charset utf-8"))
+             '(:cmdline . "-charset utf-8"))
 #+end_src
 
 Настроим параметр :file для plantuml-блоков по-умолчанию. Если параметр
@@ -4276,21 +4267,21 @@ UTF-8 - наше всё! :)
 
 #+begin_src emacs-lisp :tangle yes
 (defun my/org-babel-execute:plantuml (func &rest args)
-	(let* ((body (car args))
-		   (params (cadr args))
-		   (out-file-p (cdr (assq :file params)))
-		   (out-file (or out-file-p
-						 (org-babel-temp-file "plantuml-" ".png")))
-		   (new-params (if out-file-p
-						   params
-						   (cons `(:file . ,out-file) params)))
-		   (result (apply func (list body new-params))))
-		(if out-file-p
-			result
-			out-file)))
+    (let* ((body (car args))
+           (params (cadr args))
+           (out-file-p (cdr (assq :file params)))
+           (out-file (or out-file-p
+                         (org-babel-temp-file "plantuml-" ".png")))
+           (new-params (if out-file-p
+                           params
+                           (cons `(:file . ,out-file) params)))
+           (result (apply func (list body new-params))))
+        (if out-file-p
+            result
+            out-file)))
 
 (advice-add #'org-babel-execute:plantuml
-			:around #'my/org-babel-execute:plantuml)
+            :around #'my/org-babel-execute:plantuml)
 #+end_src
 
 ** Python
