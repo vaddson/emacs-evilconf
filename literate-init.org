@@ -4353,16 +4353,27 @@ Pyright может не скачаться с серверов, поэтому �
 лучше сохранить. Лежит сервер в директории
 : ~/.emacs.d/.cache/lsp/npm/pyright
 
-Сперва грузим соответствующий пакет для его поддержки.
+Устанавливаем pyright из архива в репозитории (ибо пакет =lsp-pyright=
+уже не тянется).
 
 #+begin_src emacs-lisp :tangle yes
-(use-package lsp-pyright
-    :ensure t
-    :hook (python-mode . (lambda ()
-                             (unless (equal (buffer-file-name)
-                                            (my/calculator--get-python-filename))
-                                 (require 'lsp-pyright)
-                                 (lsp)))))  ; or lsp-deferred
+(unless (file-exists-p (concat user-emacs-directory
+                               "/.cache/lsp/npm/pyright"))
+    (shell-command (concat "tar -xzf "
+                           my/config-dir
+                           "/lsp-saves/pyright_vanilla.tar.gz "
+                           "-C " user-emacs-directory)))
+#+end_src
+
+Настраиваем активацию LSP-сервера.
+
+#+begin_src emacs-lisp :tangle yes
+(add-hook 'python-mode-hook
+          (lambda ()
+              (unless (equal (buffer-file-name)
+                             (my/calculator--get-python-filename))
+                  (require 'lsp-pyright)
+                  (lsp))))  ; or lsp-deferred
 #+end_src
 
 У сервера есть *проблема*: Ошибка в буфере *stderr* имеет следующее описание:
