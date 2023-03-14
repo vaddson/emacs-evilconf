@@ -1391,6 +1391,7 @@ from urllib.parse import quote, unquote
 (use-package which-key
     :ensure t
     :config
+    (setq which-key-sort-order 'which-key-key-order-alpha)
     (which-key-mode 1))
 #+end_src
 
@@ -2235,6 +2236,12 @@ Dired:
 #+end_src
 
 ** Dired. Настройка файлового менеджера
+
+Установим автоматическое обновление содержимого окон Dired.
+
+#+begin_src emacs-lisp :tangle yes
+(setq dired-auto-revert-buffer #'dired-buffer-stale-p)
+#+end_src
 
 Копирование файлов удобно делать в директорию, что открыта в ближайшем
 dired-окне. Для этого надо установить соответствующий флажок.
