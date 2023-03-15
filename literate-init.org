@@ -1764,8 +1764,12 @@ Imenu - дает не только удобный способ навигаци�
 
 (defun my/show-perspective-name ()
     (interactive)
-    (let ((persp-name (safe-persp-name (get-current-persp))))
-        (message persp-name)))
+    (message (my/--get-current-persp-name)))
+
+(defun my/--get-current-persp-name ()
+    (if (bound-and-true-p persp-mode)
+        (safe-persp-name (get-current-persp))
+        "main"))
 #+end_src
 
 * Работа с вкладками (tab)
@@ -2037,6 +2041,9 @@ Spacemacs. Код находится в файле [[./funcs.el][funcs.el]].
 
         ;; Clean Eshell
         ("^\\*eshell\\*$")
+
+        ;; Clean Vterm
+        ("^\\*vterm\\*$")
 
         ;; IELM
         ("^\\*ielm\\*$"
@@ -3446,9 +3453,7 @@ shows it in message and put the result into registers `\"' and `t'."
 (defun my/popup-eshell-toggle ()
     (interactive)
     (let* ((buffer-name (format "*eshell-popup:%s*"
-                                (if (bound-and-true-p persp-mode)
-                                    (safe-persp-name (get-current-persp))
-                                    "main")))
+                                (my/--get-current-persp-name)))
            (buffer (get-buffer buffer-name))
            (window))
         (unless buffer
@@ -3470,19 +3475,61 @@ shows it in message and put the result into registers `\"' and `t'."
 
 ** vterm
 
-Установим пакет.
+Установим пакет. После установки будет запрос на компиляцию Vterm.
 
 #+begin_src emacs-lisp :tangle yes
 (use-package vterm
     :ensure t)
 #+end_src
 
+Вызов терминала vterm.  Терминал создается по возможности свой для
+каждого рабочего пространства.  Если буфер с таким терминалом уже
+создан, то он показывается в окне или окно с таким терминалом
+скрывается.
+
+#+begin_src emacs-lisp :tangle yes
+(defun my/popup-vterm-toggle ()
+    (interactive)
+    (let* ((buffer (my/--get-vterm-buffer-create)))
+        (if-let ((window (get-buffer-window buffer)))
+            (delete-window window)
+            (pop-to-buffer buffer))))
+
+(defun my/--get-vterm-buffer-create ()
+    (let* ((buffer-name (format "*vterm-popup:%s*"
+                                (my/--get-current-persp-name)))
+           (buffer (get-buffer buffer-name))
+           (window))
+        (unless buffer
+            (setq buffer (get-buffer-create buffer-name))
+            (with-current-buffer buffer
+                (vterm-mode)))
+        buffer))
+#+end_src
+
+Чтобы удобнее было работать с проектами, создадим новую вкладку с именем "term", в которую поместим буфер с терминалом vterm.
+
+#+begin_src emacs-lisp :tangle yes
+(defun my/open-term-in-new-tab ()
+    (interactive)
+    (let ((persp-name (my/--get-current-persp-name))
+          (buffer (my/--get-vterm-buffer-create)))
+        (tab-bar-new-tab)
+        (tab-bar-rename-tab (format "vterm:%s" persp-name))
+        (tab-bar-mode -1)
+        (switch-to-buffer buffer)
+        (when my/evil
+            (evil-normal-state)
+            (evil-emacs-state))))
+#+end_src
+
 Привычные горячие клавиши.
 
 #+begin_src emacs-lisp :tangle yes
 (my/leader-def nil 'override
-    "o t" #'vterm-other-window
-    "o T" #'vterm)
+    "o t" #'my/popup-vterm-toggle
+    "o T" #'vterm
+    "o v" #'my/open-term-in-new-tab)
 #+end_src
 
 * Проекты, рабочие пространства
