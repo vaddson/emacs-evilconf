@@ -350,7 +350,8 @@
     (setq my/leader "C-s"
           my/leader-non-normal "C-s"
           my/localleader "C-s m"
-          my/localleader-non-normal "C-s m"))
+          my/localleader-non-normal "C-s m"
+          my/evil-prefix "C-s C-s"))
 #+end_src
 
 Для определения клавиш лучше переключиться на пакет =general=.
@@ -381,12 +382,16 @@
                       ,@args))
 
 (defmacro my/evil-define-key (states keymaps &rest args)
-    (when my/evil
-        (setq states (or states
-                         '(normal visual insert replace moniton emacs)))
-        `(general-define-key :states ',states
-                             :keymaps ',keymaps
-                             ,@args)))
+    (if my/evil
+        (progn
+            (setq states (or states
+                             '(normal visual insert replace moniton emacs)))
+            `(general-define-key :states ',states
+                                 :keymaps ',keymaps
+                                 ,@args)))
+    `(general-define-key :keymaps ',keymaps
+                         :prefix my/evil-prefix
+                         ,@args))
 
 (defmacro my/--define-key (leader leader-non-normal states keymaps &rest args)
     (if my/evil
@@ -401,6 +406,9 @@
         `(general-define-key :keymaps ',keymaps
                              :prefix ,leader
                              ,@args)))
+
+(unless my/evil
+    (general-define-key my/evil-prefix '(:ignore t :which-key "normal")))
 #+end_src
 
 Назначим некоторые полезные сочетания клавиш.
