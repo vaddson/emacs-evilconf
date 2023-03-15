@@ -560,7 +560,10 @@
                                       my/global-font
                                       my/global-font-inc))
 
-(my/leader-def nil 'override "e d" #'my/correct-font-in-current-frame)
+(my/leader-def nil 'override
+               "e" '(:ignore t :which-key "tools"))
+(my/leader-def nil 'override
+               "e d" #'my/correct-font-in-current-frame)
 #+end_src
 
 ** Выбор случайной картинки для стартового логотипа
@@ -652,8 +655,10 @@
 
 #+begin_src emacs-lisp :tangle yes
 (my/leader-def nil 'override
-    "t t" #'my/change-transparency
-    "t T" #'my/set-transparency)
+               "t" '(:ignore t :which-key "toggles"))
+(my/leader-def nil 'override
+               "t t" #'my/change-transparency
+               "t T" #'my/set-transparency)
 #+end_src
 
 ** Настройка статусной панели (modeline)
@@ -729,6 +734,8 @@ Find application name in my/application-name variable."
 И повесим назначение заголовка окну на горячие клавиши.
 
 #+begin_src emacs-lisp :tangle yes
+(my/leader-def nil 'override
+               "n" '(:ignore t :which-key "tools"))
 (my/leader-def nil 'override
     "n i" '(my/set-title-bar-interactive :which-key "Set frame title"))
 #+end_src
@@ -1152,9 +1159,10 @@ from urllib.parse import quote, unquote
 
 #+begin_src emacs-lisp :tangle yes
 (my/leader-def '(normal visual motion) 'override
-    "y RET" #'yafolding-toggle-element
-    "y p" #'yafolding-hide-parent-element
-    "y f" #'yafolding-toggle-all)
+               "y" '(:ignore t :which-key "folding")
+               "y RET" #'yafolding-toggle-element
+               "y p" #'yafolding-hide-parent-element
+               "y f" #'yafolding-toggle-all)
 #+end_src
 
 ** Подсветка отступов
@@ -1246,7 +1254,9 @@ from urllib.parse import quote, unquote
 
 #+begin_src emacs-lisp :tangle yes
 (my/leader-def nil 'override
-    "i s" #'yas-insert-snippet)
+               "i" '(:ignore t :which-key "insert"))
+(my/leader-def nil 'override
+               "i s" #'yas-insert-snippet)
 #+end_src
 
 ** Закладки
@@ -1343,16 +1353,19 @@ from urllib.parse import quote, unquote
 
 #+begin_src emacs-lisp :tangle yes
 (my/leader-def nil 'override
-	"j m t" #'bm-toggle
-	"j m a" #'bm-bookmark-annotate
-	"j m s" #'bm-bookmark-show-annotation
-	"j m n" #'bm-next
-	"j m p" #'bm-previous
-	"j m l" #'bm-show
-	"j m L" #'bm-show-all
-	"j m T" #'my/bm-bookmark-annotate
-	"j m d" #'my/bm-remove-all-current-buffer
-	"j m D" #'my/bm-remove-all-all-buffers)
+               "j" '(:ignore t :which-key "tools"))
+(my/leader-def nil 'override
+               "j m" '(:ignore t :which-key "marks")
+               "j m t" #'bm-toggle
+               "j m a" #'bm-bookmark-annotate
+               "j m s" #'bm-bookmark-show-annotation
+               "j m n" #'bm-next
+               "j m p" #'bm-previous
+               "j m l" #'bm-show
+               "j m L" #'bm-show-all
+               "j m T" #'my/bm-bookmark-annotate
+               "j m d" #'my/bm-remove-all-current-buffer
+               "j m D" #'my/bm-remove-all-all-buffers)
 #+end_src
 
 * Подсказки, выпадашки, автодополнения
@@ -1402,7 +1415,9 @@ from urllib.parse import quote, unquote
     :ensure t
     :config
     (my/leader-def nil 'override
-        "h k" '(helpful-key :which-key "Describe key")))
+                   "h k" '(helpful-key :which-key "Describe key")))
+(my/leader-def nil 'override
+               "h" '(:ignore t :which-key "help"))
 #+end_src
 
 ** Counsel. Меню вызова функции с более полным описанием
@@ -1451,16 +1466,16 @@ from urllib.parse import quote, unquote
 Определяем действия =counsel= на горячие клавиши.
 
 #+begin_src emacs-lisp :tangle yes
-  (setq suggest-key-bindings t)
-  (global-set-key (kbd "M-x") 'counsel-M-x)
-  (global-set-key (kbd "C-r") #'counsel-minibuffer-history)
-  (my/leader-def nil 'override
-	  ":" '(counsel-M-x :which-key "M-x")
-	  "h f" '(counsel-describe-function :which-key "Describe function")
-	  "h v" '(counsel-describe-variable :which-key "Describe variable")
-	  "h p" '(describe-package :which-key "Describe package")
-	  "h o" '(counsel-describe-symbol :which-key "Descrive symbol")
-	  "h t" '(counsel-load-theme :which-key "Load visual theme"))
+(setq suggest-key-bindings t)
+(global-set-key (kbd "M-x") 'counsel-M-x)
+(global-set-key (kbd "C-r") #'counsel-minibuffer-history)
+(my/leader-def nil 'override
+               ":" '(counsel-M-x :which-key "M-x")
+               "h f" '(counsel-describe-function :which-key "Describe function")
+               "h v" '(counsel-describe-variable :which-key "Describe variable")
+               "h p" '(describe-package :which-key "Describe package")
+               "h o" '(counsel-describe-symbol :which-key "Descrive symbol")
+               "h t" '(counsel-load-theme :which-key "Load visual theme"))
 #+end_src
 
 ** Company. Автодополнения
@@ -1612,9 +1627,12 @@ Ctrl + jk. Собственно, из него и беру код ниже.
 
 #+begin_src emacs-lisp :tangle yes
 (my/leader-def nil 'override
-    "s s" '(swiper :which-key "Search buffer")
-    "s S" '(swiper-isearch-thing-at-point :which-key "Search buffer for thing at point")
-    "s b" '(counsel-grep-or-swiper :which-key "Grep or search buffer"))
+               "s" '(:ignore t :which-key "search"))
+(my/leader-def nil 'override
+               "s s" '(swiper :which-key "Search buffer")
+               "s S" '(swiper-isearch-thing-at-point
+                       :which-key "Search buffer for thing at point")
+               "s b" '(counsel-grep-or-swiper :which-key "Grep or search buffer"))
 #+end_src
 
 ** Поиск на стартовой странице Emacs
@@ -1722,11 +1740,12 @@ Imenu - дает не только удобный способ навигаци�
 
 #+begin_src emacs-lisp :tangle yes
 (my/leader-def nil 'override
-    "TAB ." '(persp-frame-switch :which-key "Switch or create workspace")
-    "TAB r" '(persp-rename :which-key "Rename workspace")
-    "TAB d" '(persp-kill :which-key "Delete workspace")
-    "," '(persp-switch-to-buffer :which-key "Switch buffer in workspace")
-    "TAB k" '(persp-remove-buffer :which-key "Remove buffer from workspace"))
+               "TAB" '(:ignore t :which-key "workspaces")
+               "TAB ." '(persp-frame-switch :which-key "Switch or create workspace")
+               "TAB r" '(persp-rename :which-key "Rename workspace")
+               "TAB d" '(persp-kill :which-key "Delete workspace")
+               "," '(persp-switch-to-buffer :which-key "Switch buffer in workspace")
+               "TAB k" '(persp-remove-buffer :which-key "Remove buffer from workspace"))
 #+end_src
 
 Отдельно сделаем показ имени последней перспективы.
@@ -1833,19 +1852,19 @@ emacs-клиента.
 
 #+begin_src emacs-lisp :tangle yes
 (my/leader-def nil 'override
-	"w d" #'evil-window-delete
-    "w r" #'evil-window-rotate-downwards
-    "w R" #'evil-window-rotate-upwards
-    "w =" #'balance-windows
-	"w C-l" #'evil-window-right
-	"w C-h" #'evil-window-left
-	"w C-j" #'evil-window-down
-	"w C-k" #'evil-window-up
-	"w C-S-l" #'evil-window-move-far-right
-	"w C-S-h" #'evil-window-move-far-left
-	"w C-S-j" #'evil-window-move-very-bottom
-	"w C-S-k" #'evil-window-move-very-top
-	)
+               "w" '(:ignore t :which-key "windows")
+               "w d" #'evil-window-delete
+               "w r" #'evil-window-rotate-downwards
+               "w R" #'evil-window-rotate-upwards
+               "w =" #'balance-windows
+               "w C-l" #'evil-window-right
+               "w C-h" #'evil-window-left
+               "w C-j" #'evil-window-down
+               "w C-k" #'evil-window-up
+               "w C-S-l" #'evil-window-move-far-right
+               "w C-S-h" #'evil-window-move-far-left
+               "w C-S-j" #'evil-window-move-very-bottom
+               "w C-S-k" #'evil-window-move-very-top)
 #+end_src
 
 Отдельно перетащим из Doom расширение окон по горизонтали и
@@ -1961,7 +1980,8 @@ emacs-клиента.
 
 * Работа с буферами
 
-Для работы части функций этого раздела используется код, взятый из Spacemacs. Код находится в файле [[./funcs.el][funcs.el]].
+Для работы части функций этого раздела используется код, взятый из
+Spacemacs. Код находится в файле [[./funcs.el][funcs.el]].
 
 ** Клавиши для работы с буферами
 
@@ -1969,12 +1989,11 @@ emacs-клиента.
 
 #+begin_src emacs-lisp :tangle yes
 (my/leader-def nil 'override
-    ;; "b b" #'project-switch-to-buffer
-    ;; "," #'project-switch-to-buffer
-    "b b" '(counsel-projectile-switch-to-buffer :which-key "Switch buffer in project")
-    ;; "," #'counsel-projectile-switch-to-buffer
-    "b B" '(counsel-switch-buffer :which-key "Switch buffer")
-    "b d" '(kill-current-buffer :which-key "Kill buffer"))
+               "b" '(:ignore t :which-key "buffers")
+               "b b" '(counsel-projectile-switch-to-buffer
+                       :which-key "Switch buffer in project")
+               "b B" '(counsel-switch-buffer :which-key "Switch buffer")
+               "b d" '(kill-current-buffer :which-key "Kill buffer"))
 #+end_src
 
 ** Отображение popup-буферов внизу окна и прочие настройки показа буферов
@@ -2180,10 +2199,12 @@ stays on current"
 
 #+begin_src emacs-lisp :tangle yes
 (my/leader-def nil 'override
-    "f s" '(save-buffer :which-key "Save file or buffer")
-    "f f" '(counsel-find-file :which-key "Open file")
-    "f d" '(counsel-find-file :which-key "Open directory or file")
-	"o -" '(dired-jump :which-key "Open directory and select file"))
+               "f" '(:ignore t :which-key "files")
+               "f s" '(save-buffer :which-key "Save file or buffer")
+               "f S" '(write-buffer :which-key "Save file as")
+               "f f" '(counsel-find-file :which-key "Open file")
+               "f d" '(counsel-find-file :which-key "Open directory or file")
+               "o -" '(dired-jump :which-key "Open directory and select file"))
 #+end_src
 
 ** Автоматическое обновление буферов при внешнем изменении их содержимого
@@ -2853,8 +2874,11 @@ text-mode, то он отменит перенос строк. :)
 
 #+begin_src emacs-lisp :tangle yes
 (my/localleader-def nil 'org-mode-map
-	"s o" '(my/individual-visibility-source-blocks :which-key "Fold :hidden src-blocks")
-	"s O" '(org-hide-block-all :which-key "Fold all stc-blocks except :visual"))
+                    "s" '(:ingore t :which-key "fold")
+                    "s o" '(my/individual-visibility-source-blocks
+                            :which-key "Fold :hidden src-blocks")
+                    "s O" '(org-hide-block-all
+                            :which-key "Fold all stc-blocks except :visual"))
 #+end_src
 
 ** Параметры экспортирования из org-mode
@@ -2997,9 +3021,10 @@ sudo apt install dvipng preview-latex-style
 			 (plist-get org-format-latex-options :scale)))
 
 (my/localleader-def nil 'org-mode-map
-	"j s" #'my/set-scael-for-latex-preview
-	"j k" #'my/increace-scale-for-latex-preview
-	"j j" #'my/decreace-scale-for-latex-preview)
+                    "j" '(:ignore t :which-key "latex")
+                    "j s" #'my/set-scael-for-latex-preview
+                    "j k" #'my/increace-scale-for-latex-preview
+                    "j j" #'my/decreace-scale-for-latex-preview)
 #+end_src
 
 ** Копирование ссылки в буфер обмена
@@ -3021,7 +3046,9 @@ sudo apt install dvipng preview-latex-style
 
 #+begin_src emacs-lisp :tangle yes
 (my/localleader-def nil 'org-mode-map
-    "l y" #'my/org-copy-link-url)
+                    "l" '(:ignore t :which-key "links"))
+(my/localleader-def nil 'org-mode-map
+                    "l y" #'my/org-copy-link-url)
 #+end_src
 
 ** Преобразование URL в ссылку с именем задачи или файла
@@ -3103,7 +3130,9 @@ sudo apt install dvipng preview-latex-style
 
 #+begin_src emacs-lisp :tangle yes
 (my/localleader-def nil 'org-mode-map
-    "b g" #'org-table-toggle-column-width)
+                    "b" '(:ignore t :which-key "tables"))
+(my/localleader-def nil 'org-mode-map
+                    "b g" #'org-table-toggle-column-width)
 #+end_src
 
 ** Показ картинок-результатов выполнения org-babel блоков
@@ -3310,18 +3339,23 @@ shows it in message and put the result into registers `\"' and `t'."
     (delete-other-windows))
 
 (my/leader-def nil 'override
-    "o a a" '(org-agenda :which-key "Agenda")
-    "o A" '(org-agenda :which-key "Agenda")
-    "o a n" #'my/new-tab-with-agenda-list)
+               "o" '(:ignore t :which-key "tools")
+               "o a" '(:ignore t :which-key "agenda"))
+(my/leader-def nil 'override
+               "o a a" '(org-agenda :which-key "Agenda")
+               "o A" '(org-agenda :which-key "Agenda")
+               "o a n" #'my/new-tab-with-agenda-list)
 #+end_src
 
 Докатим привычные горячие клавиши из Doom для работы с TODO.
 
 #+begin_src emacs-lisp :tangle yes
 (my/localleader-def nil 'org-mode-map
-    "t" #'org-todo
-    "d s" #'org-schedule
-    "d d" #'org-deadline)
+                    "d" '(:ignore t :which-key "tasks"))
+(my/localleader-def nil 'org-mode-map
+                    "t" #'org-todo
+                    "d s" #'org-schedule
+                    "d d" #'org-deadline)
 #+end_src
 
 ** Agenda. Статусы задач
@@ -3361,10 +3395,11 @@ shows it in message and put the result into registers `\"' and `t'."
 
 #+begin_src emacs-lisp :tangle yes
 (my/leader-def nil 'override
-    "n j j" #'org-journal-new-entry
-    "n j J" #'org-journal-new-scheduled-entry
-    "n j d" #'org-journal-new-date-entry
-    "n j s" #'org-journal-search-forever)
+               "n j" '(:ignore t :which-key "journal")
+               "n j j" #'org-journal-new-entry
+               "n j J" #'org-journal-new-scheduled-entry
+               "n j d" #'org-journal-new-date-entry
+               "n j s" #'org-journal-search-forever)
 #+end_src
 
 * Терминалы
@@ -3483,13 +3518,14 @@ shows it in message and put the result into registers `\"' and `t'."
 
 #+begin_src emacs-lisp :tangle yes
 (my/leader-def nil 'override
-    "p p" '(counsel-projectile-switch-project :which-key "Switch project")
-    "p f" '(counsel-projectile-find-file :which-key "Open file in project")
-    ;; "p c" #'project-compile
-    "p c" '(projectile-compile-project :which-key "Compile in project")
-    "p R" '(projectile-run-project :which-key "Run project")
-    "p T" '(projectile-test-project :which-key "Test project")
-    "/" '(counsel-projectile-rg :which-key "Search project"))
+               "p" '(:ignore t :which-key "projects")
+               "p p" '(counsel-projectile-switch-project :which-key "Switch project")
+               "p f" '(counsel-projectile-find-file :which-key "Open file in project")
+               ;; "p c" #'project-compile
+               "p c" '(projectile-compile-project :which-key "Compile in project")
+               "p R" '(projectile-run-project :which-key "Run project")
+               "p T" '(projectile-test-project :which-key "Test project")
+               "/" '(counsel-projectile-rg :which-key "Search project"))
 #+end_src
 
 ** Исключение файлов из поиска по проектам
@@ -3565,17 +3601,18 @@ treemacs при показе текущего файла в дереве про�
 	  :ensure t
 	  :config
 	  ;; Define some keys:
-	  (my/leader-def nil 'override
-		  "g g" #'magit-status
-		  "g b" #'magit-branch-checkout
-		  "g /" #'magit-dispatch)
-	  )
-  (use-package magit-gitflow
-	  :ensure t)
-  (use-package magit-popup
-	  :ensure t)
-  (use-package magit-todos
-	  :ensure t)
+      (my/leader-def nil 'override
+                     "g" '(:ignore t :which-key "git")
+                     "g g" #'magit-status
+                     "g b" #'magit-branch-checkout
+                     "g /" #'magit-dispatch)
+      )
+(use-package magit-gitflow
+    :ensure t)
+(use-package magit-popup
+    :ensure t)
+(use-package magit-todos
+    :ensure t)
 #+end_src
 
 Запилим горячие клавиши на полезные операции. Итак:
@@ -4098,8 +4135,9 @@ Completion item kind (тип объекта в выпадашке автодоп
 
 #+begin_src emacs-lisp :tangle yes
 (my/leader-def nil 'prog-mode-map
-    "c d" '(lsp-find-definition :which-key "Jump to definition")
-    "c D" '(lsp-find-references :which-key "Jump to references"))
+               "c" '(:ignore t :which-key "jumps")
+               "c d" '(lsp-find-definition :which-key "Jump to definition")
+               "c D" '(lsp-find-references :which-key "Jump to references"))
 #+end_src
 
 * Программирование
@@ -4470,8 +4508,9 @@ Pyright может не скачаться с серверов, поэтому �
 
 #+begin_src emacs-lisp :tangle yes
 (my/leader-def nil 'python-mode-map
-    "e a" #'my/pyvenv-activate
-    "e i" #'my/pyvenv-select-path)
+               "e" '(:ignore t :which-key "pyenv")
+               "e a" #'my/pyvenv-activate
+               "e i" #'my/pyvenv-select-path)
 #+end_src
 
 ** Haskell
