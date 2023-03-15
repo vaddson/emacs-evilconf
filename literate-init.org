@@ -388,10 +388,10 @@
                              '(normal visual insert replace moniton emacs)))
             `(general-define-key :states ',states
                                  :keymaps ',keymaps
-                                 ,@args)))
-    `(general-define-key :keymaps ',keymaps
-                         :prefix my/evil-prefix
-                         ,@args))
+                                 ,@args))
+        `(general-define-key :keymaps ',keymaps
+                             :prefix my/evil-prefix
+                             ,@args)))
 
 (defmacro my/--define-key (leader leader-non-normal states keymaps &rest args)
     (if my/evil
