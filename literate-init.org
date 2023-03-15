@@ -561,7 +561,7 @@
                                       my/global-font-inc))
 
 (my/leader-def nil 'override
-               "e" '(:ignore t :which-key "tools"))
+               "e" '(:ignore t :which-key "env"))
 (my/leader-def nil 'override
                "e d" #'my/correct-font-in-current-frame)
 #+end_src
@@ -735,7 +735,7 @@ Find application name in my/application-name variable."
 
 #+begin_src emacs-lisp :tangle yes
 (my/leader-def nil 'override
-               "n" '(:ignore t :which-key "tools"))
+               "n" '(:ignore t :which-key "notes"))
 (my/leader-def nil 'override
     "n i" '(my/set-title-bar-interactive :which-key "Set frame title"))
 #+end_src
@@ -1353,7 +1353,7 @@ from urllib.parse import quote, unquote
 
 #+begin_src emacs-lisp :tangle yes
 (my/leader-def nil 'override
-               "j" '(:ignore t :which-key "tools"))
+               "j" '(:ignore t :which-key "marks"))
 (my/leader-def nil 'override
                "j m" '(:ignore t :which-key "marks")
                "j m t" #'bm-toggle
@@ -1752,11 +1752,12 @@ Imenu - дает не только удобный способ навигаци�
 
 #+begin_src emacs-lisp :tangle yes
 (my/leader-def nil 'override
-    "TAB v" '(my/show-last-perspective :which-key "Show last workspace"))
+    "TAB v" '(my/show-perspective-name :which-key "Show workspace name"))
 
-(defun my/show-last-perspective ()
+(defun my/show-perspective-name ()
     (interactive)
-    (message persp-last-persp-name))
+    (let ((persp-name (safe-persp-name (get-current-persp))))
+        (message persp-name)))
 #+end_src
 
 * Работа с вкладками (tab)
@@ -1837,6 +1838,8 @@ emacs-клиента.
 Здесь определим набор клавиш для привычных действий с фреймами.
 
 #+begin_src emacs-lisp :tangle yes
+(my/leader-def nil 'override
+    "q" '(:ignore t :which-key "quite/close"))
 (my/leader-def nil 'override
     "o f" '(my/make-frame-and-switch-perpective :which-key "Make frame and switch workspace")
     "q f" '(delete-frame :which-key "Delete frame")
@@ -3339,7 +3342,7 @@ shows it in message and put the result into registers `\"' and `t'."
     (delete-other-windows))
 
 (my/leader-def nil 'override
-               "o" '(:ignore t :which-key "tools")
+               "o" '(:ignore t :which-key "open")
                "o a" '(:ignore t :which-key "agenda"))
 (my/leader-def nil 'override
                "o a a" '(org-agenda :which-key "Agenda")
@@ -3426,25 +3429,34 @@ shows it in message and put the result into registers `\"' and `t'."
             (concat "[" branch "]"))))
 #+end_src
 
-Вызов терминала eshell в popwin.
-
-/TODO: Код в отладке. Предстоит добавить удаление окна и прочее./
+Вызов терминала eshell.  Терминал создается по возможности свой для
+каждого рабочего пространства.  Если буфер с таким терминалом уже
+создан, то он показывается в окне или окно с таким терминалом
+скрывается.
 
 #+begin_src emacs-lisp :tangle yes
-(defun my/popup-eshell ()
+(defun my/popup-eshell-toggle ()
     (interactive)
-    (let* ((buffer-name "*popup:eshell*")
-           (buffer (get-buffer-create buffer-name)))
-        (with-current-buffer buffer
-            (eshell-mode))
-        (pop-to-buffer buffer)))
+    (let* ((buffer-name (format "*eshell-popup:%s*"
+                                (if (bound-and-true-p persp-mode)
+                                    (safe-persp-name (get-current-persp))
+                                    "main")))
+           (buffer (get-buffer buffer-name))
+           (window))
+        (unless buffer
+            (setq buffer (get-buffer-create buffer-name))
+            (with-current-buffer buffer
+                (eshell-mode)))
+        (if-let ((window (get-buffer-window buffer)))
+            (delete-window window)
+            (pop-to-buffer buffer))))
 #+end_src
 
 Запилим горячие клавиши на вызов окошка eshell.
 
 #+begin_src emacs-lisp :tangle yes
 (my/leader-def nil 'override
-    "o e" #'my/popup-eshell
+    "o e" #'my/popup-eshell-toggle
     "o E" #'eshell)
 #+end_src
 
@@ -4135,7 +4147,8 @@ Completion item kind (тип объекта в выпадашке автодоп
 
 #+begin_src emacs-lisp :tangle yes
 (my/leader-def nil 'prog-mode-map
-               "c" '(:ignore t :which-key "jumps")
+               "c" '(:ignore t :which-key "code"))
+(my/leader-def nil 'prog-mode-map
                "c d" '(lsp-find-definition :which-key "Jump to definition")
                "c D" '(lsp-find-references :which-key "Jump to references"))
 #+end_src
@@ -4508,7 +4521,7 @@ Pyright может не скачаться с серверов, поэтому �
 
 #+begin_src emacs-lisp :tangle yes
 (my/leader-def nil 'python-mode-map
-               "e" '(:ignore t :which-key "pyenv")
+               "e" '(:ignore t :which-key "env")
                "e a" #'my/pyvenv-activate
                "e i" #'my/pyvenv-select-path)
 #+end_src
