@@ -2046,8 +2046,7 @@ Spacemacs. Код находится в файле [[./funcs.el][funcs.el]].
         ("^\\*vterm\\*$")
 
         ;; IELM
-        ("^\\*ielm\\*$"
-         (display-buffer-reuse-window display-buffer-same-window))
+        ("^\\*ielm\\*$")
 
         ;; Magit (status)
         ("^magit: .*"
@@ -2194,19 +2193,69 @@ stays on current"
 
 ** Srcatch буфер
 
-Функция вызова черновика.
+В Doom были удобные черновики (scratch), которые не только создавались
+уникальными для каждого проекта, но и автоматически сохраняли свое
+содержимое.  Напишем им подобные.
+
+Начнем с функции для создания именованного scratch-буфера с
+автосохранением в файл.  Сохранять содержимое scratch-буферов будем в
+эту директорию.
 
 #+begin_src emacs-lisp :tangle yes
-(defun my/switch-to-scratch-buffer ()
-    (interactive)
-    (pop-to-buffer "*scratch*"))
+(setq my/scratch-dir (concat user-emacs-directory ".cache/scratches"))
+(make-directory my/scratch-dir t)
 #+end_src
 
-Пока сделаем привычные клавиши на вызов черновика.
+Теперь сама функция. Она принимает на вход имя буфера и возвращает
+созданный буфер.  Имя буфера не должно содержать символов,
+недопустимых для имени файла.
+
+/TODO: Доделать валидацию для имени файла./
+
+#+begin_src emacs-lisp :tangle yes
+(defun my/scratch-buffer-create (name)
+    (let* ((buffer-name (format "*scratch:%s*" name))
+           (file-name (expand-file-name (concat my/scratch-dir
+                                                "/" name ".txt")))
+           (buffer (get-buffer buffer-name)))
+        (unless buffer
+            (setq buffer (get-buffer-create buffer-name))
+            (with-current-buffer buffer
+                (insert-file-contents file-name)))
+        (with-current-buffer buffer
+            (setq-local buffer-auto-save-file-name file-name))
+        buffer))
+#+end_src
+
+Теперь сделаем создание конкретных scratch-буферов.  Начнем с общего
+scratch-буфера (на замену стандартному "*scratch*").
+
+#+begin_src emacs-lisp :tangle yes
+(defun my/make-scratch-main ()
+    (interactive)
+    (let* ((name "main")
+           (buffer (my/scratch-buffer-create name)))
+        (pop-to-buffer buffer)
+        buffer))
+#+end_src
+
+И создание scratch-буфера для текущего рабочего пространства.
+
+#+begin_src emacs-lisp :tangle yes
+(defun my/make-scratch-perspective ()
+    (interactive)
+    (let* ((name (my/--get-current-persp-name))
+           (buffer (my/scratch-buffer-create name)))
+        (pop-to-buffer buffer)
+        buffer))
+#+end_src
+
+Привычные из Doom горячие клавиши для scratch-буферов.
 
 #+begin_src emacs-lisp :tangle yes
 (my/leader-def nil 'override
-    "x" #'my/switch-to-scratch-buffer)
+    "x" '(my/make-scratch-main :which-key "Scratch main")
+    "p x" '(my/make-scratch-perspective :which-key "Scratch workspace"))
 #+end_src
 
 * Работа с файлами
