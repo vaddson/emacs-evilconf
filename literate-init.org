@@ -2220,8 +2220,9 @@ stays on current"
            (buffer (get-buffer buffer-name)))
         (unless buffer
             (setq buffer (get-buffer-create buffer-name))
-            (with-current-buffer buffer
-                (insert-file-contents file-name)))
+            (when (file-exists-p file-name)
+                (with-current-buffer buffer
+                    (insert-file-contents file-name))))
         (with-current-buffer buffer
             (setq-local buffer-auto-save-file-name file-name))
         buffer))
