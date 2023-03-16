@@ -1731,6 +1731,7 @@ Imenu - дает не только удобный способ навигаци�
     (setq wg-morph-on nil)
     (setq persp-autokill-buffer-on-remove 'kill-weak)
     (setq persp-auto-save-opt 0)
+    (setq persp-auto-resume-time 0)
     (add-hook 'window-setup-hook #'(lambda () (persp-mode 1))))
 
 (use-package persp-mode
@@ -1747,9 +1748,18 @@ Imenu - дает не только удобный способ навигаци�
 Но для удобства определю клавиши, к которым привык в Doom.
 
 #+begin_src emacs-lisp :tangle yes
+(defun my/persp-frame-switch ()
+    (interactive)
+    (let ((names (copy-list persp-names-cache)))
+        (call-interactively 'persp-frame-switch)
+        (unless (member (my/--get-current-persp-name) names)
+            (switch-to-buffer "*dashboard*")
+            (delete-other-windows))))
+
 (my/leader-def nil 'override
                "TAB" '(:ignore t :which-key "workspaces")
-               "TAB ." '(persp-frame-switch :which-key "Switch or create workspace")
+               "TAB ." '(my/persp-frame-switch
+                         :which-key "Switch or create workspace")
                "TAB r" '(persp-rename :which-key "Rename workspace")
                "TAB d" '(persp-kill :which-key "Delete workspace")
                "," '(persp-switch-to-buffer :which-key "Switch buffer in workspace")
@@ -1817,21 +1827,23 @@ Imenu - дает не только удобный способ навигаци�
 
 #+begin_src emacs-lisp :tangle yes
 (defun my/make-frame-and-switch-perpective (persp-name)
-    (interactive (list (read-string "Enter workspace name: ")))
+    (interactive (list (ivy-read "Enter workspace name: "
+                                 persp-names-cache)))
     (when persp-name
         (let* ((frame-text (my/make-title-bar-text persp-name))
                (frame (my/get-frame-by-name frame-text)))
             (if frame
-                    (select-frame-set-input-focus frame)
+                (select-frame-set-input-focus frame)
                 (my/prepare-frame-for-workspace persp-name
                                                 (make-frame))))))
 
 (defun my/prepare-frame-for-workspace (persp-name frame)
     (select-frame-set-input-focus frame)
     (my/set-title-bar persp-name)
-    (switch-to-buffer "*dashboard*")
-    (delete-other-windows)
-    (persp-switch persp-name)
+    (unless (member persp-name persp-names-cache)
+        (switch-to-buffer "*dashboard*")
+        (delete-other-windows))
+    (persp-frame-switch persp-name)
     (message (concat "Workspace '" persp-name "' is selected.")))
 #+end_src
 
@@ -1856,6 +1868,20 @@ emacs-клиента.
     "o f" '(my/make-frame-and-switch-perpective :which-key "Make frame and switch workspace")
     "q f" '(delete-frame :which-key "Delete frame")
     "n I" '(my/set-title-bar-and-workspace-interactive :which-key "Set title for frame and workspace"))
+#+end_src
+
+** Вид окон при открытии нового фрейма
+
+Когда появляется новый клиент, то хорошо бы скрыть все, что было во
+фрейме ранее открытого клиента.  Для этого оставим в нем только одно
+окно и выведем в него приветственный буфер (dashboard).
+
+#+begin_src emacs-lisp :tangle yes
+(add-hook 'server-after-make-frame-hook
+          (lambda (&optional frame)
+              (delete-other-windows)
+              (switch-to-buffer "*scratch*")
+              (switch-to-buffer "*dashboard*")))
 #+end_src
 
 * Работа с окнами
