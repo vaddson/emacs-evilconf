@@ -1984,13 +1984,26 @@ emacs-клиента.
     "w S" '(my/split-window-below-and-focus :which-key "Split window horizontally with focus"))
 #+end_src
 
-** Ширина разделения окна
+** Ширина разделителя окон
 
 Сделаем разделение окон по-заметнее.
 
 #+begin_src emacs-lisp :tangle yes
 (window-divider-mode 1)
 (setq window-divider-default-right-width 4)
+#+end_src
+
+** Настройка Ediff
+
+Настроим расположение окон для сравнения содежимого буферов.  Ставим
+окна сравниваемых буферов рядом (а не одно под другим), панель
+управления уводим вниз (а не в отдельный фрейм).
+
+#+begin_src emacs-lisp :tangle yes
+(require 'ediff)
+(setq ediff-diff-options "-w" ; turn off whitespace checking
+      ediff-split-window-function #'split-window-horizontally
+      ediff-window-setup-function #'ediff-setup-windows-plain)
 #+end_src
 
 * Работа с буферами
@@ -2263,7 +2276,7 @@ scratch-буфера (на замену стандартному "*scratch*").
 #+begin_src emacs-lisp :tangle yes
 (my/leader-def nil 'override
     "x" '(my/make-scratch-main :which-key "Scratch main")
-    "p x" '(my/make-scratch-perspective :which-key "Scratch workspace"))
+    "p x" '(my/make-scratch-perspective :which-key "Scratch project"))
 #+end_src
 
 * Работа с файлами
@@ -3721,16 +3734,15 @@ treemacs при показе текущего файла в дереве про�
 Загрузим необходимые пакеты и определим некоторые базовые клавиши.
 
 #+begin_src emacs-lisp :tangle yes
-  (use-package magit
-	  :ensure t
-	  :config
-	  ;; Define some keys:
-      (my/leader-def nil 'override
-                     "g" '(:ignore t :which-key "git")
-                     "g g" #'magit-status
-                     "g b" #'magit-branch-checkout
-                     "g /" #'magit-dispatch)
-      )
+(use-package magit
+    :ensure t
+    :config
+    ;; Define some keys:
+    (my/leader-def nil 'override
+                   "g" '(:ignore t :which-key "git")
+                   "g g" #'magit-status
+                   "g b" #'magit-branch-checkout
+                   "g /" #'magit-dispatch))
 (use-package magit-gitflow
     :ensure t)
 (use-package magit-popup
