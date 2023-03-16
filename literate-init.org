@@ -2206,17 +2206,16 @@ stays on current"
 (make-directory my/scratch-dir t)
 #+end_src
 
-Теперь сама функция. Она принимает на вход имя буфера и возвращает
-созданный буфер.  Имя буфера не должно содержать символов,
-недопустимых для имени файла.
-
-/TODO: Доделать валидацию для имени файла./
+Теперь сама функция. Она принимает на вход имя буфера и какой-либо
+идентификатор, по которому строится имя файла для автосохранения.
+Возвращает созданный буфер.
 
 #+begin_src emacs-lisp :tangle yes
-(defun my/scratch-buffer-create (name)
+(defun my/scratch-buffer-create (name id)
     (let* ((buffer-name (format "*scratch:%s*" name))
-           (file-name (expand-file-name (concat my/scratch-dir
-                                                "/" name ".txt")))
+           (file-name (expand-file-name (concat my/scratch-dir "/"
+                                                (md5 (format "%s" id))
+                                                ".txt")))
            (buffer (get-buffer buffer-name)))
         (unless buffer
             (setq buffer (get-buffer-create buffer-name))
@@ -2235,18 +2234,26 @@ scratch-буфера (на замену стандартному "*scratch*").
 (defun my/make-scratch-main ()
     (interactive)
     (let* ((name "main")
-           (buffer (my/scratch-buffer-create name)))
+           (buffer (my/scratch-buffer-create name name)))
         (pop-to-buffer buffer)
         buffer))
 #+end_src
 
-И создание scratch-буфера для текущего рабочего пространства.
+И создание scratch-буфера для текущего проекта или рабочего пространства.
 
 #+begin_src emacs-lisp :tangle yes
 (defun my/make-scratch-perspective ()
     (interactive)
-    (let* ((name (my/--get-current-persp-name))
-           (buffer (my/scratch-buffer-create name)))
+    (let* ((project-path (projectile-project-root))
+           (persp-name (my/--get-current-persp-name))
+           (id (or project-path
+                   persp-name))
+           (name (if project-path
+                     (concat "PROJ-"
+                             (car (last
+                                   (remove "" (split-string project-path "/")))))
+                     persp-name))
+           (buffer (my/scratch-buffer-create name id)))
         (pop-to-buffer buffer)
         buffer))
 #+end_src
