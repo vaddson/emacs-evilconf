@@ -814,6 +814,27 @@ Find application name in my/application-name variable."
 (global-set-key (kbd "C--") #'text-scale-decrease)
 #+end_src
 
+** Настройка окна компиляции (compilation)
+
+Для окна компиляции выставим настройки:
+- Гасить процесс компиляции перед началом нового.
+- Запрос на сохранение всех буферов при старте компиляции.
+- Останавливать прокрутку в окне компиляции при первой строчке с ошибкой.
+- Цветная раскраска текста.
+
+#+begin_src emacs-lisp :tangle yes
+(require 'compile)
+
+(setq compilation-always-kill t       ; kill compilation process before starting another
+      compilation-ask-about-save t    ; save all buffers on `compile'
+      compilation-scroll-output 'first-error)
+(add-hook 'compilation-filter-hook #'my/apply-ansi-color-to-compilation-buffer)
+
+(defun my/apply-ansi-color-to-compilation-buffer ()
+    (with-silent-modifications
+        (ansi-color-apply-on-region compilation-filter-start (point))))
+#+end_src
+
 * Демоны
 
 Мне удобно для работы запускать несколько демонов Emacs.
@@ -2041,6 +2062,35 @@ emacs-клиента.
       ediff-window-setup-function #'ediff-setup-windows-plain)
 #+end_src
 
+** Поиск текста и файла по директории
+
+Функция поиска текста по заданной директории.  Назначаем директорию
+корнем проекта, после чего запускаем поиск по проекту.
+
+#+begin_src emacs-lisp :tangle yes
+(defun my/search-in-directory ()
+    (interactive)
+    (let ((projectile-project-root (read-directory-name "Select directory: ")))
+        (call-interactively 'counsel-projectile-rg)))
+#+end_src
+
+Аналогично поступаем с поиском файла по директории.
+
+#+begin_src emacs-lisp :tangle yes
+(defun my/find-file-in-directory ()
+    (interactive)
+    (let ((projectile-project-root (read-directory-name "Select directory: ")))
+        (call-interactively #'counsel-projectile-find-file)))
+#+end_src
+
+Назначаем горячие клавиши для поиска.
+
+#+begin_src emacs-lisp :tangle yes
+(my/leader-def nil 'override
+               "s d" '(my/search-in-directory :which-key "Search in directory")
+               "f F" '(my/find-file-in-directory :which-key "Open file in directory"))
+#+end_src
+
 * Работа с буферами
 
 Для работы части функций этого раздела используется код, взятый из
@@ -2065,8 +2115,15 @@ Spacemacs. Код находится в файле [[./funcs.el][funcs.el]].
 
 Мне удобней работать с popup-окнами (например окно помощи "*Help*"),
 когда они появляются не сбоку фрейма, а снизу.  Делается через задание
-списка ACTION для функции =display-buffer=. Пример взял из описания
-функции.
+списка ACTION для функции =display-buffer=.
+
+Настроим сначала фокус у окон с help-буферами.
+
+#+begin_src emacs-lisp :tangle yes
+(setq help-window-select t)
+#+end_src
+
+Теперь все остальное.
 
 #+begin_src emacs-lisp :tangle yes
 (setq display-buffer-alist
@@ -2716,6 +2773,7 @@ Return history hash-map."
 (my/evil-define-key '(normal visual motion) 'evil-collection-unimpaired-mode-map
 	"[ l" nil
 	"] l" nil)
+(define-key org-mode-map (kbd "C-,") nil)
 #+end_src
 
 ** Разнообразная реакция на Enter (RET)
