@@ -24,9 +24,9 @@
 
 * Отладка
 
-Создаем буфер и пишем в него логи.
-Функция для записи - =my/log=.
-Нужно для отладки кода в этом документе (т.е. почти не нужно).
+Создаем буфер =my/log-buffer= и пишем в него логи.
+Функция для записи - =(my/log)=.
+Иногдв нужно для отладки кода в этом документе.
 
 #+begin_src emacs-lisp :tangle yes
 (setq my/log-buffer (get-buffer-create "*my/log-buffer*"))
@@ -610,10 +610,11 @@
 #+end_src
 
 Определим, какие секции будут видны на начальном экране.
-Пусть это будут ранее открытые файлы.
+Пусть это будут ранее открытые проекты и файлы.
 
 #+begin_src emacs-lisp :tangle yes
-(setq dashboard-items '((recents .  6)))
+(setq dashboard-items '((projects . 6)
+                        (recents .  6)))
 #+end_src
 
 ** Мигание курсора
@@ -1876,12 +1877,20 @@ emacs-клиента.
 фрейме ранее открытого клиента.  Для этого оставим в нем только одно
 окно и выведем в него приветственный буфер (dashboard).
 
+Есть неприятность при создании коммита через Magit: почему-то тоже
+поднимается server-after-make-frame-hook.  Понять, что это "был Magit"
+можно по имени текущего буфера - =" *server*"= (определил
+экспериментально).
+
 #+begin_src emacs-lisp :tangle yes
 (add-hook 'server-after-make-frame-hook
           (lambda (&optional frame)
-              (delete-other-windows)
-              (switch-to-buffer "*scratch*")
-              (switch-to-buffer "*dashboard*")))
+              (unless (equal "*server*"
+                             (string-trim (buffer-name (current-buffer))))
+                  (persp-switch "main")
+                  (delete-other-windows)
+                  (switch-to-buffer "*scratch*")
+                  (switch-to-buffer "*dashboard*"))))
 #+end_src
 
 * Работа с окнами
@@ -2045,6 +2054,8 @@ Spacemacs. Код находится в файле [[./funcs.el][funcs.el]].
 (my/leader-def nil 'override
                "b" '(:ignore t :which-key "buffers")
                "b b" '(counsel-projectile-switch-to-buffer
+                       :which-key "Switch buffer in project")
+               "SPC" '(counsel-projectile-switch-to-buffer
                        :which-key "Switch buffer in project")
                "b B" '(counsel-switch-buffer :which-key "Switch buffer")
                "b d" '(kill-current-buffer :which-key "Kill buffer"))
