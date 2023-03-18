@@ -1860,13 +1860,14 @@ Imenu - дает не только удобный способ навигаци�
                                                 (make-frame))))))
 
 (defun my/prepare-frame-for-workspace (persp-name frame)
-    (select-frame-set-input-focus frame)
-    (my/set-title-bar persp-name)
-    (unless (member persp-name persp-names-cache)
-        (switch-to-buffer "*dashboard*")
-        (delete-other-windows))
-    (persp-frame-switch persp-name)
-    (message (concat "Workspace '" persp-name "' is selected.")))
+    (let ((names (copy-list persp-names-cache)))
+        (select-frame-set-input-focus frame)
+        (my/set-title-bar persp-name)
+        (persp-frame-switch persp-name)
+        (unless (member persp-name names)
+            (switch-to-buffer "*dashboard*")
+            (delete-other-windows))
+        (message (concat "Workspace '" persp-name "' is selected."))))
 #+end_src
 
 Выбрать/создать перспективу с изменением заголовка удобно сделать и
@@ -2356,9 +2357,7 @@ scratch-буфера (на замену стандартному "*scratch*").
            (id (or project-path
                    persp-name))
            (name (if project-path
-                     (concat "PROJ-"
-                             (car (last
-                                   (remove "" (split-string project-path "/")))))
+                     (concat "PROJ-" (my/make-project-name project-path))
                      persp-name))
            (buffer (my/scratch-buffer-create name id)))
         (pop-to-buffer buffer)
@@ -2857,6 +2856,20 @@ Return history hash-map."
              (let ((match (and (org-at-item-checkbox-p)
                                (match-string 1))))
                  (org-toggle-checkbox (if (equal match "[ ]") '(16)))))  ; Set '-' to checkbox.
+            ((or `table `table-row)
+             (if (org-at-TBLFM-p)
+                 (org-table-calc-current-TBLFM)
+                 (ignore-errors
+                     (save-excursion
+                         (goto-char (org-element-property :contents-begin context))
+                         (org-call-with-arg 'org-table-recalculate (or arg t))))))
+
+            (`table-cell
+             (org-table-blank-field)
+             (org-table-recalculate arg)
+             (when (and (string-empty-p (string-trim (org-table-get-field)))
+                        (bound-and-true-p evil-local-mode))
+                 (evil-change-state 'insert)))
 
             (_
              (org-ctrl-c-ctrl-c arg))
@@ -3303,19 +3316,40 @@ sudo apt install dvipng preview-latex-style
 	"l M" #'my/make-link-for-call)
 #+end_src
 
-** Схлопывание столбцов в таблицах
+** Клавиши для работы с таблицами
 
-Для наглядности бывает нужно схлопнуть ширину какого-либо столбца в
-таблице. Проще, конечно, отключить перенос строк функцией
-=toggle-truncate-lines=.
-
-Повесим схлопывание столбцов на горячую клавишу.
+Восстановим привычную раскладку из Doom для работы с таблицей.
 
 #+begin_src emacs-lisp :tangle yes
 (my/localleader-def nil 'org-mode-map
-                    "b" '(:ignore t :which-key "tables"))
+    "b i c" #'org-table-insert-column
+    "b i h" #'org-table-insert-hline
+    "b i H" #'org-table-hline-and-move
+    "b i r" #'org-table-insert-row
+    "b d c" #'org-table-delete-column
+    "b d r" #'org-table-kill-row
+    "b -" #'org-table-insert-hline
+    "b a" #'org-table-align
+    "b c" #'org-table-create-or-convert-from-region
+    "b e" #'org-table-edit-field
+    "b f" #'org-table-edit-formulas
+    "b g" #'org-table-toggle-column-width
+    "b h" #'org-table-field-info
+    "b r" #'org-table-recalculate
+    "b R" #'org-table-recalculate-buffer-tables
+    "b s" #'org-table-sort-lines
+    "b t f" #'org-table-toggle-formula-debugger
+    "b t o" #'org-table-toggle-coordinate-overlays)
+#+end_src
+
+Назначим описание этой группы клавиш.
+
+#+begin_src emacs-lisp :tangle yes
 (my/localleader-def nil 'org-mode-map
-                    "b g" #'org-table-toggle-column-width)
+    "b" '(:ignore t :which-key "tables")
+    "b d" '(:ignore t :which-key "delete")
+    "b i" '(:ignore t :which-key "insert")
+    "b t" '(:ignore t :which-key "toggle"))
 #+end_src
 
 ** Показ картинок-результатов выполнения org-babel блоков
@@ -3697,7 +3731,7 @@ shows it in message and put the result into registers `\"' and `t'."
     "o v" #'my/open-term-in-new-tab)
 #+end_src
 
-* Проекты, рабочие пространства
+* Проекты
 
 ** Projectile
 
@@ -3746,12 +3780,41 @@ shows it in message and put the result into registers `\"' and `t'."
           hooks))
 #+end_src
 
+Понадобится функция для создания имени текущего проекта.  Имя берется
+по названию доектории проекта.
+
+#+begin_src emacs-lisp :tangle yes
+(defun my/make-project-name (&optional project-path)
+    (unless project-path
+        (setq project-path (projectile-project-root)))
+    (when project-path
+        (car (last
+              (remove "" (split-string project-path "/"))))))
+#+end_src
+
+Проект бывает удобно открыть сразу вместе с созданием одноименного
+рабочего пространства и назначением заголовка фрейма. Сделаем такую
+возможность.
+
+#+begin_src emacs-lisp :tangle yes
+(defun my/switch-project-with-workspace ()
+    (interactive)
+    (let ((temporary-name (format "*%s*" (md5 "*temporary-name-workspace*"))))
+        (persp-frame-switch temporary-name)
+        (call-interactively #'counsel-projectile-switch-project)
+        (let ((project-name (my/make-project-name)))
+            (persp-rename project-name)
+            (my/prepare-frame-for-workspace project-name
+                                            (selected-frame)))))
+#+end_src
+
 Определим горячие клавиши для работы с проектами.
 
 #+begin_src emacs-lisp :tangle yes
 (my/leader-def nil 'override
                "p" '(:ignore t :which-key "projects")
                "p p" '(counsel-projectile-switch-project :which-key "Switch project")
+               "p P" '(my/switch-project-with-workspace :which-key "Switch project+workspace")
                "p f" '(counsel-projectile-find-file :which-key "Open file in project")
                ;; "p c" #'project-compile
                "p c" '(projectile-compile-project :which-key "Compile in project")
