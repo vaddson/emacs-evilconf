@@ -30,7 +30,7 @@
 
 Создаем буфер =*my/log-buffer*= и пишем в него логи.
 Функция для записи - =(my/log TEXT)=.
-Иногдв нужно для отладки кода в этом документе.
+Иногда нужно для отладки кода в этом документе.
 
 #+begin_src emacs-lisp :tangle yes
 (setq my/log-buffer (get-buffer-create "*my/log-buffer*"))
@@ -2779,7 +2779,7 @@ emacs-клиента.
     "n I" '(my/set-title-bar-and-workspace-interactive :which-key "Set title for frame and workspace"))
 #+end_src
 
-* Проекты
+* Проекты (projects)
 
 ** Установка и настройка работы с проектами (Projectile)
 
@@ -2844,6 +2844,15 @@ emacs-клиента.
           hooks))
 #+end_src
 
+** Совместная работа проектов и рабочих пространств
+
+Для работы с проектом в отдельном Emacs-клиенте мне нужны следующие действия:
+1. Запустить нового Emacs-клиента (или, как вариант, открыть отдельный фрейм).
+2. Завести новое рабочее пространство по имени проекта.
+3. Открыть проект и выбрать в нем файл.
+4. Фрейму назначить одноименный заголовок, чтобы отличать его среди других фреймов.
+Шаги 2, 3 и 4 можно собрать в одно действие. Сделаем это ниже.
+
 Понадобится функция для создания имени текущего проекта.  Имя берется
 по названию директории проекта.
 
@@ -2856,12 +2865,7 @@ emacs-клиента.
               (remove "" (split-string project-path "/"))))))
 #+end_src
 
-Для работы с проектом в отдельном Emacs-клиенте мне нужны следующие действия:
-1. Запустить нового Emacs-клиента (или, как вариант, открыть отдельный фрейм).
-2. Завести новое рабочее пространство по имени проекта.
-3. Открыть проект и выбрать в нем файл.
-4. Фрейму назначить одноименный заголовок, чтобы отличать его среди других фреймов.
-Шаги 2, 3 и 4 можно собрать в одно действие. Сделаем это ниже.
+Теперь собираем все описанные выше действия в одну функцию.
 
 #+begin_src emacs-lisp :tangle yes
 (defun my/switch-project-with-workspace (&optional safe-frame-title)
@@ -2887,7 +2891,7 @@ emacs-клиента.
 (my/leader-def nil 'override
     "p" '(:ignore t :which-key "projects")
     "P" '(:ignore t :which-key "projects-ws")
-    "p p" '(counsel-projectile-switch-project :which-key "Switch project")
+    "p p" '(counsel-projectile-switch-project :which-key "Simple switch project")
     "p P" '((lambda ()
                 (interactive)
                 (my/switch-project-with-workspace t))
