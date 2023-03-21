@@ -1040,7 +1040,7 @@ Keywords=Text;Editor;
 (use-package avy
     :ensure t
     :config
-    (my/evil-define-key '(norman visual) 'override
+    (my/evil-define-key '(normal visual) 'override
                         "g s s" #'evil-avy-goto-char-timer
                         "g s /" #'evil-avy-goto-char-2))
 #+end_src
@@ -1479,7 +1479,9 @@ from urllib.parse import quote, unquote
     :ensure t)
 #+end_src
 
-Определим горячие клавиши на восстановление результатов последней сессии ivy.
+Определим горячие клавиши на восстановление результатов последней
+сессии ivy.  (Помним, что буфер с результатами поиска можно
+зафиксировать клавишами =Ctrl-c Ctrl-o=.)
 
 #+begin_src emacs-lisp :tangle yes
 (my/leader-def nil 'override
@@ -1631,28 +1633,42 @@ from urllib.parse import quote, unquote
 
 #+begin_src emacs-lisp :tangle yes
 (use-package ivy-rich
-	:ensure t
-	:config
-	(setq ivy-rich-display-transformers-list
-		  (list
-		   'counsel-describe-variable
-		   '(:columns
-			 ((counsel-describe-variable-transformer (:width 40)) ; the original transformer
-			  (doom/ivy-rich-describe-variable-transformer (:width 50)) ; display variable value
-			  (ivy-rich-counsel-variable-docstring (:face font-lock-doc-face))))
-		   'counsel-M-x
-		   '(:columns
-			 ((counsel-M-x-transformer (:width 60))
-			  (ivy-rich-counsel-function-docstring (:face font-lock-doc-face))))
-		   ;; Apply switch buffer transformers to `counsel-projectile-switch-to-buffer' as well
-		   'counsel-projectile-switch-to-buffer
-		   (plist-get ivy-rich-display-transformers-list 'ivy-switch-buffer)
-		   'counsel-bookmark
-		   '(:columns
-			 ((ivy-rich-candidate (:width 0.5))
-			  (ivy-rich-bookmark-filename-or-empty (:width 60))))
-		   ))
-	(ivy-rich-mode 1))
+    :ensure t
+    :config
+    (setq ivy-rich-display-transformers-list
+          (list
+           'counsel-describe-variable
+           '(:columns
+             ((counsel-describe-variable-transformer (:width 40)) ; the original transformer
+              (doom/ivy-rich-describe-variable-transformer (:width 50)) ; display variable value
+              (ivy-rich-counsel-variable-docstring (:face font-lock-doc-face))))
+           'counsel-M-x
+           '(:columns
+             ((counsel-M-x-transformer (:width 60))
+              (ivy-rich-counsel-function-docstring (:face font-lock-doc-face))))
+           'counsel-describe-function
+           '(:columns
+             ((counsel-describe-function-transformer (:width 60))
+              (ivy-rich-counsel-function-docstring (:face font-lock-doc-face))))
+           ;; Apply switch buffer transformers to `counsel-projectile-switch-to-buffer' as well
+           'counsel-find-file
+           (plist-get ivy-rich-display-transformers-list 'counsel-find-file)
+           'counsel-recentf
+           (plist-get ivy-rich-display-transformers-list 'counsel-recentf)
+           'package-install
+           (plist-get ivy-rich-display-transformers-list 'package-install)
+           'counsel-projectile-switch-to-buffer
+           (plist-get ivy-rich-display-transformers-list 'ivy-switch-buffer)
+           'persp-switch-to-buffer
+           (plist-get ivy-rich-display-transformers-list 'ivy-switch-buffer)
+           'counsel-switch-buffer
+           (plist-get ivy-rich-display-transformers-list 'ivy-switch-buffer)
+           'counsel-bookmark
+           '(:columns
+             ((ivy-rich-candidate (:width 0.5))
+              (ivy-rich-bookmark-filename-or-empty (:width 60))))
+           ))
+    (ivy-rich-mode 1))
 #+end_src
 
 ** Некоторые дополнения пакетов
@@ -2344,6 +2360,7 @@ scratch-буфера (на замену стандартному "*scratch*").
                "f S" '(write-buffer :which-key "Save file as")
                "f f" '(counsel-find-file :which-key "Open file")
                "f d" '(counsel-find-file :which-key "Open directory or file")
+               "f r" '(counsel-recentf :which-key "Open recent file")
                "o -" '(dired-jump :which-key "Open directory and select file"))
 #+end_src
 
@@ -3588,7 +3605,16 @@ sudo apt install dvipng preview-latex-style
 
 ** Показ картинок-результатов выполнения org-babel блоков
 
-Картинки отрисовываются сразу после выполнения org-babel блоков.
+Картинки отрисовываются сразу после загрузки org-файла.
+Вручную этим можно управлять такими инструкциями:
+: #+STARTUP: inlineimages
+: #+STARTUP: noinlineimages
+
+#+begin_src emacs-lisp :tangle yes
+(setq org-startup-with-inline-images t)
+#+end_src
+
+А также сразу после выполнения org-babel блоков.
 
 #+begin_src emacs-lisp :tangle yes
 (add-hook 'org-babel-after-execute-hook 'org-display-inline-images 'append)
