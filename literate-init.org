@@ -590,30 +590,6 @@ email clients, file templates and snippets."
                "e d" #'my/correct-font-in-current-frame)
 #+end_src
 
-** Выбор случайной картинки для стартового логотипа
-   :PROPERTIES:
-   :ID:       3a0a5684-d453-4d37-bd1a-0a65ae9591ef
-   :END:
-
-В репозитории этого конфига есть папочка с картинками. В нее можно добавлять
-новые картинки, и на старте Emacs одна из них случайно будет помещена на
-логотип. Обозначим эту директорию.
-
-#+begin_src emacs-lisp :tangle yes
-(setq my/dashboard-banner-dir (concat my/config-dir "/banners"))
-#+end_src
-
-Теперь напишем функцию выбора случайной картинки.
-
-#+begin_src emacs-lisp :tangle yes
-(defun my/select-random-banner ()
-    (let* ((pictures (directory-files my/dashboard-banner-dir nil ".png"))
-           (pictures-sorted (sort pictures #'string-lessp))
-           (filename (nth (random (length pictures))
-                          pictures-sorted)))
-        (concat my/dashboard-banner-dir "/" filename)))
-#+end_src
-
 ** Мигание курсора
 
 Выключаем мигание курсора.
@@ -838,62 +814,6 @@ Find application name in my/application-name variable."
 (defun my/apply-ansi-color-to-compilation-buffer ()
     (with-silent-modifications
         (ansi-color-apply-on-region compilation-filter-start (point))))
-#+end_src
-
-* Демоны
-
-** Задание цветовых тем для известных демонов
-
-Мне удобно для работы запускать несколько демонов Emacs.
-Визуально их различаю цветовыми темами. Например:
-- демон "notes" - теплая тема,
-- демон "dev"   - холодная тема,
-- демон "rest"  - холодная тема с прозрачностью.
-Так сложнее визуально перепутать клиентские фреймы для каждого из
-демонов.
-
-Установим каждому демону тему на старте.
-
-#+begin_src emacs-lisp :tangle yes
-(pcase (daemonp)
-    ("notes"
-     (load-theme 'doom-molokai t))
-
-    ("dev"
-     (load-theme 'doom-one t))
-
-    ("rest"
-     (setq my/transparency-level 1)
-     (load-theme 'doom-one t)))
-#+end_src
-
-А тема по-умолчанию задается [[id:40986685-fc80-45b7-ab77-4cac074fea9f][выше]].
-
-** Ярлыки для работы с известными демонами
-
-Клиентов к демонам запускаю по desktop-ярлыкам из
-[[/usr/share/applications/]].
-
-Если при вызове клиента демон не был запущен, то он запускается, так
-что на старте системы думать о Emacs-демонах не приходится. Для этого
-есть параметр "-a":
-: $ emacsclient -a "" -c -s my_daemon_name
-
-Пример ярлыка для клиента от демона "notes" (файл emacs_notes.desktop):
-
-#+begin_src conf
-[Desktop Entry]
-Name=Emacs Notes
-GenericName=Text Editor
-Comment=Edit text
-MimeType=text/english;text/plain;text/x-makefile;text/x-c++hdr;text/x-c++src;text/x-chdr;text/x-csrc;text/x-java;text/x-moc;text/x-pascal;text/x-tcl;text/x-tex;application/x-shellscript;text/x-c;text/x-c++;
-Exec=emacsclient -a "" -c -s notes
-Icon=emacs
-Type=Application
-Terminal=false
-Categories=Development;TextEditor;
-StartupWMClass=Emacs
-Keywords=Text;Editor;
 #+end_src
 
 * Регистры и операции с ними
@@ -1500,7 +1420,11 @@ from urllib.parse import quote, unquote
 (use-package counsel
     :ensure t)
 (use-package counsel-projectile
-    :ensure t)
+    :ensure t
+    ;; :config
+    ;; (counsel-projectile-mode 1)
+    ;; (ivy-set-display-transformer #'counsel-projectile-find-file nil)
+    )
 #+end_src
 
 Уберем "^" из начала поисковой строки в counsel и вообще в Ivy.
@@ -1573,10 +1497,17 @@ from urllib.parse import quote, unquote
 
 ** Наполнение полезным содержимым ivy-меню
 
-Этот код взят из Doom. Буков много, но и польза видна: показываются
-значения переменных прямо в меню.
+Теперь грузим пакет ivy-rich, который эту красоту и поддерживает.
 
-Ниже функция, которая выдает нужный формат для describe-variable.
+#+begin_src emacs-lisp :tangle yes
+(use-package ivy-rich
+    :ensure t)
+#+end_src
+
+Очень удобно при поиске описания переменной сразу видеть в минибуфере
+значения всех кандидатов.
+
+Чтобы так сделать, напишем трансформер для ivy (взято из Doom).
 
 #+begin_src emacs-lisp :tangle yes
 (defun doom/ivy-rich-describe-variable-transformer (cand)
@@ -1606,46 +1537,61 @@ from urllib.parse import quote, unquote
 		 t)))
 #+end_src
 
-Теперь грузим пакет ivy-rich, который эту красоту и поддеживает.
+Терерь осталось воспользоваться этим трансформером в списке
+=ivy-rich-display-transformers-list=.  В этом списке описываются
+колонки и правила их заполнения для мининбуфера ivy.
 
 #+begin_src emacs-lisp :tangle yes
-(use-package ivy-rich
-    :ensure t
-    :config
-    (setq ivy-rich-display-transformers-list
-          (list
+(plist-put ivy-rich-display-transformers-list
            'counsel-describe-variable
            '(:columns
-             ((counsel-describe-variable-transformer (:width 40)) ; the original transformer
-              (doom/ivy-rich-describe-variable-transformer (:width 50)) ; display variable value
-              (ivy-rich-counsel-variable-docstring (:face font-lock-doc-face))))
-           'counsel-M-x
-           '(:columns
-             ((counsel-M-x-transformer (:width 60))
-              (ivy-rich-counsel-function-docstring (:face font-lock-doc-face))))
-           'counsel-describe-function
-           '(:columns
-             ((counsel-describe-function-transformer (:width 60))
-              (ivy-rich-counsel-function-docstring (:face font-lock-doc-face))))
-           ;; Apply switch buffer transformers to `counsel-projectile-switch-to-buffer' as well
-           'counsel-find-file
-           (plist-get ivy-rich-display-transformers-list 'counsel-find-file)
-           'counsel-recentf
-           (plist-get ivy-rich-display-transformers-list 'counsel-recentf)
-           'package-install
-           (plist-get ivy-rich-display-transformers-list 'package-install)
-           'counsel-projectile-switch-to-buffer
-           (plist-get ivy-rich-display-transformers-list 'ivy-switch-buffer)
+             ((counsel-describe-variable-transformer (:width 40))
+              (doom/ivy-rich-describe-variable-transformer (:width 50))
+              (ivy-rich-counsel-variable-docstring (:face font-lock-doc-face)))))
+#+end_src
+
+Для выбора буфера из рабочего пространства тоже выведем информацию о
+кандидатах.
+
+#+begin_src emacs-lisp :tangle yes
+(plist-put ivy-rich-display-transformers-list
            'persp-switch-to-buffer
-           (plist-get ivy-rich-display-transformers-list 'ivy-switch-buffer)
-           'counsel-switch-buffer
-           (plist-get ivy-rich-display-transformers-list 'ivy-switch-buffer)
-           'counsel-bookmark
-           '(:columns
-             ((ivy-rich-candidate (:width 0.5))
-              (ivy-rich-bookmark-filename-or-empty (:width 60))))
-           ))
-    (ivy-rich-mode 1))
+           (plist-get ivy-rich-display-transformers-list
+                      'ivy-switch-buffer))
+#+end_src
+
+Выделение в буфере ivy на размер текста в строке очень раздражает,
+поскольку не всегда видно, что выбрано.  Намного удобней выделение
+строки на всю ширину окна.  К сожалению, я пока что не нашел, как
+установить описание колонок по-умолчанию, поэтому обхожусь костылем
+ниже.
+
+#+begin_src emacs-lisp :tangle yes
+(let ((funcs '(my/persp-frame-switch
+               persp-kill
+               counsel-find-file
+               find-file
+               my/make-frame-and-switch-perpective
+               counsel-projectile-switch-project
+               projectile-switch-project
+               my/switch-project-with-workspace-safe-title
+               my/switch-project-with-workspace
+               counsel-projectile-find-file
+               projectile-find-file
+               load-file
+               swiper
+               )))
+    (dolist (func funcs)
+        (plist-put ivy-rich-display-transformers-list
+                   func
+                   '(:columns
+                     ((ivy-rich-candidate (:width 1.0)))))))
+#+end_src
+
+Включаем информацию в ivy поиске.
+
+#+begin_src emacs-lisp :tangle yes
+(ivy-rich-mode 1)
 #+end_src
 
 ** Некоторые дополнения пакетов
@@ -2919,6 +2865,62 @@ emacs-клиента.
 #+begin_src emacs-lisp :tangle yes
 (setq recentf-exclude '("/\\(\\(\\(COMMIT\\|NOTES\\|PULLREQ\\|MERGEREQ\\|TAG\\)_EDIT\\|MERGE_\\|\\)MSG\\|\\(BRANCH\\|EDIT\\)_DESCRIPTION\\)\\'" "ssh:" "SSH:")
       )
+#+end_src
+
+* Демоны
+
+** Задание цветовых тем для известных демонов
+
+Мне удобно для работы запускать несколько демонов Emacs.
+Визуально их различаю цветовыми темами. Например:
+- демон "notes" - теплая тема,
+- демон "dev"   - холодная тема,
+- демон "rest"  - холодная тема с прозрачностью.
+Так сложнее визуально перепутать клиентские фреймы для каждого из
+демонов.
+
+Установим каждому демону тему на старте.
+
+#+begin_src emacs-lisp :tangle yes
+(pcase (daemonp)
+    ("notes"
+     (load-theme 'doom-molokai t))
+
+    ("dev"
+     (load-theme 'doom-one t))
+
+    ("rest"
+     (setq my/transparency-level 1)
+     (load-theme 'doom-one t)))
+#+end_src
+
+А тема по-умолчанию задается [[id:40986685-fc80-45b7-ab77-4cac074fea9f][выше]].
+
+** Ярлыки для работы с известными демонами
+
+Клиентов к демонам запускаю по desktop-ярлыкам из
+[[/usr/share/applications/]].
+
+Если при вызове клиента демон не был запущен, то он запускается, так
+что на старте системы думать о Emacs-демонах не приходится. Для этого
+есть параметр "-a":
+: $ emacsclient -a "" -c -s my_daemon_name
+
+Пример ярлыка для клиента от демона "notes" (файл emacs_notes.desktop):
+
+#+begin_src conf
+[Desktop Entry]
+Name=Emacs Notes
+GenericName=Text Editor
+Comment=Edit text
+MimeType=text/english;text/plain;text/x-makefile;text/x-c++hdr;text/x-c++src;text/x-chdr;text/x-csrc;text/x-java;text/x-moc;text/x-pascal;text/x-tcl;text/x-tex;application/x-shellscript;text/x-c;text/x-c++;
+Exec=emacsclient -a "" -c -s notes
+Icon=emacs
+Type=Application
+Terminal=false
+Categories=Development;TextEditor;
+StartupWMClass=Emacs
+Keywords=Text;Editor;
 #+end_src
 
 * Org
@@ -4338,6 +4340,32 @@ python-калькулятор (и не только).
 
 * Панель на старте с логотипом (dashboard)
 
+** Выбор случайной картинки для стартового логотипа
+   :PROPERTIES:
+   :ID:       3a0a5684-d453-4d37-bd1a-0a65ae9591ef
+   :END:
+
+В репозитории этого конфига есть папочка с картинками. В нее можно добавлять
+новые картинки, и на старте Emacs одна из них случайно будет помещена на
+логотип. Обозначим эту директорию.
+
+#+begin_src emacs-lisp :tangle yes
+(setq my/dashboard-banner-dir (concat my/config-dir "/banners"))
+#+end_src
+
+Теперь напишем функцию выбора случайной картинки.
+
+#+begin_src emacs-lisp :tangle yes
+(defun my/select-random-banner ()
+    (let* ((pictures (directory-files my/dashboard-banner-dir nil ".png"))
+           (pictures-sorted (sort pictures #'string-lessp))
+           (filename (nth (random (length pictures))
+                          pictures-sorted)))
+        (concat my/dashboard-banner-dir "/" filename)))
+#+end_src
+
+** Настройка панели
+
 Заменим начальный экран более модной панелью.
 Картинку логотипа [[id:3a0a5684-d453-4d37-bd1a-0a65ae9591ef][выберем случайно]].
 
@@ -4371,7 +4399,8 @@ python-калькулятор (и не только).
         ""))
 
 (setq dashboard-banner-logo-title
-      (concat "                  Welcome to Emacs!"
+      (concat "\n\n"
+              "                  Welcome to Emacs!"
               "\n\n\n"
               (format "Open file                                  %s\n"
                       (my/get-function-key 'counsel-find-file))
