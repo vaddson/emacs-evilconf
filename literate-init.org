@@ -4371,24 +4371,27 @@ python-калькулятор (и не только).
         ""))
 
 (setq dashboard-banner-logo-title
-      (concat "                   Welcome to Emacs!"
+      (concat "                  Welcome to Emacs!"
               "\n\n\n"
-              (format "Open file                                   %s\n"
+              (format "Open file                                  %s\n"
                       (my/get-function-key 'counsel-find-file))
-              (format "Recent file                                 %s\n"
+              (format "Recent file                                %s\n"
                       (my/get-function-key 'counsel-recentf))
               "\n"
-              (format "Open project                                %s\n"
+              (format "Open project                               %s\n"
                       (my/get-function-key 'counsel-projectile-switch-project))
-              (format "Open project with workspace                 %s\n"
+              (format "Open project with workspace                %s\n"
                       (my/get-function-key 'my/switch-project-with-workspace-safe-title))
-              (format "Open project with workspace in new frame    %s\n"
-                      (my/get-function-key 'my/switch-project-with-workspace))
               "\n"
-              (format "Switch workspace                            %s\n"
+              (format "Switch workspace                           %s\n"
                       (my/get-function-key 'my/persp-frame-switch))
-              (format "Switch workspace in new frame               %s\n"
+              (format "Switch workspace in new frame              %s\n"
                       (my/get-function-key 'my/make-frame-and-switch-perpective))
+              "\n"
+              (format "Change frame title                         %s\n"
+                      (my/get-function-key 'my/set-title-bar-interactive))
+              (format "Change frame title with workspace          %s\n"
+                      (my/get-function-key 'my/set-title-bar-and-workspace-interactive))
               ))
 #+end_src
 
