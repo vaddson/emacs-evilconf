@@ -614,29 +614,6 @@ email clients, file templates and snippets."
         (concat my/dashboard-banner-dir "/" filename)))
 #+end_src
 
-** Панель на старте с логотипом (dashboard)
-
-Заменим начальный экран более модной панелью.
-Картинку логотипа [[id:3a0a5684-d453-4d37-bd1a-0a65ae9591ef][выберем случайно]].
-
-#+begin_src emacs-lisp :tangle yes
-(use-package dashboard
-    :ensure t
-    :config
-    (setq dashboard-center-content t
-          dashboard-startup-banner (my/select-random-banner)
-          initial-buffer-choice (lambda () (get-buffer "*dashboard*")))
-    (dashboard-setup-startup-hook))
-#+end_src
-
-Определим, какие секции будут видны на начальном экране.
-Пусть это будут ранее открытые проекты и файлы.
-
-#+begin_src emacs-lisp :tangle yes
-(setq dashboard-items '((projects . 6)
-                        (recents .  6)))
-#+end_src
-
 ** Мигание курсора
 
 Выключаем мигание курсора.
@@ -2358,8 +2335,8 @@ scratch-буфера (на замену стандартному "*scratch*").
                "f" '(:ignore t :which-key "files")
                "f s" '(save-buffer :which-key "Save file or buffer")
                "f S" '(write-buffer :which-key "Save file as")
-               "f f" '(counsel-find-file :which-key "Open file")
                "f d" '(counsel-find-file :which-key "Open directory or file")
+               "f f" '(counsel-find-file :which-key "Open file")
                "f r" '(counsel-recentf :which-key "Open recent file")
                "o -" '(dired-jump :which-key "Open directory and select file"))
 #+end_src
@@ -2909,10 +2886,7 @@ emacs-клиента.
     "p" '(:ignore t :which-key "projects")
     "P" '(:ignore t :which-key "projects-ws")
     "p p" '(counsel-projectile-switch-project :which-key "Simple switch project")
-    "p P" '((lambda ()
-                (interactive)
-                (my/switch-project-with-workspace t))
-            :which-key "Light switch proj+ws")
+    "p P" '(my/switch-project-with-workspace-safe-title :which-key "Light switch proj+ws")
     "P P" '(my/switch-project-with-workspace :which-key "Switch project+workspace")
     "p f" '(counsel-projectile-find-file :which-key "Open file in project")
     ;; "p c" #'project-compile
@@ -2920,6 +2894,10 @@ emacs-клиента.
     "p R" '(projectile-run-project :which-key "Run project")
     "p T" '(projectile-test-project :which-key "Test project")
     "/" '(counsel-projectile-rg :which-key "Search project"))
+
+(defun my/switch-project-with-workspace-safe-title ()
+    (interactive)
+    (my/switch-project-with-workspace t))
 #+end_src
 
 ** Исключение файлов из поиска по проектам
@@ -4356,6 +4334,62 @@ python-калькулятор (и не только).
 #+begin_src emacs-lisp :tangle yes
 (my/leader-def nil 'override
     "o c" '(my/calculator-python-toggle :which-key "Calculator live on Python"))
+#+end_src
+
+* Панель на старте с логотипом (dashboard)
+
+Заменим начальный экран более модной панелью.
+Картинку логотипа [[id:3a0a5684-d453-4d37-bd1a-0a65ae9591ef][выберем случайно]].
+
+#+begin_src emacs-lisp :tangle yes
+(use-package dashboard
+    :ensure t
+    :config
+    (setq dashboard-center-content t
+          dashboard-startup-banner (my/select-random-banner)
+          initial-buffer-choice (lambda () (get-buffer "*dashboard*")))
+    (dashboard-setup-startup-hook))
+#+end_src
+
+Определим, какие секции будут видны на начальном экране.  Из них могли
+бы быть агенда, ранее открытые файлы и проекты.  Но пусть там не будет
+ничего, лишь картинка и приветствие. :)
+
+#+begin_src emacs-lisp :tangle yes
+(setq dashboard-items nil)
+;; (setq dashboard-items '((projects . 6)
+;;                         (recents .  6)))
+#+end_src
+
+Приветствие. Здесь, подобно Doom, повесим подсказку по клавишам.
+
+#+begin_src emacs-lisp :tangle yes
+(defun my/get-function-key (func-symbol)
+    (if-let ((key (where-is-internal func-symbol nil t)))
+        (string-replace "<moniton-state>" ""
+                        (key-description key))
+        ""))
+
+(setq dashboard-banner-logo-title
+      (concat "                   Welcome to Emacs!"
+              "\n\n\n"
+              (format "Open file                                   %s\n"
+                      (my/get-function-key 'counsel-find-file))
+              (format "Recent file                                 %s\n"
+                      (my/get-function-key 'counsel-recentf))
+              "\n"
+              (format "Open project                                %s\n"
+                      (my/get-function-key 'counsel-projectile-switch-project))
+              (format "Open project with workspace                 %s\n"
+                      (my/get-function-key 'my/switch-project-with-workspace-safe-title))
+              (format "Open project with workspace in new frame    %s\n"
+                      (my/get-function-key 'my/switch-project-with-workspace))
+              "\n"
+              (format "Switch workspace                            %s\n"
+                      (my/get-function-key 'my/persp-frame-switch))
+              (format "Switch workspace in new frame               %s\n"
+                      (my/get-function-key 'my/make-frame-and-switch-perpective))
+              ))
 #+end_src
 
 * LSP сервер
