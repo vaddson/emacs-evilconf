@@ -1580,6 +1580,8 @@ from urllib.parse import quote, unquote
                projectile-find-file
                load-file
                swiper
+               counsel-imenu
+               counsel-org-goto
                )))
     (dolist (func funcs)
         (plist-put ivy-rich-display-transformers-list
@@ -1967,8 +1969,7 @@ server-after-make-frame-hook.  Понять, что это "был Magit", мо�
 #+begin_src emacs-lisp :tangle yes
 (defun my/search-in-directory ()
     (interactive)
-    (let ((projectile-project-root (read-directory-name "Select directory: ")))
-        (call-interactively 'counsel-projectile-rg)))
+    (counsel-rg))
 #+end_src
 
 Аналогично поступаем с поиском файла по директории.
@@ -1976,8 +1977,7 @@ server-after-make-frame-hook.  Понять, что это "был Magit", мо�
 #+begin_src emacs-lisp :tangle yes
 (defun my/find-file-in-directory ()
     (interactive)
-    (let ((projectile-project-root (read-directory-name "Select directory: ")))
-        (call-interactively #'counsel-projectile-find-file)))
+    (counsel-file-jump))
 #+end_src
 
 Назначаем горячие клавиши для поиска.
