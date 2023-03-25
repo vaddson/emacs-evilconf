@@ -235,7 +235,7 @@ email clients, file templates and snippets."
     :ensure t
     :init
     ;; (setq evil-undo-system 'undo-tree)
-    (setq evil-undo-system 'undo-redo)
+    (setq evil-undo-system 'undo-tree)
     (setq evil-want-keybinding nil)
     :config
     (setq-default indent-tabs-mode nil)
@@ -525,18 +525,37 @@ email clients, file templates and snippets."
 Глобальный шрифт (обычный) будем держать в переменной =my/global-font=,
 а шрифт побольше - в переменной =my/global-font-inc=.
 
+Поскольку шрифты ниже могут быть не установлены в системе, сделаем
+подстраховку: назначим список шрифтов по приоритету и дефолтный nil.
+
 #+begin_src emacs-lisp :tangle yes
-(setq my/global-font "Liberation Mono-9")
-(setq my/global-font-inc "Liberation Mono-10")
+(setq my/font-families '((:family "Liberation Mono" :size 9 :size-inc 10)
+                         (:family "Droid Sans Mono" :size 9 :size-inc 10)))
 #+end_src
 
-Прописываем шрифты глобально в редактор.
+Теперь напишем подстраховку на наличие в системе шрифтов.  Работать это
+будет только при живом фрейме.
 
 #+begin_src emacs-lisp :tangle yes
-(add-to-list 'default-frame-alist `(font . ,my/global-font))
-;; (add-to-list 'default-frame-alist `(font . ,my/global-font-inc))
-;; (set-face-attribute 'default t :font my/global-font :weight 'semi-light)
-;; (set-face-attribute 'default nil :font my/global-font :weight 'semi-light)
+(require 'cl)
+
+(setq my/frame-font-families nil
+      my/global-font nil
+      my/global-font-inc nil)
+
+(defun my/ensure-fonts (&optional frame)
+    (unless my/frame-font-families
+        (setq my/frame-font-families (font-family-list frame))
+        (when my/frame-font-families
+            (dolist (row my/font-families)
+                (let ((family (plist-get row :family))
+                      (size (plist-get row :size))
+                      (size-inc (plist-get row :size-inc)))
+                    (when (member family my/frame-font-families)
+                        (setq my/global-font (format "%s-%s" family size)
+                              my/global-font-inc (format "%s-%s" family size-inc))
+                        (add-to-list 'default-frame-alist `(font . ,my/global-font))
+                        (cl-return family)))))))
 #+end_src
 
 Напишем функцию, которая в указанном (или активном) фрейме в
@@ -544,9 +563,11 @@ email clients, file templates and snippets."
 
 #+begin_src emacs-lisp :tangle yes
 (defun my/select-frame-font-for-monitor (frame font font-inc)
-    (if (my/small-monitor-p frame)
-        (set-frame-font font-inc frame t)
-        (set-frame-font font t)))
+    (my/ensure-fonts frame)
+    (when (and font font-inc)
+        (if (my/small-monitor-p frame)
+            (set-frame-font font-inc frame t)
+            (set-frame-font font t))))
 
 (defun my/small-monitor-p (frame)
     (let* ((monitor-attrs (frame-monitor-attributes frame))
@@ -564,12 +585,18 @@ email clients, file templates and snippets."
 #+end_src
 
 При создании фрейма навесим обработчик этого события, чтобы размер
-шрифта выровнять автоматически.
+шрифта выровнять автоматически. Повторение хука на создание фрейма
+клиента - это костыль.
 
 #+begin_src emacs-lisp :tangle yes
 (add-hook 'after-make-frame-functions
           (lambda (frame)
               (my/select-frame-font-for-monitor frame
+                                                my/global-font
+                                                my/global-font-inc)))
+(add-hook 'my/server-after-make-frame-hook
+          (lambda ()
+              (my/select-frame-font-for-monitor nil
                                                 my/global-font
                                                 my/global-font-inc)))
 #+end_src
@@ -580,6 +607,7 @@ email clients, file templates and snippets."
 #+begin_src emacs-lisp :tangle yes
 (defun my/correct-font-in-current-frame ()
     (interactive)
+    (my/ensure-fonts)
     (my/select-frame-font-for-monitor nil
                                       my/global-font
                                       my/global-font-inc))
@@ -1799,19 +1827,13 @@ Imenu - дает не только удобный способ навигаци�
 фрейме ранее открытого клиента.  Для этого оставим в нем только одно
 окно и выведем в него приветственный буфер (dashboard).
 
-Есть неприятность при создании коммита через Magit тоже поднимается
-server-after-make-frame-hook.  Понять, что это "был Magit", можно по
-имени текущего буфера - =" *server*"= (определил экспериментально).
-
 #+begin_src emacs-lisp :tangle yes
-(add-hook 'server-after-make-frame-hook
+(add-hook 'my/server-after-make-frame-hook
           (lambda (&optional frame)
-              (unless (equal "*server*"
-                             (string-trim (buffer-name (current-buffer))))
                   (persp-switch "main")
                   (delete-other-windows)
                   (switch-to-buffer "*scratch*")
-                  (switch-to-buffer "*dashboard*"))))
+                  (switch-to-buffer "*dashboard*")))
 #+end_src
 
 * Работа с окнами
@@ -1963,8 +1985,7 @@ server-after-make-frame-hook.  Понять, что это "был Magit", мо�
 
 ** Поиск текста и файла по директории
 
-Функция поиска текста по заданной директории.  Назначаем директорию
-корнем проекта, после чего запускаем поиск по проекту.
+Функция поиска текста по текущей директории.
 
 #+begin_src emacs-lisp :tangle yes
 (defun my/search-in-directory ()
@@ -1972,7 +1993,7 @@ server-after-make-frame-hook.  Понять, что это "был Magit", мо�
     (counsel-rg))
 #+end_src
 
-Аналогично поступаем с поиском файла по директории.
+Поиск файла по директории.
 
 #+begin_src emacs-lisp :tangle yes
 (defun my/find-file-in-directory ()
@@ -2868,6 +2889,27 @@ emacs-клиента.
 #+end_src
 
 * Демоны
+
+** Свой хук на создание первого клиентского фрейма
+
+При старте нового клиента вызывается хук
+=server-after-make-frame-hook=.  Но есть неприятность, возможно
+связанная с =with-editor=: при создании коммита через Magit тоже
+поднимается server-after-make-frame-hook.  Понять, что это "был
+Magit", можно по имени текущего буфера - =" *server*"= (определил
+экспериментально).
+
+Чтобы не отлавливать этот момент каждый раз, сделаем свой хук
+=my/server-after-make-frame-hook=, и в дальнейшем будем пользоваться
+им.
+
+#+begin_src emacs-lisp :tangle yes
+(add-hook 'server-after-make-frame-hook
+          (lambda (&optional frame)
+              (unless (equal "*server*"
+                             (string-trim (buffer-name (current-buffer))))
+                  (run-hooks 'my/server-after-make-frame-hook))))
+#+end_src
 
 ** Задание цветовых тем для известных демонов
 
