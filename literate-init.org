@@ -1610,6 +1610,9 @@ from urllib.parse import quote, unquote
                swiper
                counsel-imenu
                counsel-org-goto
+               describe-package
+               counsel-load-theme
+               load-theme
                )))
     (dolist (func funcs)
         (plist-put ivy-rich-display-transformers-list
@@ -2200,8 +2203,6 @@ stays on current"
 
 Удобно видеть список буферов, разобранный по проектам.
 
-/TODO: В Doom различал проекты сразу. Здесь надо донастроить./
-
 Загрузим пакеты.
 
 #+begin_src emacs-lisp :tangle yes
@@ -2209,6 +2210,16 @@ stays on current"
     :ensure t)
 (use-package ibuffer-vc
     :ensure t)
+#+end_src
+
+Повесим хуки со страницы пакета ibuffer-projectile.
+
+#+begin_src emacs-lisp :tangle yes
+(add-hook 'ibuffer-hook
+          (lambda ()
+              (ibuffer-projectile-set-filter-groups)
+              (unless (eq ibuffer-sorting-mode 'alphabetic)
+                  (ibuffer-do-sort-by-alphabetic))))
 #+end_src
 
 Красивый список вызывается командой =ibuffer=.
@@ -5057,7 +5068,7 @@ Pyright может не скачаться с серверов, поэтому �
 И горячие клавиши на активацию и на выбор путей:
 
 #+begin_src emacs-lisp :tangle yes
-(my/leader-def nil 'python-mode-map
+(my/leader-def nil 'override
                "e" '(:ignore t :which-key "env")
                "e a" #'my/pyvenv-activate
                "e i" #'my/pyvenv-select-path)
