@@ -906,7 +906,7 @@ Find application name in my/application-name variable."
 (setq evil-undo-system 'undo-tree
       evil-undo-function 'undo-tree-undo)
 (global-undo-tree-mode 1)
-(add-hook 'evil-local-mode 'turn-on-undo-tree-mode)
+(add-hook 'evil-local-mode-hook 'turn-on-undo-tree-mode)
 #+end_src
 
 Чтобы в окошке с деревом изменений не помнить про клавишу "d"
@@ -1191,8 +1191,11 @@ from urllib.parse import quote, unquote
 	:ensure t
     :config
 	(setq highlight-indent-guides-method 'column)
-	(add-hook 'prog-mode-hook 'highlight-indent-guides-mode)
-	(add-hook 'org-mode-hook 'highlight-indent-guides-mode))
+    (dolist (mode '(prog-mode-hook
+                    org-mode-hook
+                    yaml-mode-hook
+                    markdown-mode-hook))
+        (add-hook mode 'highlight-indent-guides-mode)))
 #+end_src
    
 ** Проверка орфографии
@@ -4081,6 +4084,7 @@ treemacs при показе текущего файла в дереве про�
     :ensure t
     :config
     ;; Define some keys:
+    (setq magit-diff-refine-hunk t)
     (my/leader-def nil 'override
                    "g" '(:ignore t :which-key "git")
                    "g g" #'magit-status
@@ -4748,7 +4752,12 @@ Completion item kind (тип объекта в выпадашке автодоп
 	:ensure t)
 #+end_src
 
-#+RESULTS:
+Поскольку в markdown пробелы в конце строки имеют значение, то
+визуализируем их.
+
+#+begin_src emacs-lisp :tangle yes
+(add-hook 'markdown-mode-hook #'whitespace-mode)
+#+end_src
 
 Для markdown-файлов нужен просмотр. Сделаем его через утилиту
 =retext=. Утилита хороша тем, что в режиме просмотра тут же
