@@ -235,7 +235,6 @@ email clients, file templates and snippets."
     :ensure t
     :init
     ;; (setq evil-undo-system 'undo-tree)
-    (setq evil-undo-system 'undo-tree)
     (setq evil-want-keybinding nil)
     :config
     (setq-default indent-tabs-mode nil)
@@ -894,14 +893,20 @@ Find application name in my/application-name variable."
 Очень удобное окошко с деревом изменений по буферу.
 Сразу отменим запись дерева изменений в файл.
 
-/TODO: Пока настроено плохо - все в линеечку. Буду разбираться, что не так./
-
 #+begin_src emacs-lisp :tangle yes
 (use-package undo-tree
 	:ensure t
 	:config
-    (setq undo-tree-auto-save-history nil)
-	(global-undo-tree-mode 1))
+    (setq undo-tree-auto-save-history nil))
+#+end_src
+
+Подружим undo-tree с evil.
+
+#+begin_src emacs-lisp :tangle yes
+(setq evil-undo-system 'undo-tree
+      evil-undo-function 'undo-tree-undo)
+(global-undo-tree-mode 1)
+(add-hook 'evil-local-mode 'turn-on-undo-tree-mode)
 #+end_src
 
 Чтобы в окошке с деревом изменений не помнить про клавишу "d"
