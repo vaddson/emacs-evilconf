@@ -529,7 +529,7 @@ email clients, file templates and snippets."
 
 #+begin_src emacs-lisp :tangle yes
 (setq my/font-families '((:family "Liberation Mono" :size 9 :size-inc 10)
-                         (:family "Droid Sans Mono" :size 9 :size-inc 10)))
+                         (:family "Monospace" :size 9 :size-inc 10)))
 #+end_src
 
 Теперь напишем подстраховку на наличие в системе шрифтов.  Работать это
@@ -1285,115 +1285,22 @@ from urllib.parse import quote, unquote
 
 ** Закладки
 
-Ставим закладки на разные места в разных документах и перемещаемся по ним.
+Есть очень удобные встроенные закладки.  Запоминают не только строку в
+буфере, но и позицию в строке.  Закладки сохраняются даже если буфер
+был закрыт.
 
-Пакет =bm= (Visual Bookmarks).
-
-#+begin_src emacs-lisp :tangle yes
-(use-package bm
-	:ensure t)
-#+end_src
-
-Восстановление при загрузке.
-
-#+begin_src emacs-lisp :tangle yes
-(setq bm-restore-repository-on-load t)
-#+end_src
-
-Переключение закладок по всем буферам при выполнении 'next'.
-
-#+begin_src emacs-lisp :tangle yes
-(setq bm-cycle-all-buffers t)
-#+end_src
-
-Где хранить постоянные файлы.
-
-#+begin_src emacs-lisp :tangle yes
-(setq bm-repository-file (concat user-emacs-directory "/bm-repository"))
-#+end_src
-
-Сохранение закладок.
-
-#+begin_src emacs-lisp :tangle yes
-(setq-default bm-buffer-persistence t)
-(add-hook 'kill-buffer-hook #'bm-buffer-save)
-#+end_src
-
-Сохранение закладок при удалении буфера.
-
-#+begin_src emacs-lisp :tangle yes
-(add-hook 'kill-emacs-hook #'(lambda ()
-                                 (bm-buffer-save-all)
-                                 (bm-repository-save)))
-#+end_src
-
-Сохранение буфера с закладками после сохранения самих закладок.
-
-#+begin_src emacs-lisp :tangle yes
-(add-hook 'after-save-hook #'bm-buffer-save)
-#+end_src
-
-Чтение репозитория из файла при старте.
-
-#+begin_src emacs-lisp :tangle yes
-(add-hook 'after-init-hook 'bm-repository-load)
-#+end_src
-
-Восстановление буфера с закладками.
-
-#+begin_src emacs-lisp :tangle yes
-(add-hook 'find-file-hooks   #'bm-buffer-restore)
-(add-hook 'after-revert-hook #'bm-buffer-restore)
-#+end_src
-
-Подстраховка с сохранением закладки при обновлении буфера.
-
-#+begin_src emacs-lisp :tangle yes
-(add-hook 'vc-before-checkin-hook #'bm-buffer-save)
-#+end_src
-
-Функция создания аннотированной ссылки.
-
-#+begin_src emacs-lisp :tangle yes
-(defun my/bm-bookmark-annotate ()
-	(interactive)
-	(bm-toggle)
-	(bm-bookmark-annotate))
-#+end_src
-
-Подстрахуемся на удаление закладок.
-
-#+begin_src emacs-lisp :tangle yes
-(defun my/bm-remove-all-current-buffer ()
-	(interactive)
-	(when (y-or-n-p "Remove all bookmarks in current buffer?")
-		(bm-remove-all-current-buffer)))
-
-(defun my/bm-remove-all-all-buffers ()
-	(interactive)
-	(when (yes-or-no-p "Remove all bookmarks in all buffers?")
-		(bm-remove-all-all-buffers)))
-#+end_src
-
-Горячие клавиши.
+Назначим дополнительные горячие клавиши с лидером.
 
 #+begin_src emacs-lisp :tangle yes
 (my/leader-def nil 'override
-               "j" '(:ignore t :which-key "marks"))
+               "j" '(:ignore t :which-key "jump"))
 (my/leader-def nil 'override
-               "j m" '(:ignore t :which-key "marks")
-               "j m t" #'bm-toggle
-               "j m a" #'bm-bookmark-annotate
-               "j m s" #'bm-bookmark-show-annotation
-               "j m n" #'bm-next
-               "j m p" #'bm-previous
-               "j m l" #'bm-show
-               "j m L" #'bm-show-all
-               "j m T" #'my/bm-bookmark-annotate
-               "j m d" #'my/bm-remove-all-current-buffer
-               "j m D" #'my/bm-remove-all-all-buffers)
+               "j m" '(:ignore t :which-key "bookmarks")
+               "j m m" #'counsel-bookmark
+               "j m s" #'bookmark-save
+               "j m l" #'bookmark-bmenu-list)
 #+end_src
-
+   
 * Подсказки, выпадашки, автодополнения
 
 ** Ivy - меню с поиском по частичному совпадению
@@ -3431,6 +3338,25 @@ sudo pacman -S texlive-latexextra
 #+latex_header: \usepackage[russian,english]{babel}
 #+end_quote
 
+** Экспорт в Markdown
+
+Экспорт в markdown может быть сделан следующими функциями:
+- Встроенными в org:
+  + =org-md-export-as-markdown=,
+  + =org-md-export-to-markdown=.
+  Недостаток их в том, что таблицы экспортируются в HTML-виде.
+- Из пакета ox-gfm:
+  + =org-gfm-export-to-markdown=,
+  + =org-gfm-export-as-markdown=.
+  Здесь таблички имеют текстовый вид, но их верстка едет.
+
+Все же будем пользоваться пакетом =ox-gfm=.
+
+#+begin_src emacs-lisp :tangle yes
+(use-package ox-gfm
+    :ensure t)
+#+end_src
+
 ** LaTeX preview. Формулы проямо в org-тексте
 
 Здесь не будет настроек, а только памятка, чтобы вспоминать, как этим
@@ -4135,6 +4061,14 @@ treemacs при показе текущего файла в дереве про�
 #+begin_src emacs-lisp :tangle yes
 (my/leader-def nil 'override
     "g B" #'magit-blame-addition)
+#+end_src
+
+Не блеймер и не Magit, но смысл тот же. Показываем информацию по
+каждой строке в отдельном буфере (=vc-annotate=).
+
+#+begin_src emacs-lisp :tangle yes
+(my/leader-def nil 'override
+    "g n" #'vc-annotate)
 #+end_src
 
 ** Подсветка разницы с HEAD в каждой строке
