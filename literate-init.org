@@ -1494,14 +1494,21 @@ from urllib.parse import quote, unquote
               (ivy-rich-counsel-variable-docstring (:face font-lock-doc-face)))))
 #+end_src
 
-Для выбора буфера из рабочего пространства тоже выведем информацию о
+Для остальных выборов буферов тоже выведем информацию о
 кандидатах.
 
 #+begin_src emacs-lisp :tangle yes
-(plist-put ivy-rich-display-transformers-list
-           'persp-switch-to-buffer
-           (plist-get ivy-rich-display-transformers-list
-                      'ivy-switch-buffer))
+(let ((funcs '(persp-switch-to-buffer
+               projectile-switch-to-buffer-other-window
+               projectile-switch-to-buffer
+               projectile-read-buffer-to-switch
+               counsel-switch-buffer-other-window))
+      (actions (plist-get ivy-rich-display-transformers-list
+                          'ivy-switch-buffer)))
+    (dolist (func funcs)
+        (plist-put ivy-rich-display-transformers-list
+                   func
+                   actions)))
 #+end_src
 
 Выделение в буфере ivy на размер текста в строке очень раздражает,
@@ -4306,12 +4313,12 @@ python-калькулятор (и не только).
 открывает или закрывает фрейм с калькулятором (если тот был открыт).
 
 #+begin_src emacs-lisp :tangle yes
-(defun my/calculator-python-open ()
+(defun my/calculator-python-open (&optional frame)
     "Open a frame with 'calulator' on live-py-mode."
     (interactive)
     (let* ((selection (my/get-selection-and-deselect))
            (buffer (find-file-noselect (my/calculator--get-python-filename)))
-           (frame (make-frame)))
+           (frame (or frame (make-frame))))
         (select-frame-set-input-focus frame)
         (set-frame-name my/calculator-python-framename)
         (switch-to-buffer buffer)
@@ -4399,6 +4406,17 @@ emacsclient.
         (call-interactively 'bookmark-bmenu-list)
         (switch-to-buffer "*Bookmark List*")
         (call-interactively 'bookmark-jump)))
+#+end_src
+
+** Вызов живого калькулятора на Python
+
+#+begin_src emacs-lisp :tangle yes
+(defun my/emacsclient-calculator ()
+    (interactive)
+    (my/prepare-windows-in-new-frame 'charge)
+    (let* ((name "Bookmarks"))
+        (my/set-title-bar-and-workspace-interactive name)
+        (my/calculator-python-open (selected-frame))))
 #+end_src
 
 * Панель на старте с логотипом (dashboard)
