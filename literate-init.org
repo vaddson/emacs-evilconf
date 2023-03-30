@@ -1297,8 +1297,11 @@ from urllib.parse import quote, unquote
 (my/leader-def nil 'override
                "j m" '(:ignore t :which-key "bookmarks")
                "j m m" #'counsel-bookmark
+               "j m j" #'bookmark-jump
                "j m s" #'bookmark-save
-               "j m l" #'bookmark-bmenu-list)
+               "j m l" #'bookmark-bmenu-list
+               "j m p" #'bookmark-set
+               "j m d" #'bookmark-delete)
 #+end_src
    
 * Подсказки, выпадашки, автодополнения
@@ -1368,6 +1371,16 @@ from urllib.parse import quote, unquote
     ;; (counsel-projectile-mode 1)
     ;; (ivy-set-display-transformer #'counsel-projectile-find-file nil)
     )
+#+end_src
+
+При поиске текста по проекту через =counsel-projectile-rg= нужно
+заходить в скрытые папки, но не трогать .git.  Сделаем настройки
+для ripgrep (добавим туда "--hidden" и "-g!.git").
+
+#+begin_src emacs-lisp :tangle yes
+(setq counsel-rg-base-command
+      '("rg" "--max-columns" "240" "--with-filename" "--no-heading"
+        "--line-number" "--color" "never" "--hidden" "-g!.git" "%s"))
 #+end_src
 
 Уберем "^" из начала поисковой строки в counsel и вообще в Ivy.
