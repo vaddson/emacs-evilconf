@@ -26,6 +26,20 @@
 2. Это все. Все раскладки должны сохраниться, а префикс-лидер к ним по-умолчанию
    станет =Ctrl-s=.
 
+* Lexical-binding. Лексические замыкания
+
+С ними лучше, чем без них. :)
+
+Включаются локальной переменной =lexical-binging= и работают в
+пределах своего буфера.  При загрузке el-файла можно включить
+специальным комментарием в начале.
+
+Включим лексические замыкания в этом конфиге.
+
+#+begin_src emacs-lisp :tangle yes
+;;; -*- lexical-binding: t -*-
+#+end_src
+  
 * Отладка
 
 Создаем буфер =*my/log-buffer*= и пишем в него логи.
@@ -676,7 +690,7 @@ email clients, file templates and snippets."
 Установим в панели отображение позиции курсора.
 
 #+begin_src emacs-lisp :tangle yes
-(setq mode-line-position (list "(%l,%c)"))
+(setq mode-line-position (list "(%l,%C)"))
 #+end_src
 
 ** Показ объекта внутри которого находится курсор (header-line)
@@ -721,7 +735,7 @@ Type [M-x list-faces-display] to see all colors.
 заголовка будет жить в переменной =my/application-name=.
 
 #+begin_src emacs-lisp :tangle yes
-(setq my/application-name "GNU Emacs")
+(setq my/application-name "GNU EMACS")
 
 (defun my/make-title-bar-text (text)
     (concat text " - " my/application-name))
@@ -1428,7 +1442,8 @@ from urllib.parse import quote, unquote
                "h p" '(describe-package :which-key "Describe package")
                "h o" '(counsel-describe-symbol :which-key "Descrive symbol")
                "h t" '(counsel-load-theme :which-key "Load visual theme")
-               "h a" '(counsel-apropos :which-key "Apropos"))
+               "h a" '(counsel-apropos :which-key "Apropos")
+               "h m" '(describe-mode :which-key "Describe mode"))
 #+end_src
 
 ** Company. Автодополнения
@@ -1450,6 +1465,13 @@ from urllib.parse import quote, unquote
     :ensure t)
 (use-package company-shell
     :ensure t)
+#+end_src
+
+Чтобы автодополнения не были в lovercase, добавим следующее
+(по-умолчанию было 'case-replace):
+
+#+begin_src emacs-lisp :tangle yes
+(setq-default company-dabbrev-downcase nil)
 #+end_src
 
 ** Наполнение полезным содержимым ivy-меню
@@ -1939,32 +1961,6 @@ Imenu - дает не только удобный способ навигаци�
 (setq ediff-diff-options "-w" ; turn off whitespace checking
       ediff-split-window-function #'split-window-horizontally
       ediff-window-setup-function #'ediff-setup-windows-plain)
-#+end_src
-
-** Поиск текста и файла по директории
-
-Функция поиска текста по текущей директории.
-
-#+begin_src emacs-lisp :tangle yes
-(defun my/search-in-directory ()
-    (interactive)
-    (counsel-rg))
-#+end_src
-
-Поиск файла по директории.
-
-#+begin_src emacs-lisp :tangle yes
-(defun my/find-file-in-directory ()
-    (interactive)
-    (counsel-file-jump))
-#+end_src
-
-Назначаем горячие клавиши для поиска.
-
-#+begin_src emacs-lisp :tangle yes
-(my/leader-def nil 'override
-               "s d" '(my/search-in-directory :which-key "Search in directory")
-               "f F" '(my/find-file-in-directory :which-key "Open file in directory"))
 #+end_src
 
 * Работа с буферами
@@ -2578,6 +2574,32 @@ Return history hash-map."
     "t k" #'my/notify-log-open-notify-log)
 #+end_src
 
+** Поиск текста и файла по директории
+
+Функция поиска текста по текущей директории.
+
+#+begin_src emacs-lisp :tangle yes
+(defun my/search-in-directory ()
+    (interactive)
+    (counsel-rg))
+#+end_src
+
+Поиск файла по директории.
+
+#+begin_src emacs-lisp :tangle yes
+(defun my/find-file-in-directory ()
+    (interactive)
+    (counsel-file-jump))
+#+end_src
+
+Назначаем горячие клавиши для поиска.
+
+#+begin_src emacs-lisp :tangle yes
+(my/leader-def nil 'override
+               "s d" '(my/search-in-directory :which-key "Search in directory")
+               "f F" '(my/find-file-in-directory :which-key "Open file in directory"))
+#+end_src
+
 * Рабочие пространства (workspaces, perspectives)
 
 ** Установка и настройка рабочих пространств
@@ -2630,6 +2652,7 @@ Return history hash-map."
                "TAB" '(:ignore t :which-key "workspaces")
                "TAB ." '(my/persp-frame-switch
                          :which-key "Switch or create workspace")
+               "TAB a" '(persp-add-buffer :which-key "Add buffer to workspace")
                "TAB r" '(persp-rename :which-key "Rename workspace")
                "TAB d" '(persp-kill :which-key "Delete workspace")
                "," '(persp-switch-to-buffer :which-key "Switch buffer in workspace")
@@ -2903,6 +2926,30 @@ Magit", можно по имени текущего буфера - =" *server*"=
 #+end_src
 
 А тема по-умолчанию задается [[id:40986685-fc80-45b7-ab77-4cac074fea9f][выше]].
+
+** Задание имен для рабочих пространств и фреймов на старте первого клиентского фрейма
+
+При старте демонов "Notes" (записи) или "rest" (REST), мне удобно
+сразу переименовать первый клиентский фрейм и создать одноименное
+рабочее пространство.  Автоматизируем эти действия, немного
+подстраховавшись на случай запуска [[id:cc0595b8-0628-4bd8-b398-ddfc80b95a01][клиентских сценариев]].
+
+#+begin_src emacs-lisp :tangle yes
+(defun my/actions-on-first-client-frame ()
+    (let ((set-title-and-workspace
+           (lambda (name)
+               (when (and (not (member name persp-names-cache))
+                          (= 1 (length persp-names-cache)))
+                   (my/prepare-windows-in-new-frame 'charge)
+                   (my/set-title-bar-and-workspace-interactive name)))))
+        (pcase (daemonp)
+            ("notes"
+             (funcall set-title-and-workspace "Notes"))
+            ("rest"
+             (funcall set-title-and-workspace "REST")))))
+
+(add-hook 'my/server-after-make-frame-hook #'my/actions-on-first-client-frame)
+#+end_src
 
 ** Ярлыки для работы с известными демонами
 
@@ -4234,6 +4281,16 @@ treemacs при показе текущего файла в дереве про�
 (define-key cfw:calendar-mode-map "d" #'cfw:org-open-agenda-day)
 #+end_src
 
+** Litable
+
+Живой emacs-lisp. Что-то вроде libe-py-mode для Python.
+В emacs-lisp буфере вызываем =(litable-mode)= и работаем.
+
+#+begin_src emacs-lisp :tangle yes
+(use-package litable
+    :ensure t)
+#+end_src
+
 * Инструменты свои
   
 ** Словарик под StarDict
@@ -4375,6 +4432,9 @@ python-калькулятор (и не только).
 #+end_src
 
 * Сценарии для emacsclient
+  :PROPERTIES:
+  :ID:       cc0595b8-0628-4bd8-b398-ddfc80b95a01
+  :END:
 
 Здесь собраны сценарии, которые удобно вызвать по желанию на старте
 emacsclient.
