@@ -4844,12 +4844,12 @@ Completion item kind (тип объекта в выпадашке автодоп
 	:ensure t)
 #+end_src
 
-Поскольку в markdown пробелы в конце строки имеют значение, то
-визуализируем их.
-
-#+begin_src emacs-lisp :tangle yes
-(add-hook 'markdown-mode-hook #'whitespace-mode)
-#+end_src
+# Поскольку в markdown пробелы в конце строки имеют значение, то
+# визуализируем их.
+# 
+# #+begin_src emacs-lisp :tangle yes
+# (add-hook 'markdown-mode-hook #'whitespace-mode)
+# #+end_src
 
 Для markdown-файлов нужен просмотр. Сделаем его через утилиту
 =retext=. Утилита хороша тем, что в режиме просмотра тут же
