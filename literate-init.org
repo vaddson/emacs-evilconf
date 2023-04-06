@@ -1516,7 +1516,7 @@ from urllib.parse import quote, unquote
 		 t)))
 #+end_src
 
-Терерь осталось воспользоваться этим трансформером в списке
+Теперь осталось воспользоваться этим трансформером в списке
 =ivy-rich-display-transformers-list=.  В этом списке описываются
 колонки и правила их заполнения для мининбуфера ivy.
 
@@ -1528,6 +1528,32 @@ from urllib.parse import quote, unquote
               (doom/ivy-rich-describe-variable-transformer (:width 50))
               (ivy-rich-counsel-variable-docstring (:face font-lock-doc-face)))))
 #+end_src
+
+Информация о пакетах.
+
+#+begin_src emacs-lisp :tangle yes
+(plist-put ivy-rich-display-transformers-list
+           'package-install
+           '(:columns
+             ((ivy-rich-candidate (:width 30))
+              (ivy-rich-package-version (:width 16 :face font-lock-comment-face))
+              (ivy-rich-package-archive-summary (:width 7 :face font-lock-builtin-face))
+              (ivy-rich-package-install-summary (:face font-lock-doc-face)))))
+#+end_src
+
+# Поиск файлов.
+# 
+# #+begin_src emacs-lisp :tangle yes
+# (let ((funcs '(counsel-find-file
+#                find-file)))
+#     (dolist (func funcs)
+#         (plist-put ivy-rich-display-transformers-list
+#                    func
+#                    '(:columns
+#                      ((ivy-read-file-transformer)
+#                       (ivy-rich-counsel-find-file-truename
+#                        (:face font-lock-doc-face)))))))
+# #+end_src
 
 Для остальных выборов буферов тоже выведем информацию о
 кандидатах.
@@ -2600,6 +2626,19 @@ Return history hash-map."
                "f F" '(my/find-file-in-directory :which-key "Open file in directory"))
 #+end_src
 
+** Графический диалог открытия файла
+
+Сохранено, как способ открытия диалогового окна с выбором файла.
+
+#+begin_src emacs-lisp :tangle yes
+(defun my/find-file-with-dialog ()
+    (interactive)
+    (let ((last-nonmenu-event nil)
+          (use-dialog-box t)
+          (use-file-dialog t))
+        (call-interactively #'find-file)))
+#+end_src
+   
 * Рабочие пространства (workspaces, perspectives)
 
 ** Установка и настройка рабочих пространств
@@ -3061,6 +3100,33 @@ Keywords=Text;Editor;
 (define-key org-mode-map (kbd "C-,") nil)
 #+end_src
 
+** Функция показа и скрытия картинки в org-mode
+
+Очень удобная функция (взята из Doom). Используем ее в следующих
+параграфах.
+
+#+begin_src emacs-lisp :tangle yes
+(defun my/org-toggle-inline-images-in-subtree (object &optional refresh)
+    "Refresh inline image previews in the current heading/tree."
+    (let* ((beg (or (org-element-property :begin object)
+                    (if (org-before-first-heading-p)
+                        (save-excursion (point-min))
+                        (save-excursion (org-back-to-heading) (point)))))
+           (end (or (org-element-property :end object)
+                    (if (org-before-first-heading-p)
+                        (save-excursion (org-next-visible-heading 1) (point))
+                        (save-excursion (org-end-of-subtree) (point)))))
+           (overlays (cl-remove-if-not (lambda (ov)
+                                           (overlay-get ov 'org-image-overlay))
+                                       (ignore-errors (overlays-in beg end)))))
+        (dolist (ov overlays nil)
+            (delete-overlay ov)
+            (setq org-inline-image-overlays (delete ov org-inline-image-overlays)))
+        (when (or refresh (not overlays))
+            (org-display-inline-images t t beg end)
+            t)))
+#+end_src
+   
 ** Разнообразная реакция на Enter (RET)
 
 При нажатии Enter попробуем узнать тип объекта под курсором и в
@@ -3160,26 +3226,6 @@ Keywords=Text;Editor;
             (_
              (org-ctrl-c-ctrl-c arg))
             )))
-
-(defun my/org-toggle-inline-images-in-subtree (object &optional refresh)
-    "Refresh inline image previews in the current heading/tree."
-    (let* ((beg (or (org-element-property :begin object)
-                    (if (org-before-first-heading-p)
-                        (save-excursion (point-min))
-                        (save-excursion (org-back-to-heading) (point)))))
-           (end (or (org-element-property :end object)
-                    (if (org-before-first-heading-p)
-                        (save-excursion (org-next-visible-heading 1) (point))
-                        (save-excursion (org-end-of-subtree) (point)))))
-           (overlays (cl-remove-if-not (lambda (ov)
-                                           (overlay-get ov 'org-image-overlay))
-                                       (ignore-errors (overlays-in beg end)))))
-        (dolist (ov overlays nil)
-            (delete-overlay ov)
-            (setq org-inline-image-overlays (delete ov org-inline-image-overlays)))
-        (when (or refresh (not overlays))
-            (org-display-inline-images t t beg end)
-            t)))
 #+end_src
 
 Определяем поведение клавиши Enter для evil.
@@ -3187,6 +3233,32 @@ Keywords=Text;Editor;
 #+begin_src emacs-lisp :tangle yes
 (my/evil-define-key '(normal visual motion) 'org-mode-map
                "RET" #'my/dwim-at-point)
+#+end_src
+
+** Разнообразная реакция на двойное нажатие мышки
+
+Определяем поведение двойного нажатия мышки.
+
+#+begin_src emacs-lisp :tangle yes
+(define-key org-mode-map [double-mouse-1] #'my/dwim-at-point)
+#+end_src
+
+Двойное нажатие мышки не отменяет одиночного, поэтому при двойном
+нажатии по ссылке картинка будет открыта в другом буфере.  Чтобы так не
+получилось в org-mode, сделаем обертку над функцией =org-open-at-mouse=.
+
+#+begin_src emacs-lisp :tangle yes
+(defun my/cancel-mouse-action (func &rest args)
+    (if (equal major-mode 'org-mode)
+        (pcase (my/object-type-at-point)
+            ((or `link-image `item)
+             nil)
+            (_
+             (apply func args)))
+        (apply func args)))
+
+(advice-add #'org-open-at-mouse :around #'my/cancel-mouse-action)
+(advice-add #'evil-mouse-drag-region :around #'my/cancel-mouse-action)
 #+end_src
 
 ** Открытие org-ссылки в том же окне
@@ -3854,9 +3926,6 @@ shows it in message and put the result into registers `\"' and `t'."
               org-agenda-inhibit-startup t)
 (evil-define-key '(normal visual motion) org-agenda-mode-map (kbd my/leader) nil)
 #+end_src
-
-(Вид Агенды еще предстоит доделать. По непонятной мне причине агенда
-не раскрашена цветами.)
 
 Здесь автоматизированы мои действия по созданию вкладки с agenda'ой.
 Открытие новой вкладки (tab) со списком задач
