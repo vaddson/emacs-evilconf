@@ -1375,10 +1375,13 @@ from urllib.parse import quote, unquote
 ** Counsel. Меню вызова функции с более полным описанием
 
 Здесь нужен пакет =counsel=. Функциями из него подменяем стандартные.
+Отключаем предпоказ содержимого буферов при их выборе в меню.
 
 #+begin_src emacs-lisp :tangle yes
 (use-package counsel
-    :ensure t)
+    :ensure t
+    :config
+    (setq counsel-switch-buffer-preview-virtual-buffers nil))
 (use-package counsel-projectile
     :ensure t
     ;; :config
@@ -3029,24 +3032,25 @@ Keywords=Text;Editor;
 
 #+begin_src emacs-lisp :tangle yes
 (use-package org
-	:ensure t
-	:config
-	(require 'org-id)
-	(add-hook 'org-mode-hook (lambda ()
-								 (setq org-adapt-indentation t)))
-	(setq org-confirm-babel-evaluate nil))
+    :ensure t
+    :config
+    (require 'org-id)
+    (add-hook 'org-mode-hook (lambda ()
+                                 (setq org-adapt-indentation t)))
+    (setq org-confirm-babel-evaluate nil)
+    (setq org-confirm-elisp-link-function nil))
 #+end_src
 
 Подгрузим поддержку evil для org-mode, включая Агенду.
 
 #+begin_src emacs-lisp :tangle yes
 (use-package evil-org
-	:ensure t
-	:after org
-	:hook (org-mode . (lambda () evil-org-mode))
-	:config
-	(require 'evil-org-agenda)
-	(evil-org-agenda-set-keys))
+    :ensure t
+    :after org
+    :hook (org-mode . (lambda () evil-org-mode))
+    :config
+    (require 'evil-org-agenda)
+    (evil-org-agenda-set-keys))
 #+end_src
 
 ** Клавиши для работы в org-mode
@@ -3055,39 +3059,39 @@ Keywords=Text;Editor;
 
 #+begin_src emacs-lisp :tangle yes
 (my/evil-define-key '(normal visual motion) 'org-mode-map
-	"[ s" #'evil-prev-flyspell-error
-	"] s" #'evil-next-flyspell-error
-	"S-M-[" #'org-backward-element
-	"S-M-]" #'org-forward-element
-	"g h" #'org-up-element
-	"g l" #'org-down-element
-	"g k" nil
-	"g j" nil
-	"[ [" #'evil-backward-section-begin
-	"[ ]" #'evil-backward-section-end
-	"] ]" #'evil-forward-section-begin
-	"] ]" #'evil-forward-section-end
-	"C-S-h" #'org-shiftleft
-	"C-S-l" #'org-shiftright
-	"M-h" #'org-metaleft
-	"M-l" #'org-metaright
-	"M-k" #'org-metaup
-	"M-j" #'org-metadown
-	"M-RET" #'org-meta-return)
+    "[ s" #'evil-prev-flyspell-error
+    "] s" #'evil-next-flyspell-error
+    "S-M-[" #'org-backward-element
+    "S-M-]" #'org-forward-element
+    "g h" #'org-up-element
+    "g l" #'org-down-element
+    "g k" nil
+    "g j" nil
+    "[ [" #'evil-backward-section-begin
+    "[ ]" #'evil-backward-section-end
+    "] ]" #'evil-forward-section-begin
+    "] ]" #'evil-forward-section-end
+    "C-S-h" #'org-shiftleft
+    "C-S-l" #'org-shiftright
+    "M-h" #'org-metaleft
+    "M-l" #'org-metaright
+    "M-k" #'org-metaup
+    "M-j" #'org-metadown
+    "M-RET" #'org-meta-return)
 (my/localleader-def '(normal visual motion) 'org-mode-map
-	"l l" #'org-insert-link
-	"l t" #'org-toggle-link-display
+    "l l" #'org-insert-link
+    "l t" #'org-toggle-link-display
     "y" #'org-id-copy)
 ;; It's a magic and shaman's dances:
 (my/evil-define-key '(normal visual motion) 'org-mode-map
-	"[ c" #'org-babel-previous-src-block
-	"] c" #'org-babel-next-src-block)
+    "[ c" #'org-babel-previous-src-block
+    "] c" #'org-babel-next-src-block)
 ;; It's a magic and shaman's dances:
 (my/evil-define-key '(normal visual motion) 'org-mode-map
     "[ l" #'org-previous-link
     "] l" #'org-next-link)
 (my/localleader-def nil 'org-mode-map
-	"e" #'org-export-dispatch)
+    "e" #'org-export-dispatch)
 (define-key org-mode-map (kbd "C-c C-j") #'counsel-org-goto)
 #+end_src
 
