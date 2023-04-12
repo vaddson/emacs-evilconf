@@ -3480,6 +3480,27 @@ text-mode, то он отменит перенос строк. :)
 (setq org-export-with-toc nil)
 #+end_src
 
+** Вычисление babel-блоков при экспорте
+
+Запрещаем вычисление блоков при экспорте.  (Не сбрасывать
+org-export-babel-evaluate в nil - будут игнорирроваться все
+заголовки!)
+
+#+begin_src emacs-lisp :tangle yes
+(add-hook 'org-mode-hook
+          (lambda ()
+              (setq org-babel-default-header-args
+                    (cons '(:eval . "never-export")
+                          (assq-delete-all :eval
+                                           org-babel-default-header-args)))))
+#+end_src
+
+В качестве альтернативы можно использовать одно из двух:
+- или ставим в каждом заголовке
+  : :eval never-export
+- или один раз прописываем в начале файла
+  : #+PROPERTY: header-args :eval never-export.
+
 ** Экспорт в PDF через Latex
 
 Русский шрифт заработает совместно с установкой:
