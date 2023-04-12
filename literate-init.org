@@ -3304,13 +3304,12 @@ If you use `org' and don't want your org files in the default location below, ch
 	:ensure t)
 #+end_src
 
-** Подгрузка пакетов для запуска скриптов в org-babel блоках
+** Запуск скриптов в org-babel src-блоках
    :PROPERTIES:
    :ID:       c98e419e-f7e9-456d-b8f3-5037f0af775b
    :END:
 
 Подгружаем пакеты для запуска скриптов в org-babel блоках.
-Поддержка языков прописывается в [[id:cb53569d-930e-42f1-925b-8c3b660f9c4d][разделе]] программирования.
 
 #+begin_src emacs-lisp :tangle yes
 (use-package ob-async
@@ -3321,6 +3320,19 @@ If you use `org' and don't want your org files in the default location below, ch
     :ensure t)
 (use-package ob-rust
     :ensure t)
+#+end_src
+
+Подскажем редактору, как обрабатывать org-babel блоки.
+Здесь дружим org-babel со всеми установленными языками.
+
+#+begin_src emacs-lisp :tangle yes
+(org-babel-do-load-languages
+   'org-babel-load-languages
+   '((shell . t)
+     (plantuml . t)
+     (python . t)
+     (haskell . t)
+     (rust . t)))
 #+end_src
 
 ** Перенос длинных строк по словам
@@ -4897,27 +4909,6 @@ Completion item kind (тип объекта в выпадашке автодоп
 #+end_src
 
 * Программирование
-
-** Подсказки компилятору для обработки org-babel блоков
-   :PROPERTIES:
-   :ID:       cb53569d-930e-42f1-925b-8c3b660f9c4d
-   :END:
-
-Подскажем редактору, как обрабатывать org-babel блоки.
-Здесь дружим org-babel со всеми установленными языками.
-
-(!) Но прежде чем дружить блоки с языками, надо загрузить сответствующую
-поддержку ob-блоков. Подгрузку смотри в [[id:c98e419e-f7e9-456d-b8f3-5037f0af775b][разделе]] главы Org.
-
-#+begin_src emacs-lisp :tangle yes
-(org-babel-do-load-languages
-   'org-babel-load-languages
-   '((shell . t)
-     (plantuml . t)
-     (python . t)
-     (haskell . t)
-     (rust . t)))
-#+end_src
 
 ** Навигация по ошибкам
 
