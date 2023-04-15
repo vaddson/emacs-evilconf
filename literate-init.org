@@ -3700,13 +3700,16 @@ sudo apt install dvipng preview-latex-style
                 (goto-char start)))))
 #+end_src
 
-Для файлов может быть полезна ссылка сразу на его открытие в системе (gio open).
-Напишем функцию преобразования пути файла в его открытие.
+Для файлов может быть полезна ссылка сразу на его открытие в системе
+(gio open).  Напишем функцию преобразования пути файла в его
+открытие. Здесь еще важно заменить "~" на динамическое определение
+домашней директории.
 
 #+begin_src emacs-lisp :tangle yes
 (defun my/make-link-for-call--convert-file-raw-link-for-call (type raw-link)
     (if (equal type "file")
-            (concat "elisp:(call-process \"gio\" nil 0 nil \"open\" \"" raw-link "\")")
+        (concat "elisp:(call-process \"gio\" nil 0 nil \"open\" "
+                "(expand-file-name \"" raw-link "\"))")
         raw-link))
 #+end_src
 
@@ -3726,8 +3729,8 @@ sudo apt install dvipng preview-latex-style
 
 #+begin_src emacs-lisp :tangle yes
 (my/localleader-def nil 'org-mode-map
-	"l m" #'my/make-task-link
-	"l M" #'my/make-link-for-call)
+    "l m" #'my/make-task-link
+    "l M" #'my/make-link-for-call)
 #+end_src
 
 ** Клавиши для работы с таблицами
@@ -4920,6 +4923,16 @@ Completion item kind (тип объекта в выпадашке автодоп
     "e n" '(flycheck-next-error :which-key "Jump to next error"))
 #+end_src
 
+** Emacs-Lisp
+
+Для emacs-elisp переход на функцию осуществляется через функцию
+=find-function-at-point=.  Посадим ее на те же клавиши, что и для LSP.
+
+#+begin_src emacs-lisp :tangle yes
+(my/leader-def nil 'emacs-lisp-mode-map
+    "c d" '(find-function-at-point :which-key "Jump to definition"))
+#+end_src
+   
 ** Markdown
 
 Устанавливаем пакеты для поддержки markdown.
@@ -5279,9 +5292,9 @@ Pyright может не скачаться с серверов, поэтому �
     (add-hook 'haskell-literate-mode-hook #'lsp)
     ;; (customize-group 'lsp-haskell)
     )
+(use-package retrie
+    :ensure t)
 #+end_src
-
-#+RESULTS:
 
 Для org-mode удобно раз и навсегда включить полезные расширения языка.
 
