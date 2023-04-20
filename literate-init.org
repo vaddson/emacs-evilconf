@@ -2008,7 +2008,8 @@ Spacemacs. Код находится в файле [[./funcs.el][funcs.el]].
                        :which-key "Switch buffer in project")
                "SPC" '(counsel-projectile-switch-to-buffer
                        :which-key "Switch buffer in project")
-               "b B" '(counsel-switch-buffer :which-key "Switch buffer")
+               "b B" '(ivy-switch-buffer :which-key "Switch buffer")
+               ;; "b B" '(counsel-switch-buffer :which-key "Switch buffer")
                "b d" '(kill-current-buffer :which-key "Kill buffer"))
 #+end_src
 
@@ -2088,7 +2089,8 @@ Spacemacs. Код находится в файле [[./funcs.el][funcs.el]].
 #+begin_src emacs-lisp :tangle yes
 (my/leader-def nil 'override
     "b j" '(projectile-switch-to-buffer-other-window :which-key "Switch buffer in project with other window")
-    "b J" '(counsel-switch-buffer-other-window :which-key "Switch buffer with other window"))
+    "b J" '(ivy-switch-buffer-other-window :which-key "Switch buffer with other window"))
+    ;; "b J" '(counsel-switch-buffer-other-window :which-key "Switch buffer with other window"))
 #+end_src
 
 ** Перенос буферов между окнами
