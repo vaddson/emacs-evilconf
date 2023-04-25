@@ -3243,10 +3243,38 @@ Keywords=Text;Editor;
 
 ** Разнообразная реакция на двойное нажатие мышки
 
+Пропишем аналогичное поведение на двойное нажатие мышки.
+Выделение слова стоит оставить не тронутым.
+
+#+begin_src emacs-lisp :tangle yes
+(defun my/dwim-at-mouse (&optional arg)
+    (interactive "P")
+    (let ((type (my/object-type-at-point)))
+        (pcase type
+
+            (`link-image
+             (my/org-toggle-inline-images-in-subtree (org-element-at-point)))
+
+            ((or `latex-fragment `latex-environment)
+             (org-latex-preview arg))
+
+            (`item
+             (let ((match (and (org-at-item-checkbox-p)
+                               (match-string 1))))
+                 (org-toggle-checkbox (if (equal match "[ ]") '(16)))))  ; Set '-' to checkbox.
+
+            ((or `table `table-row `table-cell)
+             (org-ctrl-c-ctrl-c))
+
+            (_
+             nil)
+            )))
+#+end_src
+
 Определяем поведение двойного нажатия мышки.
 
 #+begin_src emacs-lisp :tangle yes
-(define-key org-mode-map [double-mouse-1] #'my/dwim-at-point)
+(define-key org-mode-map [down-double-mouse-1] #'my/dwim-at-mouse)
 #+end_src
 
 Двойное нажатие мышки не отменяет одиночного, поэтому при двойном
@@ -3399,7 +3427,8 @@ text-mode, то он отменит перенос строк. :)
 Убираем бесячий автоотступ при сохранении src-блоков.
 
 #+begin_src emacs-lisp :tangle yes
-(setq org-src-preserve-indentation t)
+(setq org-src-preserve-indentation t
+      org-src-tab-acts-natively t)
 #+end_src
 
 ** Автоматическое схлопывание org-babel блоков
@@ -4000,6 +4029,20 @@ shows it in message and put the result into registers `\"' and `t'."
                     "d d" #'org-deadline)
 #+end_src
 
+Отдельно сделаем агенду на задачи в открытом файле.  Здесь просто
+добавляем пункт в меню агенды "c".
+
+#+begin_src emacs-lisp :tangle yes
+(setq org-agenda-custom-commands
+
+      '(("n" "Agenda and all TODOs"
+         ((agenda #1="")
+          (alltodo #1#)))
+
+        ("c" "Agenda from current file" agenda ""
+         ((org-agenda-files (list (buffer-file-name)))))))
+#+end_src
+
 ** Agenda. Статусы задач
 
 Здесь определяются нужные мне статусы задач.
@@ -4390,6 +4433,19 @@ treemacs при показе текущего файла в дереве про�
 
 #+begin_src emacs-lisp :tangle yes
 (define-key cfw:calendar-mode-map "d" #'cfw:org-open-agenda-day)
+#+end_src
+
+Как и для агенды, отдельно сделаем календарь на задачи в открытом
+файле.
+
+#+begin_src emacs-lisp :tangle yes
+(defun my/cfw:open-org-calendar-current-file ()
+    (interactive)
+    (let ((org-agenda-files (list (buffer-file-name))))
+        (cfw:open-org-calendar)))
+
+(my/leader-def nil 'override
+               "o a C" '(my/cfw:open-org-calendar-current-file :which-key "Calendar for current file"))
 #+end_src
 
 ** Litable
