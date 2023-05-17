@@ -936,6 +936,7 @@ Find application name in my/application-name variable."
 (setq evil-undo-system 'undo-tree
       evil-undo-function 'undo-tree-undo)
 (global-undo-tree-mode 1)
+(evil-set-undo-system 'undo-tree)
 (add-hook 'evil-local-mode-hook 'turn-on-undo-tree-mode)
 #+end_src
 
