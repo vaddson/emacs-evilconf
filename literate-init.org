@@ -3347,19 +3347,19 @@ If you use `org' and don't want your org files in the default location below, ch
 
 #+begin_src emacs-lisp :tangle yes
 (use-package org-cliplink
-	:ensure t)
-(use-package orgit
-	:ensure t)
+    :ensure t)
+;; (use-package orgit
+;;     :ensure t)
 (use-package ox-clip
-	:ensure t)
+    :ensure t)
 (use-package toc-org
-	:ensure t)
+    :ensure t)
 (use-package restclient
-	:ensure t)
+    :ensure t)
 (use-package company-restclient
-	:ensure t)
+    :ensure t)
 (use-package know-your-http-well
-	:ensure t)
+    :ensure t)
 #+end_src
 
 ** Запуск скриптов в org-babel src-блоках
