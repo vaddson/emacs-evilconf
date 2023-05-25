@@ -2934,9 +2934,9 @@ emacs-клиента.
 Тут собраны в основном исключения для Python-проектов.
 
 #+begin_src emacs-lisp :tangle yes
-(setq grep-find-ignored-directories '("SCCS" "RCS" "CVS" "MCVS" ".src" ".svn" ".git" ".hg" ".bzr" "_MTN" "_darcs" "{arch}" "__pycache__" "build" "develop-eggs" "dist" "dist_local" "eggs" ".eggs" "sdist" ".pytest_cache" "env" "venv" "ENV" "env.bak" "venv.bak" ".mypy_cache")
-      helm-grep-ignored-directories '("SCCS/" "RCS/" "CVS/" "MCVS/" ".svn/" ".git/" ".hg/" ".bzr/" "_MTN/" "_darcs/" "{arch}/" ".gvfs/" "__pycache__/" "build/" "develop-eggs/" "dist/" "dist_local/" "eggs/" ".eggs/" "sdist/" ".pytest_cache/" "env/" "venv/" "ENV/" "env.bak/" "venv.bak/" ".mypy_cache/")
-      projectile-globally-ignored-directories '("~/.emacs.d/.local/" "~/.emacs.d/.local/" "~/.emacs.d/.local/" ".idea" ".vscode" ".ensime_cache" ".eunit" ".git" ".hg" ".fslckout" "_FOSSIL_" ".bzr" "_darcs" ".tox" ".svn" ".stack-work" ".ccls-cache" ".cache" ".clangd" "__pycache__" "build" "develop-eggs" "dist" "dist_local" "eggs" ".eggs" "sdist" ".pytest_cache" "env" "venv" "ENV" "env.bak" "venv.bak" ".mypy_cache")
+(setq grep-find-ignored-directories '("SCCS" "RCS" "CVS" "MCVS" ".src" ".svn" ".git" ".hg" ".bzr" "_MTN" "_darcs" "{arch}" "__pycache__" "build" "develop-eggs" "dist" "dist_local" "eggs" ".eggs" "sdist" ".pytest_cache" "env" "venv" "ENV" "env.bak" "venv.bak" ".mypy_cache" "build")
+      helm-grep-ignored-directories '("SCCS/" "RCS/" "CVS/" "MCVS/" ".svn/" ".git/" ".hg/" ".bzr/" "_MTN/" "_darcs/" "{arch}/" ".gvfs/" "__pycache__/" "build/" "develop-eggs/" "dist/" "dist_local/" "eggs/" ".eggs/" "sdist/" ".pytest_cache/" "env/" "venv/" "ENV/" "env.bak/" "venv.bak/" ".mypy_cache/" "build/")
+      projectile-globally-ignored-directories '("~/.emacs.d/.local/" "~/.emacs.d/.local/" "~/.emacs.d/.local/" ".idea" ".vscode" ".ensime_cache" ".eunit" ".git" ".hg" ".fslckout" "_FOSSIL_" ".bzr" "_darcs" ".tox" ".svn" ".stack-work" ".ccls-cache" ".cache" ".clangd" "__pycache__" "build" "develop-eggs" "dist" "dist_local" "eggs" ".eggs" "sdist" ".pytest_cache" "env" "venv" "ENV" "env.bak" "venv.bak" ".mypy_cache" "build")
       projectile-globally-ignored-file-suffixes '(".elc" ".pyc" ".o" ".coverage" ".cache" ".ipynb_checkpoints" ".egg" ".pyo" ".pyd" ".cover" ".egg-info")
       projectile-globally-ignored-files '(".DS_Store" "TAGS" "tags")
 )
@@ -4650,9 +4650,9 @@ treemacs при показе текущего файла в дереве про�
                "o a C" '(my/cfw:open-org-calendar-current-file :which-key "Calendar for current file"))
 #+end_src
 
-** Litable
+** COMMENT Litable
 
-Живой emacs-lisp. Что-то вроде libe-py-mode для Python.
+Живой emacs-lisp. Что-то вроде live-py-mode для Python.
 В emacs-lisp буфере вызываем =(litable-mode)= и работаем.
 
 #+begin_src emacs-lisp :tangle yes
