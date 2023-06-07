@@ -720,7 +720,7 @@ email clients, file templates and snippets."
 #+begin_src emacs-lisp :tangle yes
 (defun my/show-header-line ()
     (setq-default header-line-format
-                  '((which-func-mode ("" which-func-format " ")))))
+                  '((which-func-mode (" " which-func-format " ")))))
 
 (defun my/hide-header-line ()
     (setq-default header-line-format nil))
@@ -3675,8 +3675,11 @@ sudo apt install dvipng preview-latex-style
 
 ** LaTeX preview. Ручное изменение размеров формул (костыль)
 
-На одном из ноутов формулы стали не выше текстовой строки.
-Для этого сделаем костыль по увеличению и уменьшению формул.
+На одном из ноутов формулы стали не выше текстовой строки.  Полагаю,
+что софт ловит физический размер экрана и строит формулы по нему
+(больше разрешение - меньше формула).
+
+Сделаем костыль по увеличению и уменьшению формул.
 
 #+begin_src emacs-lisp :tangle yes
 (defun my/latex-preview-scale-set (scale)
@@ -3699,7 +3702,7 @@ sudo apt install dvipng preview-latex-style
 Остальные две - увеличить и уменьшить.
 
 #+begin_src emacs-lisp :tangle yes
-(defun my/set-scael-for-latex-preview (scale)
+(defun my/set-scale-for-latex-preview (scale)
 	(interactive (list (read-string "Enter LaTeX preview scale: ")))
 	(my/latex-preview-scale-set (float (string-to-number scale)))
 	(message "Latex scale = %f"
@@ -3719,7 +3722,7 @@ sudo apt install dvipng preview-latex-style
 
 (my/localleader-def nil 'org-mode-map
                     "j" '(:ignore t :which-key "latex")
-                    "j s" #'my/set-scael-for-latex-preview
+                    "j s" #'my/set-scale-for-latex-preview
                     "j k" #'my/increace-scale-for-latex-preview
                     "j j" #'my/decreace-scale-for-latex-preview)
 #+end_src
@@ -3941,8 +3944,9 @@ shows it in message and put the result into registers `\"' and `t'."
 (use-package org-tree-slide
 	:ensure t
     :config
-    (setq org-tree-slide-header t
-          org-tree-slide-content-margin-top 3))
+    (setq org-tree-slide-header nil
+          org-tree-slide-slide-in-effect t
+          org-tree-slide-content-margin-top 2))
 #+end_src
 
 Однако, в чистом виде слайды выглядят некрасиво. Будем облагораживать
@@ -3992,6 +3996,7 @@ shows it in message and put the result into registers `\"' and `t'."
     (interactive)
     (if (eq major-mode 'org-mode)
         (progn
+            (set-frame-parameter nil 'internal-border-width 80)
             (my/org-hide-emphasis-makers t)
             (my/hide-begin:end-block-delimiters)
             (org-modern-mode 1)
@@ -4000,7 +4005,7 @@ shows it in message and put the result into registers `\"' and `t'."
             (my/set-word-wrap)
             (my/hide-header-line)
             (highlight-indent-guides-mode -1)
-            (centered-window-mode 1)
+            ;; (centered-window-mode 1)
             (org-tree-slide-mode 1))
         (message "For org-mode only!")))
 
@@ -4009,8 +4014,9 @@ shows it in message and put the result into registers `\"' and `t'."
     (interactive)
     (if (eq major-mode 'org-mode)
         (progn
+            (set-frame-parameter nil 'internal-border-width 0)
             (my/org-hide-emphasis-makers nil)
-            (centered-window-mode -1)
+            ;; (centered-window-mode -1)
             (highlight-indent-guides-mode 1)
             (my/show-header-line)
             (org-modern-mode -1)
@@ -5017,8 +5023,8 @@ emacsclient.
     (global-flycheck-mode))
 (use-package lsp-treemacs
     :ensure t)
-(use-package helm-lsp
-    :ensure t)
+;; (use-package helm-lsp
+;;     :ensure t)
 (use-package lsp-ivy
     :ensure t)
 (use-package dap-mode
@@ -5146,10 +5152,12 @@ Sideline diagnostics (тексты ошибок).
 (setq lsp-ui-sideline-show-diagnostics t)
 #+end_src
 
-Eldoc (информация по объекту в строке состояния).
+Eldoc (информация по объекту в строке состояния). Пока отключим ее,
+поскольку почти не пользуюсь ей, а выпадашкам от Ivy время от времени
+мешает.
 
 #+begin_src emacs-lisp :tangle yes
-(setq lsp-eldoc-enable-hover t)
+(setq lsp-eldoc-enable-hover nil)
 #+end_src
 
 Modeline diagnostics statistics (показ числа ошибок в строке состояния).
