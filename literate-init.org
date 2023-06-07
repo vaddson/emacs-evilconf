@@ -2893,7 +2893,7 @@ emacs-клиента.
     (interactive)
     (let ((temporary-name (format "*%s*" (md5 "*temporary-name-workspace*"))))
         (persp-frame-switch temporary-name)
-        (call-interactively #'counsel-projectile-switch-project)
+        (call-interactively #'projectile-switch-project)
         (let ((project-name (my/make-project-name))
               (buffer (current-buffer)))
             (if (member project-name persp-names-cache)
@@ -2912,7 +2912,7 @@ emacs-клиента.
 (my/leader-def nil 'override
     "p" '(:ignore t :which-key "projects")
     "P" '(:ignore t :which-key "projects-ws")
-    "p p" '(counsel-projectile-switch-project :which-key "Simple switch project")
+    "p p" '(projectile-switch-project :which-key "Simple switch project")
     "p P" '(my/switch-project-with-workspace-safe-title :which-key "Light switch proj+ws")
     "P P" '(my/switch-project-with-workspace :which-key "Switch project+workspace")
     "p f" '(counsel-projectile-find-file :which-key "Open file in project")
