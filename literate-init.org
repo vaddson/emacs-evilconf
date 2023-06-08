@@ -550,7 +550,8 @@ email clients, file templates and snippets."
 подстраховку: назначим список шрифтов по приоритету и дефолтный nil.
 
 #+begin_src emacs-lisp :tangle yes
-(setq my/font-families '((:family "Liberation Mono" :size 9 :size-inc 10)
+(setq my/font-families '((:family "JetBrains Mono" :size 9 :size-inc 10)
+                         (:family "Liberation Mono" :size 9 :size-inc 10)
                          (:family "Monospace" :size 9 :size-inc 10)))
 #+end_src
 
@@ -2326,6 +2327,15 @@ scratch-буфера (на замену стандартному "*scratch*").
                "o -" '(dired-jump :which-key "Open directory and select file"))
 #+end_src
 
+** Режим ранее открытых файлов
+
+Этот режим надо включать на старте. Тогда ранее открытые файлы будут
+запоминаться.
+
+#+begin_src emacs-lisp :tangle yes
+(recentf-mode 1)
+#+end_src
+
 ** Автоматическое обновление буферов при внешнем изменении их содержимого
 
 Этот параметр позволит обновлять буфера, если файлы, с ними связанные, были
@@ -3577,6 +3587,33 @@ text-mode, то он отменит перенос строк. :)
 
 #+begin_src emacs-lisp :tangle yes
 (setq org-export-with-toc nil)
+#+end_src
+
+** Ручная вставка оглавления (toc)
+
+Автоматическое создание оглавления при экспорте отключено в предыдущем
+параграфе. Однако, можно вставлять вручную оглавление с работающими
+ссылками, если это нужно. Отвечает за это пакет =toc-org= и функция из
+него =toc-org-mode=.
+
+Штука эта работает как с org, так и с markdown.
+
+При включении режима =toc-org-mode= для оглавления достаточно
+поставить заголовку тег =:toc:= и сохранить файл. После этого
+оглавление со ссылками возникнет автоматически:
+: * Оглавление  :toc:
+или
+: # Оглавление  :toc:
+
+Настроим режим =toc-org-mode= на соответствующие режимы.
+
+#+begin_src emacs-lisp :tangle yes
+(if (require 'toc-org nil t)
+    (progn (add-hook 'org-mode-hook 'toc-org-mode)
+           (add-hook 'markdown-mode-hook 'toc-org-mode)
+           (my/evil-define-key '(normal visual mition) 'markdown-mode-map
+                               "RET" 'toc-org-markdown-follow-thing-at-point))
+    (warn "toc-org not found"))
 #+end_src
 
 ** Вычисление babel-блоков при экспорте
