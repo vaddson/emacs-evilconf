@@ -5104,6 +5104,14 @@ emacsclient.
 
 ** Общие настройки
 
+Важный параметр для ускорения LSP для Haskell, начиная с
+Emacs 29. Пишут, что по-умолчанию имеет очень маленькое значение (4к).
+Предлагают [[https://emacs-lsp.github.io/lsp-mode/page/performance/][выставить 1Мб]] (действительно работает).
+
+#+begin_src emacs-lisp :tangle yes
+(setq read-process-output-max (* 1024 1024))
+#+end_src
+
 Информацию по списку LSP-серверов можно посмотреть [[https://emacs-lsp.github.io/lsp-mode/page/languages/][тут]].
 
 Настройка визуальных особенностей LSP-серверов (взято [[https://emacs-lsp.github.io/lsp-mode/tutorials/how-to-turn-off/][отюда]]).
