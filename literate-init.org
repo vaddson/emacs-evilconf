@@ -3126,6 +3126,12 @@ Keywords=Text;Editor;
 Вернем привычные горячие клавиши из Doom для evil-mode.
 
 #+begin_src emacs-lisp :tangle yes
+(defun my/org-id-copy ()
+    (interactive)
+    (when-let (id (org-id-get nil 'create))
+        (org-set-property "CUSTOM_ID" id)
+        (org-kill-new id)))
+
 (my/evil-define-key '(normal visual motion) 'org-mode-map
     "[ s" #'evil-prev-flyspell-error
     "] s" #'evil-next-flyspell-error
@@ -3149,7 +3155,7 @@ Keywords=Text;Editor;
 (my/localleader-def '(normal visual motion) 'org-mode-map
     "l l" #'org-insert-link
     "l t" #'org-toggle-link-display
-    "y" #'org-id-copy)
+    "y" #'my/org-id-copy)
 ;; It's a magic and shaman's dances:
 (my/evil-define-key '(normal visual motion) 'org-mode-map
     "[ c" #'org-babel-previous-src-block
@@ -3170,6 +3176,19 @@ Keywords=Text;Editor;
 	"[ l" nil
 	"] l" nil)
 (define-key org-mode-map (kbd "C-,") nil)
+#+end_src
+
+** Переход по ссылкам
+
+Вопреки описаниям (а, может, я не так все понимаю) переход к файлу по
+тексту из него приводит к сообщению, что текст не найден и не создать
+ли новый заголовок с таким текстом.  Это неудобно, но можно сделать
+нечеткую проверку текста, тогда переходы начинают находиться.
+Делается это через переменную =org-link-search-must-match-exact-headline=,
+значение по-умолчанию которой - query-to-create. Мы де сделаем nil.
+
+#+begin_src emacs-lisp :tangle yes
+(setq org-link-search-must-match-exact-headline nil)
 #+end_src
 
 ** Функция показа и скрытия картинки в org-mode
