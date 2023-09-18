@@ -104,6 +104,7 @@ email clients, file templates and snippets."
 #+begin_src emacs-lisp :tangle yes
 (require 'package)
 (add-to-list 'package-archives '("melpa" . "http://melpa.org/packages/") t)
+;; (add-to-list 'package-archives '("melpa-stable" . "https://stable.melpa.org/packages/") t)
 #+end_src
 
 Рекомендуемые где-то кем-то действия перед загрузкой пакетов.  (Если
@@ -1004,7 +1005,8 @@ Find application name in my/application-name variable."
     :config
     (my/evil-define-key '(normal visual) 'override
                         "g s s" #'evil-avy-goto-char-timer
-                        "g s /" #'evil-avy-goto-char-2))
+                        "g s /" #'evil-avy-goto-char-2
+                        "g s l" #'evil-avy-goto-line))
 #+end_src
 
 ** Нумерация строк
