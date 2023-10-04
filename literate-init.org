@@ -63,6 +63,19 @@
 Здесь собраны параметры, значения которых будут далее использованы по всему
 конфигу.
 
+** Кодировка по-умолчанию (utf-8)
+
+Убираем ошибку, которая появляется при незнакомой кодировке. Все
+должно быть в UTF-8.
+
+#+begin_src emacs-lisp :tangle yes
+(prefer-coding-system 'utf-8)
+(set-default-coding-systems 'utf-8)
+(set-terminal-coding-system 'utf-8)
+(set-keyboard-coding-system 'utf-8)
+(set-language-environment 'utf-8)
+#+end_src
+
 ** Директория файлов конфигурации
 
 Для дальнейшей работы в переменой =my/config-dir= устанавливается путь
@@ -386,11 +399,13 @@ email clients, file templates and snippets."
 
 Для определения клавиш удобнее переключиться на пакет =general=.
 Заодно для некоторых раскладок отменим клавишу пробела.
+Для предотвращения внезапной ошибки вызовем функцию (general-auto-unbind-keys).
 
 #+begin_src emacs-lisp :tangle yes
 (use-package general
     :ensure t
     :config
+    (general-auto-unbind-keys)
     (evil-define-key 'normal dired-mode-map (kbd my/leader) nil))
 #+end_src
 
@@ -437,7 +452,8 @@ email clients, file templates and snippets."
             `(general-define-key :states ',states
                                  :keymaps ',keymaps
                                  :prefix ,leader
-                                 :non-normal-prefix ,leader-non-normal
+                                 :global-prefix ,leader-non-normal
+                                 ;; :non-normal-prefix ,leader-non-normal
                                  ,@args))
         `(general-define-key :keymaps ',keymaps
                              :prefix ,leader
@@ -5097,7 +5113,7 @@ emacsclient.
               ))
 #+end_src
 
-* LSP сервер
+* LSP сервер (vs Eglot)
 
 ** Установка
 
@@ -5324,7 +5340,7 @@ Completion item kind (тип объекта в выпадашке автодоп
         (delete-window eldoc-window)
         (eldoc t)))
 
-(my/evil-define-key 'normal 'prog-mode-map
+(my/evil-define-key 'normal 'lsp-mode-map  ;; 'prog-mode-map
     "RET" #'lsp-ui-doc-show
     "K" #'my/eldoc)
 #+end_src
@@ -5332,23 +5348,49 @@ Completion item kind (тип объекта в выпадашке автодоп
 Добавим ставшую привычной из Doom навигацию по коду.
 
 #+begin_src emacs-lisp :tangle yes
-(my/leader-def nil 'prog-mode-map
+(my/leader-def nil 'lsp-mode-map  ;; 'prog-mode-map
                "c" '(:ignore t :which-key "code"))
-(my/leader-def nil 'prog-mode-map
+(my/leader-def nil 'lsp-mode-map  ;; 'prog-mode-map
                "c d" '(lsp-find-definition :which-key "Jump to definition")
                "c D" '(lsp-find-references :which-key "Jump to references"))
+#+end_src
+
+Для консистентности добавим такие же клавиши для eglot.
+
+#+begin_src emacs-lisp :tangle yes
+(my/leader-def nil 'eglot-mode-map  ;; 'prog-mode-map
+               "c" '(:ignore t :which-key "code"))
+(my/leader-def nil 'eglot-mode-map  ;; 'prog-mode-map
+               "c d" '(xref-find-definitions :which-key "Jump to definition")
+               "c D" '(xref-find-references :which-key "Jump to references"))
 #+end_src
 
 * Программирование
 
 ** Навигация по ошибкам
 
-Запилим горячие клавиши для перемещения по ошибкам на основе flycheck.
+Запилим горячие клавиши для перемещения по ошибкам на основе flycheck
+(а для C++/C - flymake, потому что пока работает на Eglot+Clangd).
 
 #+begin_src emacs-lisp :tangle yes
 (my/leader-def nil 'override
-    "e p" '(flycheck-previous-error :which-key "Jump to previous error")
-    "e n" '(flycheck-next-error :which-key "Jump to next error"))
+    "e p" '(my/jump-previous-error :which-key "Jump to previous error")
+    "e n" '(my/jump-next-error :which-key "Jump to next error"))
+
+(defun my/jump-previous-error ()
+    (interactive)
+    (if (my/--check-c++/c-eglot-mode)
+        (flymake-goto-prev-error)
+        (flycheck-previous-error)))
+
+(defun my/jump-next-error ()
+    (interactive)
+    (if (my/--check-c++/c-eglot-mode)
+        (flymake-goto-next-error)
+        (flycheck-next-error)))
+
+(defun my/--check-c++/c-eglot-mode ()
+    (member major-mode '(c++-mode c-mode)))
 #+end_src
 
 ** Emacs-Lisp
@@ -5359,6 +5401,25 @@ Completion item kind (тип объекта в выпадашке автодоп
 #+begin_src emacs-lisp :tangle yes
 (my/leader-def nil 'emacs-lisp-mode-map
     "c d" '(find-function-at-point :which-key "Jump to definition"))
+#+end_src
+
+** Показ кандидатов через ivy-xref
+
+Ниже код вставлен по инструкции отсюда:
+[[https://github.com/alexmurray/ivy-xref][ivy-xref - select from xref candidates with ivy]]
+
+#+begin_src emacs-lisp :tangle yes
+(use-package ivy-xref
+    :ensure t
+    :init
+    ;; xref initialization is different in Emacs 27 - there are two different
+    ;; variables which can be set rather than just one
+    (when (>= emacs-major-version 27)
+        (setq xref-show-definitions-function #'ivy-xref-show-defs))
+    ;; Necessary in Emacs <27. In Emacs 27 it will affect all xref-based
+    ;; commands other than xref-find-definitions (e.g. project-find-regexp)
+    ;; as well
+    (setq xref-show-xrefs-function #'ivy-xref-show-xrefs))
 #+end_src
 
 ** Markdown
@@ -5863,4 +5924,79 @@ ob-rust для работы с org-babel блоками устанавливае
 #+begin_src emacs-lisp :tangle yes
 (use-package rustic
     :ensure t)
+#+end_src
+
+** COMMENT C++ (ccls LSP-server)
+   :PROPERTIES:
+   :ID:       b98a08b8-ca0b-4850-8816-702d90fd1e15
+   :CUSTOM_ID: b98a08b8-ca0b-4850-8816-702d90fd1e15
+   :END:
+
+Есть две альтернативы LSP-сервера для C++: =clangd= и =ccls=. Первый
+приводится в документации только совместно с пакетом =eglot=, второй -
+с пакетом =lsp=. Поскольку на данный момент я выбрал для себя lsp, то
+базируемся на =ccls=.
+
+Для начала =ccls= следует установить. На Arch это выглядит так:
+: sudo pacman -S ccls
+
+Инструкцию берем отсюда:
+1. [[https://github.com/emacs-lsp/emacs-ccls][emacs-ccls]]
+2. [[https://github.com/MaskRay/ccls/wiki/lsp-mode][lsp mode]]
+
+Устанавливаем пакеты.
+
+#+begin_src emacs-lisp :tangle yes
+(use-package ccls
+    ;; :ensure t
+    :hook ((c-mode c++-mode objc-mode cuda-mode) .
+           (lambda () (require 'ccls) (lsp))))
+#+end_src
+
+И настройки из инструкции.
+
+#+begin_src emacs-lisp :tangle yes
+(setq ccls-initialization-options '(:index (:comments 2) :completion (:detailedLabel t)))
+#+end_src
+
+** C++ (clangd LSP-server)
+
+Есть две альтернативы LSP-сервера для C++: =clangd= и =ccls=. Первый
+приводится в документации только совместно с пакетом =eglot=, второй -
+с пакетом =lsp=.
+
+Здесь поставим =eglot=. Теперь можно сравнивать работу с [[id:b98a08b8-ca0b-4850-8816-702d90fd1e15][ccls на lsp]].
+
+Пользуемся инструкцией:
+[[https://clangd.llvm.org/installation.html][Clangd. Getting started]]
+
+#+begin_src emacs-lisp :tangle yes
+(require 'eglot)
+(add-to-list 'eglot-server-programs '((c++-mode c-mode) "clangd"))
+(add-hook 'c-mode-hook 'eglot-ensure)
+(add-hook 'c++-mode-hook 'eglot-ensure)
+#+end_src
+
+** Java
+
+Инструкцию по установке смотрим тут:
+- [[https://github.com/emacs-lsp/lsp-java][lsp-java]].
+На этой же странице есть ссылка на руководство:
+- [[https://xpressrazor.wordpress.com/2020/11/04/java-programming-in-emacs/][Java Programming in Emacs]],
+тут же есть поддержка spring: "Spring boot support (Experimental)".
+
+Делаем установку.
+
+#+begin_src emacs-lisp :tangle yes
+(use-package lsp-java
+    :ensure t)
+
+(add-hook 'java-mode-hook #'lsp)
+#+end_src
+
+Если скрипт ниже не сработает, при запуске LSP-сервера Emacs спросит
+установить =jdtls=. Соглашаемся.
+
+#+begin_src emacs-lisp :tangle yes
+(lsp-ensure-server 'jdtls)
 #+end_src
