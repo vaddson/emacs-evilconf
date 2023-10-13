@@ -452,8 +452,8 @@ email clients, file templates and snippets."
             `(general-define-key :states ',states
                                  :keymaps ',keymaps
                                  :prefix ,leader
-                                 :global-prefix ,leader-non-normal
-                                 ;; :non-normal-prefix ,leader-non-normal
+                                 ;; :global-prefix ,leader-non-normal
+                                 :non-normal-prefix ,leader-non-normal
                                  ,@args))
         `(general-define-key :keymaps ',keymaps
                              :prefix ,leader
@@ -566,10 +566,19 @@ email clients, file templates and snippets."
 Поскольку шрифты ниже могут быть не установлены в системе, сделаем
 подстраховку: назначим список шрифтов по приоритету и дефолтный nil.
 
+Размер шрифтов надо выставлять не по размеру экрана, а по DPI (в нашем
+случае - точек на 1 мм - DPMM). Пока лень заморачиваться общей
+формулой, поэтому поставим только три размера шрифта. Ниже оставлю для
+напоминания три DPMM в порядке увеличения шрифтов при разрешении 1920
+точек:
+1. 3.562 = 1920 / 539 -- 24", округляем до 4.
+2. 5.026 = 1920 / 382 -- 17", округляем до 5.
+3. 6.193 = 1920 / 310 -- 14", округляем до 6.
+
 #+begin_src emacs-lisp :tangle yes
-(setq my/font-families '((:family "JetBrains Mono" :size 9 :size-inc 10)
-                         (:family "Liberation Mono" :size 9 :size-inc 10)
-                         (:family "Monospace" :size 9 :size-inc 10)))
+(setq my/font-families '((:family "JetBrains Mono" :size-dec 8 :size 9 :size-inc 10)
+                         (:family "Liberation Mono" :size-dec 8 :size 9 :size-inc 10)
+                         (:family "Monospace" :size-dec 8 :size 9 :size-inc 10)))
 #+end_src
 
 Теперь напишем подстраховку на наличие в системе шрифтов.  Работать это
@@ -579,6 +588,7 @@ email clients, file templates and snippets."
 (require 'cl)
 
 (setq my/frame-font-families nil
+      my/global-font-dec nil
       my/global-font nil
       my/global-font-inc nil)
 
@@ -588,10 +598,12 @@ email clients, file templates and snippets."
         (when my/frame-font-families
             (dolist (row my/font-families)
                 (let ((family (plist-get row :family))
+                      (size-dec (plist-get row :size-dec))
                       (size (plist-get row :size))
                       (size-inc (plist-get row :size-inc)))
                     (when (member family my/frame-font-families)
-                        (setq my/global-font (format "%s-%s" family size)
+                        (setq my/global-font-dec (format "%s-%s" family size-dec)
+                              my/global-font (format "%s-%s" family size)
                               my/global-font-inc (format "%s-%s" family size-inc))
                         (add-to-list 'default-frame-alist `(font . ,my/global-font))
                         (cl-return family)))))))
@@ -601,18 +613,25 @@ email clients, file templates and snippets."
 зависимости от ширины экрана выбирает один из двух шрифтов.
 
 #+begin_src emacs-lisp :tangle yes
-(defun my/select-frame-font-for-monitor (frame font font-inc)
+(defun my/select-frame-font-for-monitor (frame font-dec font font-inc)
     (my/ensure-fonts frame)
-    (when (and font font-inc)
-        (if (my/small-monitor-p frame)
-            (set-frame-font font-inc frame t)
-            (set-frame-font font t))))
+    (when (and font-dec font font-inc)
+        (pcase (my/--select-font-size-category frame)
+            ('small
+             (set-frame-font font-dec t))
+            ('big
+             (set-frame-font font-inc t))
+            (_
+             (set-frame-font font t)))))
 
-(defun my/small-monitor-p (frame)
+(defun my/--select-font-size-category (frame)
     (let* ((monitor-attrs (frame-monitor-attributes frame))
-           (mm-width (cl-second (assoc 'mm-size monitor-attrs))))
-        (and mm-width
-             (<= mm-width 310))))
+           (points (nth 3 (assoc 'workarea monitor-attrs)))
+           (mm-width (cl-second (assoc 'mm-size monitor-attrs)))
+           (dpmm (if mm-width (/ points (float mm-width)) 5.0)))
+        (cond ((> dpmm 6.0) 'big)
+              ((> dpmm 4.0) 'normal)
+              (t 'small))))
 #+end_src
 
 Теперь с помощью полученной функции обновляем шрифт в активном фрейме.
@@ -620,7 +639,10 @@ email clients, file templates and snippets."
 
 #+begin_src emacs-lisp :tangle yes
 (unless (daemonp)
-    (my/select-frame-font-for-monitor nil my/global-font my/global-font-inc))
+    (my/select-frame-font-for-monitor nil
+                                      my/global-font-dec
+                                      my/global-font
+                                      my/global-font-inc))
 #+end_src
 
 При создании фрейма навесим обработчик этого события, чтобы размер
@@ -631,11 +653,13 @@ email clients, file templates and snippets."
 (add-hook 'after-make-frame-functions
           (lambda (frame)
               (my/select-frame-font-for-monitor frame
+                                                my/global-font-dec
                                                 my/global-font
                                                 my/global-font-inc)))
 (add-hook 'my/server-after-make-frame-hook
           (lambda ()
               (my/select-frame-font-for-monitor nil
+                                                my/global-font-dec
                                                 my/global-font
                                                 my/global-font-inc)))
 #+end_src
@@ -648,6 +672,7 @@ email clients, file templates and snippets."
     (interactive)
     (my/ensure-fonts)
     (my/select-frame-font-for-monitor nil
+                                      my/global-font-dec
                                       my/global-font
                                       my/global-font-inc))
 
@@ -4546,6 +4571,28 @@ shows it in message and put the result into registers `\"' and `t'."
     "o v" #'my/open-term-in-new-tab)
 #+end_src
 
+* Удаленный доступ (tramp)
+
+Здесь помещена попытка преодолеть ошибку удаленного подключения по
+ssh: "Too many authentication failures".
+
+Если такая ошибка возникает при ssh-соединении, она лечится через
+запись в файле [[~/.ssh/config]] типа такой:
+: Host 123.45.67.89
+:      	  IdentitiesOnly=yes
+:         IdentityFile ~/.ssh/my-secret-key_rsa
+:         Port 22
+:         User my-user-name
+
+Осталось этот файлик подцепить Emacs'ом. Попробуем это сделать, как
+показано в официальной документации [[https://www.gnu.org/software/tramp/#SEC_Contents][TRAMP 2.6.1 User Manual]].
+
+#+begin_src emacs-lisp :tangle yes
+(tramp-set-completion-function "ssh"
+                               '((tramp-parse-sconfig "/etc/ssh/ssh_config")
+                                 (tramp-parse-sconfig "~/.ssh/config")))
+#+end_src
+
 * Инструменты внешние
 
 ** Treemacs
@@ -5991,6 +6038,19 @@ ob-rust для работы с org-babel блоками устанавливае
 (add-to-list 'eglot-server-programs '((c++-mode c-mode) "clangd"))
 (add-hook 'c-mode-hook 'eglot-ensure)
 (add-hook 'c++-mode-hook 'eglot-ensure)
+#+end_src
+
+Настройки работы LSP-сервера через TRAMP. Если на удаленной машине
+редактируется C++-файл, то LSP-сервер запускается так же на удаленной
+машине. Об этом и надо сказать Emacs'у.  Настройки сделаны по примеру
+отсюда: [[https://emacs-lsp.github.io/lsp-mode/page/remote/][LSP Mode - LSP support for Emacs]]
+
+#+begin_src emacs-lisp :tangle yes
+(lsp-register-client
+    (make-lsp-client :new-connection (lsp-tramp-connection "clangd")
+                     :major-modes '(c++-mode c-mode)
+                     :remote? t
+                     :server-id 'clangd-remote))
 #+end_src
 
 ** Java
