@@ -1017,7 +1017,7 @@ Find application name in my/application-name variable."
 (setq scroll-step 1
       scroll-preserve-screen-position t  ;; nil
       scroll-margin 0  ;; 0
-      scroll-conservatively 0  ;; 0
+      scroll-conservatively 10000  ;; 0
       maximum-scroll-margin 0.0  ;; 0.25
       scroll-up-aggressively 0.0   ;; nil
       scroll-down-aggressively 0.0)  ;; nil
@@ -1835,6 +1835,18 @@ Imenu - дает не только удобный способ навигаци�
     :config
     (my/leader-def nil 'override
                    "s I" '(imenu-list-smart-toggle :which-key "IMenu content")))
+#+end_src
+
+** Выделение по регулярному выражению (highlight)
+
+Здесь запилим горячие клавиши для вызова функций (highlight-regexp) и
+(unhighlight-regexp). С их помощью будем выделять текст и снимать
+выделение точечно по каждой регулярке.
+
+#+begin_src emacs-lisp :tangle yes
+(my/leader-def nil 'override
+               "s h" 'highlight-regexp
+               "s u" 'unhighlight-regexp)
 #+end_src
 
 * Работа с вкладками (tab)
@@ -3493,7 +3505,9 @@ If you use `org' and don't want your org files in the default location below, ch
      (mermaid . t)
      (python . t)
      (haskell . t)
-     (rust . t)))
+     (rust . t)
+     (gnuplot .t)
+     (C . t)))
 #+end_src
 
 ** Поддержка показа картинок в результатах выполнения org-babel блоков
@@ -5116,6 +5130,13 @@ emacsclient.
         (concat my/dashboard-banner-dir "/" filename)))
 #+end_src
 
+А чтобы на старте редактора случайность не вела себя странно,
+проинициализируем датчик случайных чисел текущим временем.
+
+#+begin_src emacs-lisp :tangle yes
+(cl-make-random-state)
+#+end_src
+
 ** Настройка панели
 
 Заменим начальный экран более модной панелью.
@@ -5184,7 +5205,12 @@ emacsclient.
 
 #+begin_src emacs-lisp :tangle yes
 (use-package lsp-mode
-    :ensure t)
+    :ensure t
+    :custom
+    (lsp-completion-provider :capf)
+    (lsp-auto-guess-root nil)
+    (lsp-keep-workspace-alive nil)
+    )
 #+end_src
 
 На странице пакета рекомендуют загрузить следующие пакеты:
@@ -5200,9 +5226,9 @@ emacsclient.
 (use-package lsp-ui
     :ensure t
     :init
-    ;; (setq lsp-ui-sideline-code-actions-prefix "💡")
     :config
-    (add-hook 'lsp-mode-hook #'lsp-ui-mode))
+    (add-hook 'lsp-mode-hook #'lsp-ui-mode)
+    (setq lsp-ui-sideline-actions-icon lsp-ui-sideline-actions-icon-default))  ;; Лампочка 💡 в подсказках.
 (use-package flycheck
     :ensure t
     :init
@@ -5346,13 +5372,13 @@ Sideline diagnostics (тексты ошибок).
 (setq lsp-ui-sideline-show-diagnostics t)
 #+end_src
 
-Eldoc (информация по объекту в строке состояния). Пока отключим ее,
-поскольку почти не пользуюсь ей, а выпадашкам от Ivy время от времени
-мешает.
-
-#+begin_src emacs-lisp :tangle yes
-(setq lsp-eldoc-enable-hover nil)
-#+end_src
+# Eldoc (информация по объекту в строке состояния). Пока отключим ее,
+# поскольку почти не пользуюсь ей, а выпадашкам от Ivy время от времени
+# мешает.
+#
+# #+begin_src emacs-lisp :tangle yes
+# (setq lsp-eldoc-enable-hover nil)
+# #+end_src
 
 Modeline diagnostics statistics (показ числа ошибок в строке состояния).
 
@@ -5453,7 +5479,8 @@ Completion item kind (тип объекта в выпадашке автодоп
         (flycheck-next-error)))
 
 (defun my/--check-c++/c-eglot-mode ()
-    (member major-mode '(c++-mode c-mode)))
+    ;; (member major-mode '(c++-mode c-mode)))
+    nil)
 #+end_src
 
 ** Emacs-Lisp
@@ -5646,6 +5673,33 @@ Mermaid - это аналог PlantUML. Для работы требует ус�
 #+begin_src emacs-lisp :tangle yes
 (advice-add #'org-babel-execute:mermaid
             :around (my/org-babel-execute mermaid))
+#+end_src
+
+** Gnuplot
+
+Gnuplot рисует графики и диаграммы. Для работы с этим надо установить
+Gnuplot в систему. На Arch это выглядит так:
+: sudo pacman -S gnuplot
+
+Полезные ссылки по установке и использованию:
+- [[https://github.com/emacs-gnuplot/gnuplot][Gnuplot for Emacs]]
+- [[https://orgmode.org/worg/org-contrib/babel/languages/ob-doc-gnuplot.html][Org-babel-gnuplot]]
+- [[https://orgmode.org/worg/org-tutorials/org-plot.html][Plotting tables in Org-Mode using org-plot]]
+- [[https://stackoverflow.com/questions/15736101/is-there-a-way-to-quickly-plot-elisp-functions-with-gnuplot][Is there a way to quickly plot elisp functions with gnuplot?]]
+
+Сделаем установку пакетов для Gnuplot.
+
+#+begin_src emacs-lisp :tangle yes
+(use-package gnuplot
+    :ensure t)
+#+end_src
+
+Настроим параметр :file для gnuplot-блоков по-умолчанию. Если
+параметр :file не указан, то создаем временный файл с картинкой.
+
+#+begin_src emacs-lisp :tangle yes
+(advice-add #'org-babel-execute:gnuplot
+            :around (my/org-babel-execute gnuplot))
 #+end_src
 
 ** Python
@@ -5989,6 +6043,50 @@ ob-rust для работы с org-babel блоками устанавливае
     :ensure t)
 #+end_src
 
+** COMMENT C++ Irony-mode, Company-irony
+
+В помощь LSP-серверам подгоним irony-mode. Оно ходит по заголовкам и
+делает авто-дополнение.
+
+Примеры настроек возьмем со страницы [[https://github.com/Sarcasm/irony-mode][irony-mode]] и [[https://github.com/Sarcasm/company-irony][company-irony]].
+
+После надо не забыть установить =irony-server= командой:
+: (irony-install-server)
+
+#+begin_src emacs-lisp :tangle yes
+(use-package irony
+    :ensure t
+    :config
+    (unless (irony--find-server-executable) (call-interactively #'irony-install-server)))
+(add-hook 'c++-mode-hook 'irony-mode)
+(add-hook 'c-mode-hook 'irony-mode)
+(add-hook 'objc-mode-hook 'irony-mode)
+(add-hook 'irony-mode-hook 'irony-cdb-autosetup-compile-options)
+
+(use-package company-irony
+    :ensure t)
+(eval-after-load 'company
+    '(add-to-list 'company-backends 'company-irony))
+
+;; (use-package flycheck-irony
+;;     :ensure t)
+;; (global-flycheck-mode)
+;; (eval-after-load 'flycheck
+;;     '(add-hook 'flycheck-mode-hook #'flycheck-irony-setup))
+
+(add-to-list 'company-backends 'company-irony-c-headers)
+
+;; Use compilation data first, clang_complete as fallback.
+(setq-default irony-cdb-compilation-databases '(irony-cdb-libclang
+                                                irony-cdb-clang-complete))
+(add-hook 'irony-mode-hook 'irony-cdb-autosetup-compile-options)
+
+;; (use-package irony-eldoc
+;;     :ensure t
+;;     :config
+;;     (add-hook 'irony-mode-hook #'irony-eldoc))
+#+end_src
+
 ** COMMENT C++ (ccls LSP-server)
    :PROPERTIES:
    :ID:       b98a08b8-ca0b-4850-8816-702d90fd1e15
@@ -6022,7 +6120,9 @@ ob-rust для работы с org-babel блоками устанавливае
 (setq ccls-initialization-options '(:index (:comments 2) :completion (:detailedLabel t)))
 #+end_src
 
-** C++ (clangd LSP-server)
+** COMMENT C++ (clangd on Eglot)
+
+=TODO=: Инструкция на поизучать: [[https://emacs-lsp.github.io/lsp-mode/tutorials/CPP-guide/][Configuring Emacs as a C/C++ IDE]].
 
 Есть две альтернативы LSP-сервера для C++: =clangd= и =ccls=. Первый
 приводится в документации только совместно с пакетом =eglot=, второй -
@@ -6051,6 +6151,30 @@ ob-rust для работы с org-babel блоками устанавливае
                      :major-modes '(c++-mode c-mode)
                      :remote? t
                      :server-id 'clangd-remote))
+#+end_src
+
+** C++ (default LSP-server)
+
+Этот вариант настройки LSP-сервера для C++ выберет один из тех, что
+установлен в системе, и будет с ним работать через lsp-mode. Это пока
+единственный способ, который я нашел, чтобы подружить clangd с
+lsp-mode (без eglot'а).
+
+#+begin_src emacs-lisp :tangle yes
+(add-hook 'prog-mode-hook 'company-mode)
+(add-to-list 'company-backends 'company-capf)
+
+(use-package lsp-mode
+    ;; :ensure t
+    :hook ((c-mode c++-mode) . lsp-deferred)
+    ;; :hook ((c-mode c++-mode) . lsp-clangd)
+    )
+#+end_src
+
+Влепим поддержку C++20 для org-babel блоков.
+
+#+begin_src emacs-lisp :tangle yes
+(setq org-babel-C++-compiler "g++ -std=c++20")
 #+end_src
 
 ** Java
