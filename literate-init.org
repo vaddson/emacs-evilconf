@@ -5512,6 +5512,15 @@ Completion item kind (тип объекта в выпадашке автодоп
     (setq xref-show-xrefs-function #'ivy-xref-show-xrefs))
 #+end_src
 
+** Logview
+
+Пакет для просмотра логов. Дает logview-mode.
+
+#+begin_src emacs-lisp :tangle yes
+(use-package logview
+    :ensure t)
+#+end_src
+
 ** Markdown
 
 Устанавливаем пакеты для поддержки markdown.
