@@ -112,12 +112,18 @@ email clients, file templates and snippets."
 
 * Подготовка к установке пакетов из репозиториев
 
-Подцепим репозиторий melpa.
+Подцепим все репозитории.
 
 #+begin_src emacs-lisp :tangle yes
 (require 'package)
+
 (add-to-list 'package-archives '("melpa" . "http://melpa.org/packages/") t)
+(add-to-list 'package-archives '("melpa-stable" . "https://stable.melpa.org/packages/") t)
+
+;; (add-to-list 'package-archives '("gnu" . "https://elpa.gnu.org/packages/") t)
+;; (add-to-list 'package-archives '("melpa" . "https://melpa.org/packages/") t)
 ;; (add-to-list 'package-archives '("melpa-stable" . "https://stable.melpa.org/packages/") t)
+;; (add-to-list 'package-archives '("nongnu" . "https://elpa.nongnu.org/nongnu/") t)
 #+end_src
 
 Рекомендуемые где-то кем-то действия перед загрузкой пакетов.  (Если
@@ -4239,6 +4245,18 @@ shows it in message and put the result into registers `\"' and `t'."
     "b o" #'my/open-new-buffer-in-org-mode)
 #+end_src
 
+** Работа с параграфом в отдельном буфере (indirect buffer)
+
+Иногда бывает удобно поработать с параграфом в отдельном буфере. Так
+скрывается все лишнее, как для работы, так и для показа.  Для такой
+работы есть встроенная в ORG функция =org-tree-to-indirect-buffer=.
+Достаточно лишь назначить на нее горячие клавиши по-удобней.
+
+#+begin_src emacs-lisp :tangle yes
+(my/evil-define-key '(normal visual motion) 'org-mode-map
+                    "C-<tab>" #'org-tree-to-indirect-buffer)
+#+end_src
+
 ** Agenda
 
 Настраиваем Агенду.
@@ -4465,6 +4483,7 @@ shows it in message and put the result into registers `\"' and `t'."
 показа агенды.
 
 #+begin_src emacs-lisp :tangle yes
+(provide 'seq-25)
 (use-package org-ql
     :quelpa (org-ql :fetcher github :repo "alphapapa/org-ql"
                     :files (:defaults (:exclude "helm-org-ql.el"))))
@@ -4655,6 +4674,7 @@ treemacs при показе текущего файла в дереве про�
 Загрузим необходимые пакеты и определим некоторые базовые клавиши.
 
 #+begin_src emacs-lisp :tangle yes
+(provide 'seq-25)
 (use-package magit
     :ensure t
     :config
@@ -6208,4 +6228,27 @@ lsp-mode (без eglot'а).
 
 #+begin_src emacs-lisp :tangle yes
 (lsp-ensure-server 'jdtls)
+#+end_src
+
+Еще нужна работа с gradle-файлами.
+
+#+begin_src emacs-lisp :tangle yes
+(use-package gradle-mode
+    :ensure t)
+#+end_src
+
+** Java. Spring Boot
+
+Чтобы установить Spring Boot, вводим следующие команды:
+: curl -s "https://get.sdkman.io" | bash
+: sdk install springboot
+Пакет появится по пути: [[~/.sdkman/candidates/springboot/current/]].
+
+Добавляем поддержку Spring Boot.
+(Надо еще как-то поставить STS4.)
+
+#+begin_src emacs-lisp :tangle yes
+(require 'jsp-java-boot)
+(add-hook 'lsp-mode-hook #'lsp-lens-mode)
+(add-hook 'java-mode-hook #'lsp-java-boot-lens-mode)
 #+end_src
