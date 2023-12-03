@@ -6248,7 +6248,7 @@ lsp-mode (без eglot'а).
 (Надо еще как-то поставить STS4.)
 
 #+begin_src emacs-lisp :tangle yes
-(require 'jsp-java-boot)
+;; (require 'jsp-java-boot)
 (add-hook 'lsp-mode-hook #'lsp-lens-mode)
 (add-hook 'java-mode-hook #'lsp-java-boot-lens-mode)
 #+end_src
