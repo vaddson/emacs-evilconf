@@ -872,6 +872,8 @@ Find application name in my/application-name variable."
 
 #+begin_src emacs-lisp :tangle yes
 (setq use-dialog-box nil)
+;; (setq use-file-dialog nil)
+;; (setq pop-up-windows nil)
 #+end_src
 
 ** Тильды в конце буффера
@@ -1845,6 +1847,26 @@ Imenu - дает не только удобный способ навигаци�
 
 ** Выделение по регулярному выражению (highlight)
 
+Выделять текст будем функцией highlight-regexp.
+Но ей неудобно пользоваться часто. Автоматизируем кое-что:
+- При отсутствии выделения берем слово под курсором,
+- Выделенный или полученный текст окружаем в маркеры границ
+  слова "\<" и "\>".
+
+#+begin_src emacs-lisp :tangle yes
+(defun my/highlihth-regexp ()
+    (interactive)
+    (let* ((beg (region-beginning))
+           (end (region-end))
+           (region-text (buffer-substring-no-properties beg end)))
+        (if (or (not (use-region-p))
+                (string-empty-p region-text))
+            (progn (setq region-text (concat "\\<" (word-at-point t) "\\>"))
+                   (highlight-regexp region-text 'isearch))
+            (highlight-regexp (concat "\\<" region-text "\\>")
+                              'isearch))))
+#+end_src
+
 Здесь запилим горячие клавиши для вызова функций (highlight-regexp) и
 (unhighlight-regexp). С их помощью будем выделять текст и снимать
 выделение точечно по каждой регулярке.
@@ -1852,6 +1874,7 @@ Imenu - дает не только удобный способ навигаци�
 #+begin_src emacs-lisp :tangle yes
 (my/leader-def nil 'override
                "s h" 'highlight-regexp
+               "s H" 'my/highlihth-regexp
                "s u" 'unhighlight-regexp)
 #+end_src
 
@@ -2103,7 +2126,8 @@ Spacemacs. Код находится в файле [[./funcs.el][funcs.el]].
                        :which-key "Switch buffer in project")
                "b B" '(ivy-switch-buffer :which-key "Switch buffer")
                ;; "b B" '(counsel-switch-buffer :which-key "Switch buffer")
-               "b d" '(kill-current-buffer :which-key "Kill buffer"))
+               "b d" '(kill-current-buffer :which-key "Kill buffer")
+               "b r" '(rename-buffer :which-key "Rename buffer"))
 #+end_src
 
 ** Отображение popup-буферов внизу окна и прочие настройки показа буферов
@@ -2135,7 +2159,8 @@ Spacemacs. Код находится в файле [[./funcs.el][funcs.el]].
 
         ;; Ilist
         ("^\\*Ilist\\*$"
-         (display-buffer-reuse-window)
+         (display-buffer-reuse-window display-buffer-in-side-window)
+         (side . right)
          (window-width . 0.30))
 
         ;; Org Src edit
@@ -2156,7 +2181,8 @@ Spacemacs. Код находится в файле [[./funcs.el][funcs.el]].
         ;; org-mode
         ("^\\*org-roam\\*$"
          (display-buffer-reuse-window display-buffer-in-side-window)
-         (window-height . 0.5))
+         (side . right)
+         (window-width . 0.35))
 
         ;; Magit (status)
         ("^magit: .*"
@@ -2768,6 +2794,15 @@ Return history hash-map."
         (call-interactively #'find-file)))
 #+end_src
 
+** GPG-костыли
+
+При очередном обновлении системы стало зависать сохранение GPG-файлов.
+Ниже костыль для поправки неисправности.
+
+#+begin_src emacs-lisp :tangle yes
+(fset 'epg-wait-for-status 'ignore)
+#+end_src
+
 * Рабочие пространства (workspaces, perspectives)
 
 ** Установка и настройка рабочих пространств
@@ -3213,6 +3248,9 @@ Keywords=Text;Editor;
     "M-k" #'org-metaup
     "M-j" #'org-metadown
     "M-RET" #'org-meta-return)
+(my/evil-define-key '(insert) 'org-mode-map
+    "M-h" #'org-metaleft
+    "M-l" #'org-metaright)
 (my/localleader-def '(normal visual motion) 'org-mode-map
     "l l" #'org-insert-link
     "l t" #'org-toggle-link-display
@@ -4365,7 +4403,8 @@ shows it in message and put the result into registers `\"' and `t'."
                "n j s" #'org-journal-search-forever)
 #+end_src
 
-** Org-roam
+* Org-roam
+** Установка
 
 Загрузка пакета и начальная инициализация.
 
@@ -4374,17 +4413,25 @@ shows it in message and put the result into registers `\"' and `t'."
     :ensure t
     :init
     (setq org-roam-directory (file-truename "~/org/roam/"))
+    (mkdir org-roam-directory t)
     (setq org-roam-v2-ack t)
     (setq org-roam-database-connector 'sqlite)
-    (mkdir org-roam-directory t)
     :config
     (define-key org-roam-preview-map (kbd my/leader) nil)
     (define-key org-roam-node-map (kbd my/leader) nil)
     (define-key org-roam-mode-map (kbd my/leader) nil)
     (add-hook 'org-roam-mode-hook #'my/set-word-wrap)
-    (setq org-roam-node-display-template (concat "${title:*} " (propertize "${tags:10}" 'face 'org-tag)))
-    (org-roam-db-autosync-mode)
+    (setq org-roam-node-display-template (concat "${title:*} " (propertize "${tags:20}" 'face 'org-tag)))
+    (org-roam-db-autosync-mode 1)
     (require 'org-roam-protocol))
+#+end_src
+
+Поработаем над буфером показа ссылок на открытую карточку.
+Исключим повторяющиеся ссылки.
+
+#+begin_src emacs-lisp :tangle yes
+(setq org-roam-mode-sections '((org-roam-backlinks-section :unique t)
+                               org-roam-reflinks-section))
 #+end_src
 
 Переопределим реакцию по нажатию Enter на раздел в org-roam-mode.
@@ -4411,24 +4458,36 @@ shows it in message and put the result into registers `\"' and `t'."
 #+begin_src emacs-lisp :tangle yes
 (defun my/org-roam-node-find ()
     (interactive)
-    (org-roam-node-find)
-    ;; (delete-other-windows)
-    (unless (get-buffer-window org-roam-buffer)
-        (org-roam-buffer-toggle)))
+    (my/hack-dir-locals)
+    (org-roam-node-find (my/org-roam--same-window-p))
+    ;; (unless (get-buffer-window org-roam-buffer)
+    ;;     (org-roam-buffer-toggle))
+    )
 
 (defun my/org-roam-node-insert ()
     (interactive)
+    (my/hack-dir-locals)
     (org-roam-node-insert)
-    ;; (delete-other-windows)
-    (unless (get-buffer-window org-roam-buffer)
-        (org-roam-buffer-toggle)))
+    ;; (unless (get-buffer-window org-roam-buffer)
+    ;;     (org-roam-buffer-toggle))
+    )
 
 (defun my/org-roam-buffer-toggle ()
     (interactive)
+    (my/hack-dir-locals)
     (org-roam-buffer-toggle)
     (when (get-buffer-window org-roam-buffer)
         (when-let ((buffer (get-buffer org-roam-buffer)))
             (switch-to-buffer-other-window buffer))))
+
+(defun my/org-roam--same-window-p ()
+    (if (get-buffer-window org-roam-buffer)
+        nil
+        t))
+
+(defun my/hack-dir-locals ()
+    (hack-dir-local-variables)
+    (hack-dir-local-variables-non-file-buffer))
 #+end_src
 
 Горячие клавиши.
@@ -4436,11 +4495,18 @@ shows it in message and put the result into registers `\"' and `t'."
 #+begin_src emacs-lisp :tangle yes
 (my/leader-def nil 'override
                "n r" '(:ignore t :which-key "org-roam")
+               "n r n" #'my/org-roam-show-vault-dir
+               "n r s" #'org-roam-db-sync
                "n r r" #'my/org-roam-buffer-toggle
                "n r f" #'my/org-roam-node-find
                "n r i" #'my/org-roam-node-insert
                "n r c" #'org-roam-capture
-               "n r j" #'org-roam-dailies-capture-today)
+               "n r j" #'org-roam-dailies-capture-today
+               "n r J" #'org-roam-dailies-capture-date
+               "n r v" '(:ignore t :which-key "vault")
+               "n r v i" '(my/org-roam-vault-init :which-key "Init vault in directory")
+               "n r v s" '(my/org-roam-register-vault-subdirectory
+                           :which-key "Register subdirectory"))
 (my/leader-def nil 'org-mode-map
                "n r a" '(:ignore t :which-key "add")
                "n r a a" #'org-roam-alias-add
@@ -4450,6 +4516,236 @@ shows it in message and put the result into registers `\"' and `t'."
                "n r d a" #'org-roam-alias-remove
                "n r d r" #'org-roam-ref-remove
                "n r d t" #'org-roam-tag-remove)
+#+end_src
+
+** Шаблоны
+   :PROPERTIES:
+   :ID:       eb0ed05e-acc3-40b7-afd2-0cbf8f8e0ad7
+   :CUSTOM_ID: eb0ed05e-acc3-40b7-afd2-0cbf8f8e0ad7
+   :END:
+
+Для удобства соберем все шаблоны в одном параграфе. Сначала сделаем
+шаблоны для хранилища по-умолчанию.
+
+Для основных документов вставим дату в поле `#+date:' - так мне
+привычней.
+
+#+begin_src emacs-lisp :tangle yes
+(setq org-roam-capture-templates
+      `(("d" "default" plain "%?"
+             :target
+             (file+head "main-roam/%<%Y%m%d%H%M%S>-${slug}.org"
+                        ,(concat "#+title: ${title}" "\n"
+                                 "#+date: %<%Y-%m-%d>" "\n"
+                                 "#+filetags: :@main:" "\n"))
+             :empty-lines-before 1
+             :unnarrowed t)))
+#+end_src
+
+Настроим тег файла =@daily= для daily-заметок, чтобы можно было
+фильтровать по ним. Тег заголовкам =@unsorted= тоже ставим
+по-умолчанию - предполагаем, что он будет снят после проработки текста
+заметки. Сами заголовки делаем отдельными узлами. А еще добавим время
+создания заголовка (думаю, это может иногда пригодиться).
+
+#+begin_src emacs-lisp :tangle yes
+(setq org-roam-dailies-capture-templates
+      `(("d" "default"
+             entry ,(concat "* (%<%H:%M>) %? :@unsorted:" "\n"
+                            "${my/org-roam--id-copy}" "\n")
+             :target
+             (file+head "%<%Y-%m-%d>.org"
+                        ,(concat "#+title: %<%Y-%m-%d>" "\n"
+                                 "#+filetags: :@daily:" "\n"))
+             :empty-lines-before 1)))
+
+(defun my/org-roam--id-copy (node)
+    (let ((uuid (org-id-uuid))
+          (level "  "))
+        (concat level ":PROPERTIES:" "\n"
+                level ":ID: " uuid "\n"
+                level ":CUSTOM_ID: " uuid "\n"
+                level ":END:")))
+#+end_src
+
+Переходим к шаблонам для инициализации хранилищ в других директориях.
+
+Загоним все содержимое будущих .dir-locals.el в шаблон. Здесь вносим
+код для изменения путей к хранилищу, а шаблоны копируем из основных.
+
+#+begin_src emacs-lisp :tangle yes
+(defvar my/org-roam-vault-dir-locals
+  `((nil . ((eval
+             . (setq-local org-roam-directory
+                           (expand-file-name (locate-dominating-file
+                                              default-directory ".dir-locals.el"))))
+            (eval
+             . (setq-local org-roam-db-location
+                           (expand-file-name "org-roam.db" org-roam-directory)))
+            (eval
+             . (setq-local org-id-locations-file
+                           (expand-file-name ".org-id-locations" org-roam-directory)))
+            (org-roam-dailies-capture-templates
+             . ,org-roam-dailies-capture-templates)
+            (org-roam-capture-templates
+             . ,org-roam-capture-templates)))))
+#+end_src
+
+Для создания заметок в поддиректориях мне понадобятся теги с именем
+этой поддиректории. Это поможет быстро фильтровать заметки по
+содержимому поддиректорий. Также в шаблоне потребуется буква ключ для
+меню создания заметки, и этот ключ должен быть уникальным. Выбор буквы
+для ключа автоматизируем.
+
+#+begin_src emacs-lisp :tangle yes
+(defun my/org-roam--make-subdirectory-template (subdirectory-name)
+    (let* ((subdirectory-name (string-replace " " "-" subdirectory-name))
+           (occupied-keys (mapcar 'car org-roam-capture-templates))
+           (key (my/org-roam--choose-directory-key subdirectory-name
+                                                   occupied-keys))
+           (template-file-name (my/org-roam--make-template-file subdirectory-name)))
+        `(,key
+          ,subdirectory-name
+          plain (file ,template-file-name)
+          :target
+          (file+head ,(concat subdirectory-name "/%<%Y%m%d%H%M%S>-${slug}.org")
+                     ,(concat "#+title: ${title}" "\n"
+                              "#+date: %<%Y-%m-%d>" "\n"
+                              "#+filetags: :@" subdirectory-name ":" "\n"))
+          :unnarrowed t
+          :empty-lines-before 1)))
+
+(defun my/org-roam--choose-directory-key (directory-name occupied-keys)
+    (let* ((occupied-keys (append occupied-keys '(" " "/" "-" "_")))
+           (reversed-path (apply 'concat
+                                 (reverse (split-string directory-name "/"))))
+           (dir-name-letters (my/org-roam--split-by-letters reversed-path))
+           (dir-and-letters (append dir-name-letters
+                                    (my/org-roam--minus-list my/org-roam--letters
+                                                             dir-name-letters)))
+           (result (my/org-roam--minus-list dir-and-letters
+                                            occupied-keys)))
+        (if result (car result) "X")))
+
+(defun my/org-roam--split-by-letters (text)
+    (mapcar 'char-to-string
+            (string-to-list text)))
+
+(defconst my/org-roam--letters
+  (my/org-roam--split-by-letters (concat "abcdefghijklmnopqrstuvwxyz"
+                                         "ABCDEFGHIJKLMNOPQRSTUVWXYZ")))
+
+(defun my/org-roam--minus-list (list-1 list-2)
+    (seq-filter (lambda (x)
+                    (not (member x list-2)))
+                list-1))
+
+(defun my/org-roam--make-template-file (subdirectory-name)
+    (let* ((subdirectory-name (string-replace "/" "--" subdirectory-name))
+           (template-file-name-expand (concat org-roam-directory
+                                              "/templates/"
+                                              subdirectory-name ".org"))
+           (template-file-name (replace-regexp-in-string (concat "^" (getenv "HOME"))
+                                                         "~"
+                                                         template-file-name-expand)))
+        (make-empty-file template-file-name t)
+        template-file-name))
+#+end_src
+
+** Поддержка работы в разных хранилищах (vault) и разных поддиректориях (subdirectory)
+
+Здесь собираются настройки необходимые для работы с разными базами
+(хранилицами) для Org-Roam.  Базы не должны пересекаться, поскольку
+одна может быть для работы, другая для - личной картотекой и т.п..
+
+Чтобы меньше путаться, в каком хранилище сейчас находимся, напишем
+вывод в минибуфер директории текущего хранилища.
+
+#+begin_src emacs-lisp :tangle yes
+(defun my/org-roam-show-vault-dir ()
+    (interactive)
+    (message (concat "Current vault: "
+                     (my/org-roam--pretty-path org-roam-directory))))
+
+(defun my/org-roam--pretty-path (path)
+    (replace-regexp-in-string (concat "^" (getenv "HOME"))
+                              "~"
+                              path))
+#+end_src
+
+Инициализировать хранилища будем, как указано в официальной
+документации: "50.2.5 Per-Directory Local Variables".
+
+Инициализация состоит в создании в директории будущего хранилища
+файлика .dir-locals.el. В нем укажем все необходимое для работы с
+Org-Roam. Для этого весь код по созданию файлика с полезным содержимым
+перенесем в функцию.
+
+Но пополнять содержимое .dir-locals.el будем через фцнкцию
+add-dir-local-variable, так мы не нарушим другие данные в
+.dir-locals.el. Заниматься инициализацией хранилища будет функция
+my/org-roam-vault-init.
+
+#+begin_src emacs-lisp :tangle yes
+(defun my/org-roam-vault-init (org-roam-vault-path)
+    (interactive "DDirectory for Org-Roam vault: ")
+    (find-file org-roam-vault-path)
+    (when (yes-or-no-p (concat "Do your want to init a vault in '"
+                               (my/org-roam--pretty-path org-roam-vault-path)
+                               "'? "))
+        (my/org-roam--fill-dir-locals my/org-roam-vault-dir-locals)
+        (my/org-roam--save-dir-locals-and-show-the-buffer org-roam-vault-path)))
+
+(defun my/org-roam--fill-dir-locals (dir-locals)
+    (mapc (lambda (mode-vars)
+              (let ((mode (car mode-vars))
+                    (variables (cdr mode-vars)))
+                  (my/org-roam--add-dir-local-variables mode variables)))
+          dir-locals))
+
+(defun my/org-roam--add-dir-local-variables (mode variables)
+    (mapc (lambda (var-val)
+              (add-dir-local-variable mode (car var-val) (cdr var-val)))
+          (reverse variables)))
+
+(defun my/org-roam--save-dir-locals-and-show-the-buffer (org-roam-vault-path)
+    (let ((dir-locals-name ".dir-locals.el")
+          (current-buffer-name (buffer-name)))
+        (when (eq (compare-strings current-buffer-name 0 (length dir-locals-name)
+                                   dir-locals-name nil nil)
+                  t)
+            (save-buffer))))
+            ;; (kill-buffer current-buffer-name)
+            ;; (find-file org-roam-vault-path))))
+#+end_src
+
+Далее будем шаманить с добавлением поддиректорий. Вручную
+регистрировать поддиректорию долго. Это в основном из-за того, что
+приходится вспоминать, как это делать.
+
+Для упрощения работы с поддиректориями заведем шаблон и функцию,
+которая будет добавлять его в Org-Roam.
+
+Шаблон будет содержать тег с названием поддиректории, а буква-ключ
+выбирается автоматом (по-возможности из букв имени поддиректории.
+Все это собираем в функцию [[id:eb0ed05e-acc3-40b7-afd2-0cbf8f8e0ad7][my/org-roam--make-subdirectory-template]].
+
+Теперь сделаем функцию, которая в хранилище регистрирует поддиректорию
+по одному только ее названию.
+
+#+begin_src emacs-lisp :tangle yes
+(defun my/org-roam-register-vault-subdirectory (subdirectory-name)
+    (interactive
+     (list (read-string (concat "Enter subdirectory name for vault '"
+                                (my/org-roam--pretty-path org-roam-directory)
+                                "': "))))
+    (find-file org-roam-directory)
+    (my/org-roam--fill-dir-locals
+     `((nil . ((org-roam-capture-templates
+                . ,(cons (my/org-roam--make-subdirectory-template subdirectory-name)
+                         org-roam-capture-templates))))))
+    (find-file (concat org-roam-directory "/.dir-locals.el"))
+    (my/org-roam--save-dir-locals-and-show-the-buffer org-roam-directory))
 #+end_src
 
 ** Org-roam-ui
@@ -4490,6 +4786,32 @@ shows it in message and put the result into registers `\"' and `t'."
 (use-package helm-org-ql
     :quelpa (helm-org-ql :fetcher github :repo "alphapapa/org-ql"
                          :files ("helm-org-ql.el")))
+#+end_src
+
+** Org-roam-ql. Поиск по файлам org-roam
+
+Выглядит перспективно:
+- https://github.com/ahmed-shariff/org-roam-ql
+
+Пример использования:
+#+begin_example emacs-lisp
+(org-roam-ql-nodes '([:select [id] :from nodes]))
+#+end_example
+
+Поставил. Буду разбираться.
+
+#+begin_src emacs-lisp :tangle yes
+(use-package org-roam-ql
+    :ensure t
+    :after (org-roam))
+#+end_src
+
+#+begin_src emacs-lisp :tangle yes
+(use-package org-roam-ql-ql
+    :ensure t
+    :after (org-ql org-roam-ql)
+    :config
+    (org-roam-ql-ql-init))
 #+end_src
 
 * Терминалы
@@ -4602,6 +4924,28 @@ shows it in message and put the result into registers `\"' and `t'."
     "o t" #'my/popup-vterm-toggle
     "o T" #'vterm
     "o v" #'my/open-term-in-new-tab)
+#+end_src
+
+** Асинхронный вызов системных команд (async-shell-command)
+
+При работе а разных рабочих пространствах нужно разделить выхлопы от
+функции async-shell-command.  Для этого и напишем код ниже: под каждое
+рабочее пространство будет свой буфер выхлопа.
+
+#+begin_src emacs-lisp :tangle yes
+(defmacro my/--wrapper-acync-shell-command (out-buffer-name-prefix)
+    `(lambda (func command &optional output-buffer error-buffer)
+         (let* ((out-buffer (format ,(concat "*" out-buffer-name-prefix ":%s*")
+                                    (my/--get-current-persp-name))))
+             (funcall func command out-buffer error-buffer))))
+
+(advice-add #'async-shell-command
+            :around
+            (my/--wrapper-acync-shell-command "Async Shell Command"))
+
+;; (advice-add #'shell-command
+;;             :around
+;;             (my/--wrapper-acync-shell-command "Shell Command"))
 #+end_src
 
 * Удаленный доступ (tramp)
@@ -6237,7 +6581,7 @@ lsp-mode (без eglot'а).
     :ensure t)
 #+end_src
 
-** Java. Spring Boot
+** COMMENT Java. Spring Boot
 
 Чтобы установить Spring Boot, вводим следующие команды:
 : curl -s "https://get.sdkman.io" | bash
@@ -6251,4 +6595,27 @@ lsp-mode (без eglot'а).
 ;; (require 'jsp-java-boot)
 (add-hook 'lsp-mode-hook #'lsp-lens-mode)
 (add-hook 'java-mode-hook #'lsp-java-boot-lens-mode)
+#+end_src
+
+** JavaScript/TypeScript
+
+Информация о сервере и его установке смотрим тут:
+[[https://emacs-lsp.github.io/lsp-mode/page/lsp-typescript/][LSP Mode - LSP support for Emacs. JavaScript/TypeScript (RECOMMENDED)]]
+
+Нужно установить утилиты:
+: sudo npm i -g typescript-language-server
+: sudo npm i -g typescript
+а также пакет =ts-ls= через lsp-install-server (сделано ниже).
+
+#+begin_src emacs-lisp :tangle yes
+(use-package typescript-mode
+    :ensure t)
+(lsp-ensure-server 'ts-ls)
+#+end_src
+
+И назначим соответствующие хуки...
+
+#+begin_src emacs-lisp :tangle yes
+(add-to-list 'auto-mode-alist '("\\.tsx\\'" . typescript-mode))
+(add-hook 'typescript-mode-hook #'lsp)
 #+end_src
