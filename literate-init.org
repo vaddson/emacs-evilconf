@@ -4426,12 +4426,51 @@ shows it in message and put the result into registers `\"' and `t'."
     (require 'org-roam-protocol))
 #+end_src
 
-Поработаем над буфером показа ссылок на открытую карточку.
-Исключим повторяющиеся ссылки.
+Поработаем над буфером показа ссылок на открытую карточку. Исключим
+повторяющиеся ссылки. Введем фильтр по тегам с простой логикой:
+: tag1 tag2 !tag3
+означает: содержит теги "tag1" и "tag2" и не содержит "tag3".
+Логику эту будем держать строкой в переменной my/org-roam--filter-tags.
 
 #+begin_src emacs-lisp :tangle yes
-(setq org-roam-mode-sections '((org-roam-backlinks-section :unique t)
+(setq org-roam-mode-sections '((org-roam-backlinks-section
+                                :unique t
+                                :show-backlink-p my/org-roam--show-backlink-by-tags-p)
                                org-roam-reflinks-section))
+
+(defvar my/org-roam--filter-tags ""
+  "String with tags separated by spaces.
+To inverse filter logic use '!' before tag:
+'tag1 tag2 !tag3'")
+
+(defun my/org-roam--show-backlink-by-tags-p (backlink)
+    (let* ((tags (split-string my/org-roam--filter-tags))
+           (node (org-roam-backlink-source-node backlink))
+           (node-tags (org-roam-node-tags node)))
+        (or (not tags)
+            (reduce (lambda (a b)
+                        (and a b))
+                    (mapcar (lambda (tag-name)
+                                (my/org-roam--tag-member tag-name node-tags))
+                            tags)))))
+
+(defun my/org-roam--tag-member (tag-name tags)
+    (if (string-prefix-p "!" tag-name)
+        (not (member (substring tag-name 1) tags))
+        (member tag-name tags)))
+#+end_src
+
+Для работы с фильтрами по тегам осталось сделать ввод значения
+для my/org-roam--filter-tags и обновить буфер "*org-roam*".
+
+#+begin_src emacs-lisp :tangle yes
+(defun my/org-roam-filter-backlinks-by-tags (tags-string)
+	(interactive (list (read-string "Enter tags: "
+                                    my/org-roam--filter-tags)))
+    (setq my/org-roam--filter-tags tags-string)
+    (when-let ((buffer (get-buffer org-roam-buffer)))
+        (with-current-buffer buffer
+            (org-roam-buffer-refresh))))
 #+end_src
 
 Переопределим реакцию по нажатию Enter на раздел в org-roam-mode.
@@ -4503,6 +4542,8 @@ shows it in message and put the result into registers `\"' and `t'."
                "n r c" #'org-roam-capture
                "n r j" #'org-roam-dailies-capture-today
                "n r J" #'org-roam-dailies-capture-date
+               "n r t" '(my/org-roam-filter-backlinks-by-tags
+                         :which-key "Filter backlinks by tags")
                "n r v" '(:ignore t :which-key "vault")
                "n r v i" '(my/org-roam-vault-init :which-key "Init vault in directory")
                "n r v s" '(my/org-roam-register-vault-subdirectory
