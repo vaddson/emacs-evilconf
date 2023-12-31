@@ -4433,7 +4433,8 @@ shows it in message and put the result into registers `\"' and `t'."
 Логику эту будем держать строкой в переменной my/org-roam--filter-tags.
 
 #+begin_src emacs-lisp :tangle yes
-(setq org-roam-mode-sections '((org-roam-backlinks-section
+(setq org-roam-mode-sections '(my/org-roam--filter-tags-section
+                               (org-roam-backlinks-section
                                 :unique t
                                 :show-backlink-p my/org-roam--show-backlink-by-tags-p)
                                org-roam-reflinks-section))
@@ -4442,6 +4443,12 @@ shows it in message and put the result into registers `\"' and `t'."
   "String with tags separated by spaces.
 To inverse filter logic use '!' before tag:
 'tag1 tag2 !tag3'")
+
+(defun my/org-roam--filter-tags-section (node)
+    (when (not (string-empty-p my/org-roam--filter-tags))
+        (magit-insert-section (org-roam-backlinks)
+            (magit-insert-heading (concat "FILTER: "
+                                          my/org-roam--filter-tags)))))
 
 (defun my/org-roam--show-backlink-by-tags-p (backlink)
     (let* ((tags (split-string my/org-roam--filter-tags))
@@ -4735,7 +4742,8 @@ my/org-roam-vault-init.
                                (my/org-roam--pretty-path org-roam-vault-path)
                                "'? "))
         (my/org-roam--fill-dir-locals my/org-roam-vault-dir-locals)
-        (my/org-roam--save-dir-locals-and-show-the-buffer org-roam-vault-path)))
+        (my/org-roam--save-dir-locals-and-show-the-buffer org-roam-vault-path)
+        (org-roam-db-sync)))
 
 (defun my/org-roam--fill-dir-locals (dir-locals)
     (mapc (lambda (mode-vars)
