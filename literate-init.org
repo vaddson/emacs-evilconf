@@ -4556,6 +4556,7 @@ To inverse filter logic use '!' before tag:
                "n r v s" '(my/org-roam-register-vault-subdirectory
                            :which-key "Register subdirectory"))
 (my/leader-def nil 'org-mode-map
+               "n r o" '(my/org-roam-convert-to-node :which-key "Convert to node")
                "n r a" '(:ignore t :which-key "add")
                "n r a a" #'org-roam-alias-add
                "n r a r" #'org-roam-ref-add
@@ -4608,11 +4609,11 @@ To inverse filter logic use '!' before tag:
              :empty-lines-before 1)))
 
 (defun my/org-roam--id-copy (node)
-    (let ((uuid (org-id-uuid))
+    (let ((node-id (org-id-new))
           (level "  "))
         (concat level ":PROPERTIES:" "\n"
-                level ":ID: " uuid "\n"
-                level ":CUSTOM_ID: " uuid "\n"
+                level ":ID: " node-id "\n"
+                level ":CUSTOM_ID: " node-id "\n"
                 level ":END:")))
 #+end_src
 
@@ -4795,6 +4796,18 @@ my/org-roam-vault-init.
                          org-roam-capture-templates))))))
     (find-file (concat org-roam-directory "/.dir-locals.el"))
     (my/org-roam--save-dir-locals-and-show-the-buffer org-roam-directory))
+#+end_src
+
+Ниже напишем код для превращения обычного файла в узел Org-Roam. Для
+этого надо в его начало поместить свойство ~:ID:~.
+
+#+begin_src emacs-lisp :tangle yes
+(defun my/org-roam-convert-to-node ()
+    (interactive)
+    (goto-char 0)
+    (insert (concat ":PROPERTIES:" "\n"
+                    ":ID: " (org-id-new) "\n"
+                    ":END:" "\n")))
 #+end_src
 
 ** Org-roam-ui
