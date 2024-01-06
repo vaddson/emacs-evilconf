@@ -2178,6 +2178,9 @@ Spacemacs. Код находится в файле [[./funcs.el][funcs.el]].
         ;; Org
         ("^\\*Org .*")
 
+        ;; SDCV - dictionary
+        ("^\\*SDCV\\*$")
+
         ;; org-mode
         ("^\\*org-roam\\*$"
          (display-buffer-reuse-window display-buffer-in-side-window)
@@ -4421,7 +4424,8 @@ shows it in message and put the result into registers `\"' and `t'."
     (define-key org-roam-node-map (kbd my/leader) nil)
     (define-key org-roam-mode-map (kbd my/leader) nil)
     (add-hook 'org-roam-mode-hook #'my/set-word-wrap)
-    (setq org-roam-node-display-template (concat "${title:*} " (propertize "${tags:20}" 'face 'org-tag)))
+    (setq org-roam-node-display-template (concat (propertize "${tags:40}  " 'face 'org-tag) "${title:*} "))
+    ;;(setq org-roam-node-display-template (concat "${title:*} " (propertize "${tags:20}" 'face 'org-tag)))
     (org-roam-db-autosync-mode 1)
     (require 'org-roam-protocol))
 #+end_src
@@ -4818,8 +4822,8 @@ my/org-roam-vault-init.
 #+begin_src emacs-lisp :tangle yes
 (use-package org-roam-ui
     :ensure t
-    ;; :straight
-    ;; (:host github :repo "org-roam/org-roam-ui" :branch "main" :files ("*.el" "out"))
+    :straight
+    (:host github :repo "org-roam/org-roam-ui" :branch "main" :files ("*.el" "out"))
     :after org-roam
     :config
     (setq org-roam-ui-sync-theme t
@@ -4834,6 +4838,95 @@ my/org-roam-vault-init.
 (my/leader-def nil 'override
                "n r g" #'org-roam-ui-mode)
 #+end_src
+
+** Org-roam-db-query (только информация)
+
+Здесь размещу только информацию о строении БД для Org-Roam, чтобы ее
+не искать и не собирать.
+
+Так можно делать SQL-запросы на elisp в БД Org-Roam.
+#+begin_example emacs-lisp
+(org-roam-db-query [:select * :from nodes])
+(org-roam-db-query [:select :distinct [type] :from links])
+#+end_example
+
+Теперь о том, что запрашивать. :) Сперва о том, какие таблицы есть в БД:
+
+- aliases ::
+  #+begin_src sql :eval no
+  CREATE TABLE aliases (node_id NOT NULL,
+                        alias,
+                        FOREIGN KEY (node_id) REFERENCES nodes (id) ON DELETE CASCADE);
+  CREATE INDEX alias_node_id ON aliases (node_id );
+  #+end_src
+- citations ::
+  #+begin_src sql :eval no
+  CREATE TABLE citations (node_id NOT NULL,
+                          cite_key NOT NULL,
+                          pos NOT NULL,
+                          properties,
+                          FOREIGN KEY (node_id) REFERENCES nodes (id) ON DELETE CASCADE);
+  #+end_src
+- files ::
+  #+begin_src sql :eval no
+  CREATE TABLE files (file UNIQUE PRIMARY KEY,
+                      title,
+                      hash NOT NULL,
+                      atime NOT NULL,
+                      mtime NOT NULL);
+  #+end_src
+- links ::
+  #+begin_src sql :eval no
+  CREATE TABLE links (pos NOT NULL,
+                      source NOT NULL,
+                      dest NOT NULL,
+                      type NOT NULL,
+                      properties NOT NULL,
+                      FOREIGN KEY (source) REFERENCES nodes (id) ON DELETE CASCADE);
+  #+end_src
+  А вот какие типы ссылок бывают (целиком определяются по инструкции к Org):
+  |--------+---------------------------------------------------|
+  | Тип    | Комментарий                                       |
+  |--------+---------------------------------------------------|
+  | elisp  |                                                   |
+  | file   |                                                   |
+  | fuzzy  |                                                   |
+  | https  |                                                   |
+  | http   |                                                   |
+  | id     | На этом типе Org-Roam строит ссылки между узлами. |
+  | info   |                                                   |
+  | mailto |                                                   |
+  |--------+---------------------------------------------------|
+- nodes ::
+  #+begin_src sql :eval no
+  CREATE TABLE nodes (id NOT NULL PRIMARY KEY,
+                      file NOT NULL,
+                      level NOT NULL,
+                      pos NOT NULL,
+                      todo,
+                      priority,
+                      scheduled text,
+                      deadline text,
+                      title,
+                      properties,
+                      olp,
+                      FOREIGN KEY (file) REFERENCES files (file) ON DELETE CASCADE);
+  #+end_src
+- refs ::
+  #+begin_src sql :eval no
+  CREATE TABLE refs (node_id NOT NULL,
+                     ref NOT NULL,
+                     type NOT NULL,
+                     FOREIGN KEY (node_id) REFERENCES nodes (id) ON DELETE CASCADE);
+  CREATE INDEX refs_node_id ON refs (node_id );
+  #+end_src
+- tags ::
+  #+begin_src sql :eval no
+  CREATE TABLE tags (node_id NOT NULL,
+                     tag,
+                     FOREIGN KEY (node_id) REFERENCES nodes (id) ON DELETE CASCADE);
+  CREATE INDEX tags_node_id ON tags (node_id );
+  #+end_src
 
 ** Org-ql. Поиск по org-файлам
 
@@ -4859,6 +4952,7 @@ my/org-roam-vault-init.
 #+begin_example emacs-lisp
 (org-roam-ql-nodes '([:select [id] :from nodes]))
 #+end_example
+
 
 Поставил. Буду разбираться.
 
