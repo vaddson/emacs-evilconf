@@ -4822,8 +4822,8 @@ my/org-roam-vault-init.
 #+begin_src emacs-lisp :tangle yes
 (use-package org-roam-ui
     :ensure t
-    :straight
-    (:host github :repo "org-roam/org-roam-ui" :branch "main" :files ("*.el" "out"))
+    ;; :straight
+    ;; (:host github :repo "org-roam/org-roam-ui" :branch "main" :files ("*.el" "out"))
     :after org-roam
     :config
     (setq org-roam-ui-sync-theme t
@@ -6089,6 +6089,27 @@ sudo apt install retext
 (my/localleader-def nil 'markdown-mode-map
     "p" #'my/markdown-preview-file)
 
+#+end_src
+
+** PDF
+
+Позволяет просматривать PDF'ки и делать аннотации, просматривать их и
+смотреть их полный список.
+
+#+begin_src emacs-lisp :tangle yes
+(use-package pdf-tools
+    :ensure t
+    :commands (pdf-loader-install)
+    :mode "\\.pdf\\'"
+    :bind (:map pdf-view-mode-map
+                ("j" . pdf-view-next-line-or-next-page)
+                ("k" . pdf-view-previous-line-or-previous-page)
+                ("C-=" . pdf-view-enlarge)
+                ("C--" . pdf-view-shrink))
+    :init
+    (pdf-loader-install)
+    :config
+    (add-to-list 'revert-without-query ".pdf"))
 #+end_src
 
 ** Yaml
