@@ -800,7 +800,8 @@ Type [M-x list-faces-display] to see all colors.
 заголовка будет жить в переменной =my/application-name=.
 
 #+begin_src emacs-lisp :tangle yes
-(setq my/application-name "GNU EMACS")
+(setq my/application-name "GNU EMACS"
+      my/frame-text "")
 
 (defun my/make-title-bar-text (text)
     (concat text " - " my/application-name))
@@ -810,11 +811,16 @@ Type [M-x list-faces-display] to see all colors.
 Find application name in my/application-name variable."
     (let ((frame-text (my/make-title-bar-text text)))
         (set-frame-name frame-text)
+        (setq my/frame-text text)
         frame-text))
 
 (defun my/set-title-bar-interactive (text)
     "Interactive set title bar. Type 'M-x RET my/set-title-bar-interactive RET some-text'"
-    (interactive (list (read-string "Enter text for title bar: ")))
+    (interactive (list (read-string "Enter text for title bar: "
+                                    (if (and my/frame-text
+                                             (not (string-empty-p my/frame-text)))
+                                        my/frame-text
+                                        nil))))
     (my/set-title-bar text)
     )
 #+end_src
@@ -4656,7 +4662,8 @@ To inverse filter logic use '!' before tag:
            (occupied-keys (mapcar 'car org-roam-capture-templates))
            (key (my/org-roam--choose-directory-key subdirectory-name
                                                    occupied-keys))
-           (template-file-name (my/org-roam--make-template-file subdirectory-name)))
+           (template-file-name (my/org-roam--make-template-file subdirectory-name
+                                                                key)))
         `(,key
           ,subdirectory-name
           plain (file ,template-file-name)
@@ -4693,11 +4700,12 @@ To inverse filter logic use '!' before tag:
                     (not (member x list-2)))
                 list-1))
 
-(defun my/org-roam--make-template-file (subdirectory-name)
+(defun my/org-roam--make-template-file (subdirectory-name key)
     (let* ((subdirectory-name (string-replace "/" "--" subdirectory-name))
            (template-file-name-expand (concat org-roam-directory
                                               "/templates/"
-                                              subdirectory-name ".org"))
+                                              subdirectory-name
+                                              "(" key ")" ".org"))
            (template-file-name (replace-regexp-in-string (concat "^" (getenv "HOME"))
                                                          "~"
                                                          template-file-name-expand)))
