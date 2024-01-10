@@ -801,7 +801,7 @@ Type [M-x list-faces-display] to see all colors.
 
 #+begin_src emacs-lisp :tangle yes
 (setq my/application-name "GNU EMACS"
-      my/frame-text "")
+      my/frames-texts (make-hash-table))
 
 (defun my/make-title-bar-text (text)
     (concat text " - " my/application-name))
@@ -809,20 +809,22 @@ Type [M-x list-faces-display] to see all colors.
 (defun my/set-title-bar (text)
     "Set title bar like: '<my-text> - <app-name>'.
 Find application name in my/application-name variable."
-    (let ((frame-text (my/make-title-bar-text text)))
+    (let ((frame-text (my/make-title-bar-text text))
+          (frame (selected-frame)))
         (set-frame-name frame-text)
-        (setq my/frame-text text)
+        (puthash frame text my/frames-texts)
         frame-text))
 
 (defun my/set-title-bar-interactive (text)
     "Interactive set title bar. Type 'M-x RET my/set-title-bar-interactive RET some-text'"
     (interactive (list (read-string "Enter text for title bar: "
-                                    (if (and my/frame-text
-                                             (not (string-empty-p my/frame-text)))
-                                        my/frame-text
-                                        nil))))
-    (my/set-title-bar text)
-    )
+                                    (my/--current-frame-text))))
+    (my/set-title-bar text))
+
+(defun my/--current-frame-text ()
+    (let* ((frame (selected-frame))
+           (text (gethash frame my/frames-texts)))
+        (if (stringp text) text "")))
 #+end_src
 
 И повесим назначение заголовка окну на горячие клавиши.
@@ -2187,7 +2189,10 @@ Spacemacs. Код находится в файле [[./funcs.el][funcs.el]].
         ;; SDCV - dictionary
         ("^\\*SDCV\\*$")
 
-        ;; org-mode
+        ;; org-roam-ql
+        ("^\\*org-roam - .*")
+
+        ;; org-roam-mode
         ("^\\*org-roam\\*$"
          (display-buffer-reuse-window display-buffer-in-side-window)
          (side . right)
