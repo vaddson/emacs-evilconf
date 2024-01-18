@@ -4477,7 +4477,7 @@ To inverse filter logic use '!' before tag:
     'tag1 tag2 !tag3'
 To split positive and negative parts use '~' char:
     'tag1 !tag2 ~ tag3 !tag4'
-For example: 'or' logic instead 'and' logic:
+For example: 'or' logic instead of 'and' logic:
     '~ !tag1 !tag2'")
 
 (defun my/org-roam--filter-tags-section (node)
@@ -4489,10 +4489,7 @@ For example: 'or' logic instead 'and' logic:
 (defun my/org-roam--show-backlink-by-tags-p (backlink)
     (let* ((parts (split-string my/org-roam--filter-tags "~"))
            (part-positive (string-trim (car parts)))
-           (part-negative (cadr parts))
-           (part-negative (if (stringp part-negative)
-                              (string-trim part-negative)
-                              ""))
+           (part-negative (string-trim (string-join (cdr parts) " ")))
            (tags-positive (split-string part-positive))
            (tags-negative (split-string part-negative))
            (node (org-roam-backlink-source-node backlink))
