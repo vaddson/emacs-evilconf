@@ -6833,6 +6833,10 @@ lsp-mode (без eglot'а).
 а также пакет =ts-ls= через lsp-install-server (сделано ниже).
 
 #+begin_src emacs-lisp :tangle yes
+(use-package js2-mode
+    :ensure t)
+(lsp-ensure-server 'json-ls)
+(lsp-ensure-server 'jsts-ls)
 (use-package typescript-mode
     :ensure t)
 (lsp-ensure-server 'ts-ls)
@@ -6841,6 +6845,12 @@ lsp-mode (без eglot'а).
 И назначим соответствующие хуки...
 
 #+begin_src emacs-lisp :tangle yes
+(add-to-list 'auto-mode-alist '("\\.js\\'" . js2-mode))
+(add-hook 'js-mode-hook 'js2-minor-mode)
+(add-to-list 'interpreter-mode-alist '("node" . js2-mode))
+(add-to-list 'auto-mode-alist '("\\.jsx?\\'" . js2-jsx-mode))
+(add-to-list 'interpreter-mode-alist '("node" . js2-jsx-mode))
+(add-hook 'js-mode-hook #'lsp)
 (add-to-list 'auto-mode-alist '("\\.tsx\\'" . typescript-mode))
 (add-hook 'typescript-mode-hook #'lsp)
 #+end_src
