@@ -3536,10 +3536,6 @@ If you use `org' and don't want your org files in the default location below, ch
     :ensure t)
 (use-package toc-org
     :ensure t)
-(use-package restclient
-    :ensure t)
-(use-package company-restclient
-    :ensure t)
 (use-package know-your-http-well
     :ensure t)
 #+end_src
@@ -3549,35 +3545,29 @@ If you use `org' and don't want your org files in the default location below, ch
    :ID:       c98e419e-f7e9-456d-b8f3-5037f0af775b
    :END:
 
-Подгружаем пакеты для запуска скриптов в org-babel блоках.
+Подготовим функцию для регистрации org-babel блока. Как только для
+соответствующего языка будет загружена его поддержка, то эту функцию
+можно будет вызвать:
+: (my/--register-org-babel 'rust)
+
+#+begin_src emacs-lisp :tangle yes
+(defun my/--register-org-babel (type)
+    (let ((langs (cons `(,type . t) org-babel-load-languages)))
+        (org-babel-do-load-languages 'org-babel-load-languages
+                                     langs)))
+#+end_src
+
+А об остальных сущностях позаботимся сейчас. Подгружаем пакеты для
+запуска скриптов в org-babel блоках.
 
 #+begin_src emacs-lisp :tangle yes
 (use-package ob-async
     :ensure t)
-(use-package ob-mermaid
-    :ensure t)
-(use-package ob-go
-    :ensure t)
-(use-package ob-restclient
-    :ensure t)
-(use-package ob-rust
-    :ensure t)
-#+end_src
 
-Подскажем редактору, как обрабатывать org-babel блоки.
-Здесь дружим org-babel со всеми установленными языками.
-
-#+begin_src emacs-lisp :tangle yes
 (org-babel-do-load-languages
    'org-babel-load-languages
    '((shell . t)
-     (plantuml . t)
-     (mermaid . t)
-     (python . t)
-     (haskell . t)
-     (rust . t)
-     (gnuplot .t)
-     (C . t)))
+     ))
 #+end_src
 
 ** Поддержка показа картинок в результатах выполнения org-babel блоков
@@ -6257,6 +6247,12 @@ sudo apt install retext
                     "RET" #'my/plantuml-preview)
 #+end_src
 
+Позаботимся о вычислении org-babel блоков.
+
+#+begin_src emacs-lisp :tangle yes
+(my/--register-org-babel 'plantuml)
+#+end_src
+
 UTF-8 - наше всё! :)
 
 #+begin_src emacs-lisp :tangle yes
@@ -6280,6 +6276,12 @@ Mermaid - это аналог PlantUML. Для работы требует ус�
 #+begin_src emacs-lisp :tangle yes
 (use-package mermaid-mode
     :ensure t)
+#+end_src
+
+Позаботимся о вычислении org-babel блоков.
+
+#+begin_src emacs-lisp :tangle yes
+(my/--register-org-babel 'mermaid)
 #+end_src
 
 Настроим параметр :file для mermaid-блоков по-умолчанию. Если
@@ -6309,12 +6311,34 @@ Gnuplot в систему. На Arch это выглядит так:
     :ensure t)
 #+end_src
 
+Позаботимся о вычислении org-babel блоков.
+
+#+begin_src emacs-lisp :tangle yes
+(my/--register-org-babel 'gnuplot)
+#+end_src
+
 Настроим параметр :file для gnuplot-блоков по-умолчанию. Если
 параметр :file не указан, то создаем временный файл с картинкой.
 
 #+begin_src emacs-lisp :tangle yes
 (advice-add #'org-babel-execute:gnuplot
             :around (my/org-babel-execute gnuplot))
+#+end_src
+
+** Restclient
+
+   #+begin_src emacs-lisp :tangle yes
+(use-package restclient
+    :ensure t)
+(use-package company-restclient
+    :ensure t)
+   #+end_src
+
+Позаботимся о вычислении org-babel блоков.
+
+#+begin_src emacs-lisp :tangle yes
+(use-package ob-restclient
+    :ensure t)
 #+end_src
 
 ** Python
@@ -6425,6 +6449,12 @@ Pyright может не скачаться с серверов, поэтому �
 
 #+begin_src emacs-lisp :tangle yes
 (lsp-ensure-server 'pyright)
+#+end_src
+
+Позаботимся о вычислении org-babel блоков.
+
+#+begin_src emacs-lisp :tangle yes
+(my/--register-org-babel 'python)
 #+end_src
 
 ** Python. Pyvenv
@@ -6641,6 +6671,12 @@ Pyright может не скачаться с серверов, поэтому �
       haskell-indentation-layout-offset 4)
 #+end_src
 
+Позаботимся о вычислении org-babel блоков.
+
+#+begin_src emacs-lisp :tangle yes
+(my/--register-org-babel 'haskell)
+#+end_src
+
 ** Rust
 
 (!) Чтобы заработал LSP-сервер для Rust,
@@ -6656,6 +6692,12 @@ ob-rust для работы с org-babel блоками устанавливае
 #+begin_src emacs-lisp :tangle yes
 (use-package rustic
     :ensure t)
+#+end_src
+
+Позаботимся о вычислении org-babel блоков.
+
+#+begin_src emacs-lisp :tangle yes
+(my/--register-org-babel 'rust)
 #+end_src
 
 ** COMMENT C++ Irony-mode, Company-irony
@@ -6702,6 +6744,12 @@ ob-rust для работы с org-babel блоками устанавливае
 ;;     (add-hook 'irony-mode-hook #'irony-eldoc))
 #+end_src
 
+Позаботимся о вычислении org-babel блоков.
+
+#+begin_src emacs-lisp :tangle yes
+(my/--register-org-babel 'C)
+#+end_src
+
 ** COMMENT C++ (ccls LSP-server)
    :PROPERTIES:
    :ID:       b98a08b8-ca0b-4850-8816-702d90fd1e15
@@ -6733,6 +6781,12 @@ ob-rust для работы с org-babel блоками устанавливае
 
 #+begin_src emacs-lisp :tangle yes
 (setq ccls-initialization-options '(:index (:comments 2) :completion (:detailedLabel t)))
+#+end_src
+
+Позаботимся о вычислении org-babel блоков.
+
+#+begin_src emacs-lisp :tangle yes
+(my/--register-org-babel 'C)
 #+end_src
 
 ** COMMENT C++ (clangd on Eglot)
@@ -6768,6 +6822,12 @@ ob-rust для работы с org-babel блоками устанавливае
                      :server-id 'clangd-remote))
 #+end_src
 
+Позаботимся о вычислении org-babel блоков.
+
+#+begin_src emacs-lisp :tangle yes
+(my/--register-org-babel 'C)
+#+end_src
+
 ** C++ (default LSP-server)
 
 Этот вариант настройки LSP-сервера для C++ выберет один из тех, что
@@ -6790,6 +6850,21 @@ lsp-mode (без eglot'а).
 
 #+begin_src emacs-lisp :tangle yes
 (setq org-babel-C++-compiler "g++ -std=c++20")
+#+end_src
+
+Позаботимся о вычислении org-babel блоков.
+
+#+begin_src emacs-lisp :tangle yes
+(my/--register-org-babel 'C)
+#+end_src
+
+** Go
+
+На минималках.
+
+#+begin_src emacs-lisp :tangle yes
+(use-package ob-go
+    :ensure t)
 #+end_src
 
 ** Java
@@ -6871,3 +6946,61 @@ lsp-mode (без eglot'а).
 (add-to-list 'auto-mode-alist '("\\.tsx\\'" . typescript-mode))
 (add-hook 'typescript-mode-hook #'lsp)
 #+end_src
+
+** Scala
+
+LSP-сервер для Scala называется [[https://scalameta.org/metals/][Metals]]. На Arch его можно установить
+из AUR-пакета:
+: yay -S metals
+
+Для начала установим режим [[https://github.com/hvesalai/emacs-scala-mode][scala-mode]] для Scala:
+
+#+begin_src emacs-lisp :tangle yes
+(use-package scala-mode
+    :ensure t
+    :interpreter
+    ("scala" . scala-mode))
+#+end_src
+
+Соответствующий пакет для общения с Меtals - это [[https://github.com/emacs-lsp/lsp-metals][lsp-metals]]. Установим
+его. Много комментариев в коде ниже взяты для памяти со страницы
+lsp-сервера.
+
+#+begin_src emacs-lisp :tangle yes
+(use-package lsp-metals
+  :ensure t
+  :custom
+  ;; You might set metals server options via -J arguments. This might
+  ;; not always work, for instance when metals is installed using
+  ;; nix. In this case you can use JAVA_TOOL_OPTIONS environment
+  ;; variable.
+  (lsp-metals-server-args '(;; Metals claims to support range
+                            ;; formatting by default but it supports
+                            ;; range formatting of multiline strings
+                            ;; only. You might want to disable it so
+                            ;; that emacs can use indentation provided
+                            ;; by scala-mode.
+                            "-J-Dmetals.allow-multiline-string-formatting=off"
+                            ;; Enable unicode icons. But be warned
+                            ;; that emacs might not render unicode
+                            ;; correctly in all cases.
+                            "-J-Dmetals.icons=unicode"))
+  ;; In case you want semantic highlighting. This also has to be
+  ;; enabled in lsp-mode using `lsp-semantic-tokens-enable'
+  ;; variable. Also you might want to disable highlighting of
+  ;; modifiers setting `lsp-semantic-tokens-apply-modifiers' to `nil'
+  ;; because metals sends `abstract' modifier which is mapped to
+  ;; `keyword' face.
+  (lsp-metals-enable-semantic-highlighting t))
+
+(add-hook 'scala-mode-hook #'lsp)
+#+end_src
+
+# Позаботимся об org-babel блоках (в melpa этого пакета нет - надо
+# позаботиться самому).
+#
+# #+begin_src emacs-lisp :tangle yes
+# (let ((langs (cons '(scala . t) org-babel-load-languages)))
+# (org-babel-do-load-languages 'org-babel-load-languages
+#                              langs)
+# #+end_src
