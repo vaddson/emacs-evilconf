@@ -4333,11 +4333,22 @@ shows it in message and put the result into registers `\"' and `t'."
 (evil-set-initial-state 'org-agenda-mode 'normal)
 #+end_src
 
-Здесь автоматизированы мои действия по созданию вкладки с agenda'ой.
-Открытие новой вкладки (tab) со списком задач
+Здесь автоматизированы мои действия по созданию рабочего пространства
+с agenda'ой:
+1. Создаем рабочее пространство с именем ="Agenda"=.
+2. Открываем в нем саму agenda'у.
 Повесим эти действия на горячие клавиши.
 
+(Еще то же самое можно сделать с вкладками (tab), но с рабочим
+пространством оказалось удобней работать.)
+
 #+begin_src emacs-lisp :tangle yes
+(defun my/new-persp-with-agenda-list ()
+    (interactive)
+    (persp-frame-switch "Agenda")
+    (org-agenda-list)
+    (delete-other-windows))
+
 (defun my/new-tab-with-agenda-list ()
     (interactive)
     (my/new-tab-with-name "agenda")
@@ -4350,7 +4361,8 @@ shows it in message and put the result into registers `\"' and `t'."
 (my/leader-def nil 'override
                "o a a" '(org-agenda :which-key "Agenda")
                "o A" '(org-agenda :which-key "Agenda")
-               "o a n" #'my/new-tab-with-agenda-list)
+               "o a n" #'my/new-persp-with-agenda-list)
+               ;; "o a n" #'my/new-tab-with-agenda-list)
 #+end_src
 
 Докатим привычные горячие клавиши из Doom для работы с TODO.
@@ -4583,32 +4595,32 @@ For example: 'or' logic instead of 'and' logic:
 
 #+begin_src emacs-lisp :tangle yes
 (my/leader-def nil 'override
-               "n r" '(:ignore t :which-key "org-roam")
-               "n r n" #'my/org-roam-show-vault-dir
-               "n r s" #'org-roam-db-sync
-               "n r r" #'my/org-roam-buffer-toggle
-               "n r f" #'my/org-roam-node-find
-               "n r i" #'my/org-roam-node-insert
-               "n r c" #'org-roam-capture
-               "n r j" #'org-roam-dailies-capture-today
-               "n r J" #'org-roam-dailies-capture-date
-               "n r t" '(my/org-roam-filter-backlinks-by-tags
-                         :which-key "Filter backlinks by tags")
-               "n r q" 'org-roam-ql-search
-               "n r v" '(:ignore t :which-key "vault")
-               "n r v i" '(my/org-roam-vault-init :which-key "Init vault in directory")
-               "n r v s" '(my/org-roam-register-vault-subdirectory
+               "r" '(:ignore t :which-key "org-roam")
+               "r n" #'my/org-roam-show-vault-dir
+               "r s" #'org-roam-db-sync
+               "r r" #'my/org-roam-buffer-toggle
+               "r f" #'my/org-roam-node-find
+               "r i" #'my/org-roam-node-insert
+               "r c" #'org-roam-capture
+               "r j" #'org-roam-dailies-capture-today
+               "r J" #'org-roam-dailies-capture-date
+               "r t" '(my/org-roam-filter-backlinks-by-tags
+                       :which-key "Filter backlinks by tags")
+               "r q" 'org-roam-ql-search
+               "r v" '(:ignore t :which-key "vault")
+               "r v i" '(my/org-roam-vault-init :which-key "Init vault in directory")
+               "r v s" '(my/org-roam-register-vault-subdirectory
                            :which-key "Register subdirectory"))
 (my/leader-def nil 'org-mode-map
-               "n r o" '(my/org-roam-convert-to-node :which-key "Convert to node")
-               "n r a" '(:ignore t :which-key "add")
-               "n r a a" #'org-roam-alias-add
-               "n r a r" #'org-roam-ref-add
-               "n r a t" #'org-roam-tag-add
-               "n r d" '(:ignore t :which-key "remove")
-               "n r d a" #'org-roam-alias-remove
-               "n r d r" #'org-roam-ref-remove
-               "n r d t" #'org-roam-tag-remove)
+               "r o" '(my/org-roam-convert-to-node :which-key "Convert to node")
+               "r a" '(:ignore t :which-key "add")
+               "r a a" #'org-roam-alias-add
+               "r a r" #'org-roam-ref-add
+               "r a t" #'org-roam-tag-add
+               "r d" '(:ignore t :which-key "remove")
+               "r d a" #'org-roam-alias-remove
+               "r d r" #'org-roam-ref-remove
+               "r d t" #'org-roam-tag-remove)
 #+end_src
 
 ** Шаблоны
@@ -4882,7 +4894,7 @@ my/org-roam-vault-init.
 
 #+begin_src emacs-lisp :tangle yes
 (my/leader-def nil 'override
-               "n r g" #'org-roam-ui-mode)
+               "r g" #'org-roam-ui-mode)
 #+end_src
 
 ** Org-roam-db-query (только информация)
@@ -4994,13 +5006,68 @@ my/org-roam-vault-init.
 Выглядит перспективно:
 - https://github.com/ahmed-shariff/org-roam-ql
 
-Пример использования:
+_Пример_ использования (общий select):
 #+begin_example emacs-lisp
 (org-roam-ql-nodes '([:select [id] :from nodes]))
 #+end_example
 
+_Пример_ использования с поиском (результат выведет в отдельном окне):
+#+begin_example emacs-lisp
+(org-roam-ql-search '(and (todo "TODO") (tags "tag1" "tag2") "*org-roam*"))
+#+end_example
+Функция =org-roam-ql-search= повешена на горячие клавиши.
 
-Поставил. Буду разбираться.
+_Пример_ для памяти с динамическим блоком. Табличка внутри begin/end
+заполнится сама:
+#+begin: org-roam-ql :query (todo "DONE") :columns (title tags) :take 5 :no-link nil
+|     | Title | Tags |
+|-----+-------+------|
+| ... | ...   | ...  |
+#+end:
+
+Ниже (опять для памяти) описание параметров динамического блока из
+документации:
+
+Similar to org-ql, org-roam-ql also provides a dynamic block. The
+header parameters are as follows:
+- ~:query~ - A valid SOURCE-OR-QUERY
+- ~:columns~ - A list of columns to display. Each column name is a slot
+  name of org-roam-nodes. For any function/accessor with a name of the
+  form org-roam-node-<name>, which takes an org-roam-node as a
+  parameter, <name> can also be used column name. For example, if
+  there is a function named org-roam-node-short-title, short-title can
+  be used as a column name, this will result in a column with the
+  title short-title where the content of each row is the result of
+  calling the respective function.
+- ~:sort~ - Name of a registered sort functions. See org-roam-ql-search
+  for more info on the values for sort functions.
+- ~:take~ (optional) - If a positive integer N, take the first N
+  elements, if a negative -N, take the last N nodes.
+- ~:no-link~ (optional) - If a non-nil value is set, the first column
+  containing the links will be dropped.
+If no-link is not provided as a parameter, the first column is a link
+to the node. Since it is an id link, it will be a backlink to the
+node.
+
+Сейчас работают следующие функции сортировки (параметр ~:sort~) в
+динамических блоках:
+#+begin_src emacs-lisp :tangle no :exports results :hidden
+(mapcar (lambda (pair)
+            `(,(symbol-name (car pair))))
+        my/org-roam--sort-fn-alist)
+#+end_src
+
+#+RESULTS:
+| title        |
+| title-r      |
+| file-mtime   |
+| file-mtime-r |
+| file-atime   |
+| file-atime-r |
+| file-title   |
+| file-title-r |
+
+Устанавливаем эту хорошую штуку.
 
 #+begin_src emacs-lisp :tangle yes
 (use-package org-roam-ql
@@ -5014,6 +5081,62 @@ my/org-roam-vault-init.
     :after (org-ql org-roam-ql)
     :config
     (org-roam-ql-ql-init))
+#+end_src
+
+Настройка функций сортировки.
+
+#+begin_src emacs-lisp :tangle yes
+;; (defun my/org-roam--sort-title (node1 node2)
+;;     (string< (org-roam-node-title node1)
+;;              (org-roam-node-title node2)))
+
+;; (org-roam-ql-register-sort-fn 'title 'my/org-roam--sort-title)
+
+(setq my/org-roam--sort-fn-alist
+      '((title
+         . (lambda (node1 node2)
+               (string< (org-roam-node-title node1)
+                        (org-roam-node-title node2))))
+        (title-r
+         . (lambda (node1 node2)
+               (not (string< (org-roam-node-title node1)
+                             (org-roam-node-title node2)))))
+        (file-mtime
+         . (lambda (node1 node2)
+               (string< (format-time-string "%Y-%m-%dT%H:%M:%S"
+                                            (org-roam-node-file-mtime node1))
+                        (format-time-string "%Y-%m-%dT%H:%M:%S"
+                                            (org-roam-node-file-mtime node2)))))
+        (file-mtime-r
+         . (lambda (node1 node2)
+               (not (string< (format-time-string "%Y-%m-%dT%H:%M:%S"
+                                                 (org-roam-node-file-mtime node1))
+                             (format-time-string "%Y-%m-%dT%H:%M:%S"
+                                                 (org-roam-node-file-mtime node2))))))
+        (file-atime
+         . (lambda (node1 node2)
+               (string< (format-time-string "%Y-%m-%dT%H:%M:%S"
+                                            (org-roam-node-file-atime node1))
+                        (format-time-string "%Y-%m-%dT%H:%M:%S"
+                                            (org-roam-node-file-atime node2)))))
+        (file-atime-r
+         . (lambda (node1 node2)
+               (not (string< (format-time-string "%Y-%m-%dT%H:%M:%S"
+                                                 (org-roam-node-file-atime node1))
+                             (format-time-string "%Y-%m-%dT%H:%M:%S"
+                                                 (org-roam-node-file-atime node2))))))
+        (file-title
+         . (lambda (node1 node2)
+               (string< (org-roam-node-file-title node1)
+                        (org-roam-node-file-title node2))))
+        (file-title-r
+         . (lambda (node1 node2)
+               (not (string< (org-roam-node-file-title node1)
+                             (org-roam-node-file-title node2)))))
+        ))
+
+(dolist (pair my/org-roam--sort-fn-alist)
+    (org-roam-ql-register-sort-fn (car pair) (cdr pair)))
 #+end_src
 
 * Терминалы
@@ -6898,6 +7021,12 @@ lsp-mode (без eglot'а).
     :ensure t)
 #+end_src
 
+Позаботимся о вычислении org-babel блоков.
+
+#+begin_src emacs-lisp :tangle yes
+(my/--register-org-babel 'java)
+#+end_src
+
 ** COMMENT Java. Spring Boot
 
 Чтобы установить Spring Boot, вводим следующие команды:
@@ -6945,6 +7074,12 @@ lsp-mode (без eglot'а).
 (add-hook 'js-mode-hook #'lsp)
 (add-to-list 'auto-mode-alist '("\\.tsx\\'" . typescript-mode))
 (add-hook 'typescript-mode-hook #'lsp)
+#+end_src
+
+Позаботимся о вычислении org-babel блоков.
+
+#+begin_src emacs-lisp :tangle yes
+(my/--register-org-babel 'js)
 #+end_src
 
 ** Scala
