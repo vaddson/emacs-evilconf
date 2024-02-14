@@ -5051,21 +5051,24 @@ node.
 
 Сейчас работают следующие функции сортировки (параметр ~:sort~) в
 динамических блоках:
-#+begin_src emacs-lisp :tangle no :exports results :hidden
-(mapcar (lambda (pair)
-            `(,(symbol-name (car pair))))
-        my/org-roam--sort-fn-alist)
+#+begin_src emacs-lisp :tangle no :colnames '("Функция сортировки" Комментарий) :exports results :hidden
+(mapcar (lambda (dict)
+            `(,(symbol-name (plist-get dict :symbol))
+              ,(plist-get dict :description)))
+        my/org-roam--sort-fn-list)
 #+end_src
 
 #+RESULTS:
-| title        |
-| title-r      |
-| file-mtime   |
-| file-mtime-r |
-| file-atime   |
-| file-atime-r |
-| file-title   |
-| file-title-r |
+| Функция сортировки | Комментарий                 |
+|--------------------+-----------------------------|
+| title              | Sort by title.              |
+| title-r            | Reverse sort by title.      |
+| file-mtime         | Sort by file mtime.         |
+| file-mtime-r       | Reverse sort by file mtime. |
+| file-atime         | Sort by file atime.         |
+| file-atime-r       | Recerse sort by file atime. |
+| file-title         | Sort by file title.         |
+| file-title-r       | Reverse sort by file title. |
 
 Устанавливаем эту хорошую штуку.
 
@@ -5086,57 +5089,56 @@ node.
 Настройка функций сортировки.
 
 #+begin_src emacs-lisp :tangle yes
-;; (defun my/org-roam--sort-title (node1 node2)
-;;     (string< (org-roam-node-title node1)
-;;              (org-roam-node-title node2)))
-
-;; (org-roam-ql-register-sort-fn 'title 'my/org-roam--sort-title)
-
-(setq my/org-roam--sort-fn-alist
-      '((title
-         . (lambda (node1 node2)
-               (string< (org-roam-node-title node1)
-                        (org-roam-node-title node2))))
-        (title-r
-         . (lambda (node1 node2)
-               (not (string< (org-roam-node-title node1)
-                             (org-roam-node-title node2)))))
-        (file-mtime
-         . (lambda (node1 node2)
-               (string< (format-time-string "%Y-%m-%dT%H:%M:%S"
-                                            (org-roam-node-file-mtime node1))
-                        (format-time-string "%Y-%m-%dT%H:%M:%S"
-                                            (org-roam-node-file-mtime node2)))))
-        (file-mtime-r
-         . (lambda (node1 node2)
-               (not (string< (format-time-string "%Y-%m-%dT%H:%M:%S"
-                                                 (org-roam-node-file-mtime node1))
-                             (format-time-string "%Y-%m-%dT%H:%M:%S"
-                                                 (org-roam-node-file-mtime node2))))))
-        (file-atime
-         . (lambda (node1 node2)
-               (string< (format-time-string "%Y-%m-%dT%H:%M:%S"
-                                            (org-roam-node-file-atime node1))
-                        (format-time-string "%Y-%m-%dT%H:%M:%S"
-                                            (org-roam-node-file-atime node2)))))
-        (file-atime-r
-         . (lambda (node1 node2)
-               (not (string< (format-time-string "%Y-%m-%dT%H:%M:%S"
-                                                 (org-roam-node-file-atime node1))
-                             (format-time-string "%Y-%m-%dT%H:%M:%S"
-                                                 (org-roam-node-file-atime node2))))))
-        (file-title
-         . (lambda (node1 node2)
-               (string< (org-roam-node-file-title node1)
-                        (org-roam-node-file-title node2))))
-        (file-title-r
-         . (lambda (node1 node2)
-               (not (string< (org-roam-node-file-title node1)
-                             (org-roam-node-file-title node2)))))
+(setq my/org-roam--sort-fn-list
+      '((:symbol title
+         :description "Sort by title."
+         :predicate (lambda (node1 node2)
+                        (string< (org-roam-node-title node1)
+                                 (org-roam-node-title node2))))
+        (:symbol title-r
+         :description "Reverse sort by title."
+         :predicate (lambda (node1 node2)
+                        (not (string< (org-roam-node-title node1)
+                                      (org-roam-node-title node2)))))
+        (:symbol file-mtime
+         :description "Sort by file mtime."
+         :predicate (lambda (node1 node2)
+                        (my/time< (org-roam-node-file-mtime node1)
+                                  (org-roam-node-file-mtime node2))))
+        (:symbol file-mtime-r
+         :description "Reverse sort by file mtime."
+         :predicate (lambda (node1 node2)
+                        (not (my/time< (org-roam-node-file-mtime node1)
+                                       (org-roam-node-file-mtime node2)))))
+        (:symbol file-atime
+         :description "Sort by file atime."
+         :predicate (lambda (node1 node2)
+                        (my/time< (org-roam-node-file-atime node1)
+                                  (org-roam-node-file-atime node2))))
+        (:symbol file-atime-r
+         :description "Recerse sort by file atime."
+         :predicate (lambda (node1 node2)
+                        (not (string< (org-roam-node-file-atime node1)
+                                      (org-roam-node-file-atime node2)))))
+        (:symbol file-title
+         :description "Sort by file title."
+         :predicate (lambda (node1 node2)
+                        (string< (org-roam-node-file-title node1)
+                                 (org-roam-node-file-title node2))))
+        (:symbol file-title-r
+         :description "Reverse sort by file title."
+         :predicate (lambda (node1 node2)
+                        (not (string< (org-roam-node-file-title node1)
+                                      (org-roam-node-file-title node2)))))
         ))
 
-(dolist (pair my/org-roam--sort-fn-alist)
-    (org-roam-ql-register-sort-fn (car pair) (cdr pair)))
+(defun my/time< (time1 time2)
+    (string< (format-time-string "%Y-%m-%dT%H:%M:%S" time1)
+             (format-time-string "%Y-%m-%dT%H:%M:%S" time2)))
+
+(dolist (dict my/org-roam--sort-fn-list)
+    (org-roam-ql-register-sort-fn (plist-get dict :symbol)
+                                  (plist-get dict :predicate)))
 #+end_src
 
 * Терминалы
