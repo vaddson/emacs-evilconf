@@ -5019,11 +5019,13 @@ _Пример_ использования с поиском (результат 
 
 _Пример_ для памяти с динамическим блоком. Табличка внутри begin/end
 заполнится сама:
-#+begin: org-roam-ql :query (todo "DONE") :columns (title tags) :take 5 :no-link nil
+#+begin_quote org
+,#+begin: org-roam-ql :query (todo "DONE") :columns (title tags) :take 5 :no-link nil
 |     | Title | Tags |
 |-----+-------+------|
 | ... | ...   | ...  |
-#+end:
+,#+end:
+#+end_quote
 
 Ниже (опять для памяти) описание параметров динамического блока из
 документации:
