@@ -3562,7 +3562,8 @@ If you use `org' and don't want your org files in the default location below, ch
 
 #+begin_src emacs-lisp :tangle yes
 (use-package ob-async
-    :ensure t)
+    :ensure t
+    :defer t)
 
 (org-babel-do-load-languages
    'org-babel-load-languages
@@ -4440,6 +4441,7 @@ shows it in message and put the result into registers `\"' and `t'."
 Загрузка пакета и начальная инициализация.
 
 #+begin_src emacs-lisp :tangle yes
+(provide 'seq-25)
 (use-package org-roam
     :ensure t
     :init
@@ -4596,22 +4598,22 @@ For example: 'or' logic instead of 'and' logic:
 #+begin_src emacs-lisp :tangle yes
 (my/leader-def nil 'override
                "r" '(:ignore t :which-key "org-roam")
-               "r n" #'my/org-roam-show-vault-dir
                "r s" #'org-roam-db-sync
                "r r" #'my/org-roam-buffer-toggle
                "r f" #'my/org-roam-node-find
-               "r i" #'my/org-roam-node-insert
                "r c" #'org-roam-capture
                "r j" #'org-roam-dailies-capture-today
                "r J" #'org-roam-dailies-capture-date
                "r t" '(my/org-roam-filter-backlinks-by-tags
                        :which-key "Filter backlinks by tags")
                "r q" 'org-roam-ql-search
+               "r n" #'my/org-roam-show-vault-dir
                "r v" '(:ignore t :which-key "vault")
                "r v i" '(my/org-roam-vault-init :which-key "Init vault in directory")
                "r v s" '(my/org-roam-register-vault-subdirectory
                            :which-key "Register subdirectory"))
 (my/leader-def nil 'org-mode-map
+               "r i" #'my/org-roam-node-insert
                "r o" '(my/org-roam-convert-to-node :which-key "Convert to node")
                "r a" '(:ignore t :which-key "add")
                "r a a" #'org-roam-alias-add
@@ -6956,6 +6958,10 @@ ob-rust для работы с org-babel блоками устанавливае
 #+end_src
 
 ** C++ (default LSP-server)
+   :PROPERTIES:
+   :ID:       6435cae0-700a-4263-966a-cbebc8f9ae25
+   :CUSTOM_ID: 6435cae0-700a-4263-966a-cbebc8f9ae25
+   :END:
 
 Этот вариант настройки LSP-сервера для C++ выберет один из тех, что
 установлен в системе, и будет с ним работать через lsp-mode. Это пока
@@ -6984,6 +6990,43 @@ lsp-mode (без eglot'а).
 #+begin_src emacs-lisp :tangle yes
 (my/--register-org-babel 'C)
 #+end_src
+
+** C++. Clangd на удаленном сервере через docker (информация)
+
+В параграфе [[id:6435cae0-700a-4263-966a-cbebc8f9ae25][C++ (default LSP-server)]] уже есть настройки для
+подключения к clangd на удаленной машине. Здесь покажем, как закинуть
+clangd на эту удаленную машину, если нет возможности установить его
+напрямую из репозитория.
+
+Решением тут может быть clangd в докере [[https://hub.docker.com/r/lspcontainers/clangd-language-server][lspcontainers/clangd-language-server]].
+Устанавливается он на удаленной машине просто:
+: docker pull lspcontainers/clangd-language-server
+Информации по нему на hub.docker.com нет никакой, но и сложного там
+ничего нет.
+
+Запускаем контейнер (не забыв параметры "-it" - без них контейнер не
+взлетит), подцепляем к нему директорию с проектами (внутри пусть
+называется "/projects" - не принципиально):
+: docker run -dit --restart=always --name=lsp-clangd -v /путь_к_директории_с_проектами:/projects lspcontainers/clangd-language-server
+Теперь к контейнеру можно присоединяться и открывать там файлы,
+утилиту clangd из контейнера TRAMP подцепит сам.
+
+Теперь открываем С++-файлики через TRAMP:
+: /ssh:имя_пользователя@адрес_сервера|/docker:root@lsp-clangd:/projects/какой-то_проект/файл_проекта.cpp
+LSP-сервер будет работать так же, как на локальной машине.
+
+Для памяти: в /projects можно положить файлик =.clangd=, в котором
+обозначить версию стандарта С++ и указать директории с файлами
+заголовков, которые LSP-сервер может сам не найти:
+: CompileFlags:
+:   Add:
+:     - -std=c++20
+:     - -I/projects/проект_1/include
+:     - -I/projects/проект_2/include
+:     - -I/projects/проект_3/include
+это хорошо помогает работать LSP-серверу.
+
+На этом все.
 
 ** Go
 
