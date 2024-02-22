@@ -6919,6 +6919,10 @@ ob-rust для работы с org-babel блоками устанавливае
 #+end_src
 
 ** COMMENT C++ (clangd on Eglot)
+   :PROPERTIES:
+   :ID:       871c5917-4bed-4369-9cb6-121582f33ede
+   :CUSTOM_ID: 871c5917-4bed-4369-9cb6-121582f33ede
+   :END:
 
 =TODO=: Инструкция на поизучать: [[https://emacs-lsp.github.io/lsp-mode/tutorials/CPP-guide/][Configuring Emacs as a C/C++ IDE]].
 
@@ -6993,12 +6997,21 @@ lsp-mode (без eglot'а).
 
 ** C++. Clangd на удаленном сервере через docker (информация)
 
-В параграфе [[id:6435cae0-700a-4263-966a-cbebc8f9ae25][C++ (default LSP-server)]] уже есть настройки для
-подключения к clangd на удаленной машине. Здесь покажем, как закинуть
-clangd на эту удаленную машину, если нет возможности установить его
-напрямую из репозитория.
+В параграфе [[id:871c5917-4bed-4369-9cb6-121582f33ede][C++ (clang on Egloy)]] уже есть настройки для подключения к
+clangd на удаленной машине (хоть работает и без них). Здесь покажем,
+как закинуть clangd на эту удаленную машину, если нет возможности
+установить его напрямую из репозитория.
 
-Решением тут может быть clangd в докере [[https://hub.docker.com/r/lspcontainers/clangd-language-server][lspcontainers/clangd-language-server]].
+_Первый способ_ - это скачать готовый релиз отсюда:
+- https://github.com/clangd/clangd/
+На момент написания это был релиз 17.0.3:
+- https://github.com/clangd/clangd/releases/tag/17.0.3
+Далее копируем бинарь clangd из архива и надеемся, что будет работать.
+
+_Второй способ_ (если первый не удался) - это воспользоваться
+docker-контейнером. Вот вполне неплохой (но под Alpine - будут глючить magit и
+projectile) - [[https://hub.docker.com/r/lspcontainers/clangd-language-server][lspcontainers/clangd-language-server]].
+
 Устанавливается он на удаленной машине просто:
 : docker pull lspcontainers/clangd-language-server
 Информации по нему на hub.docker.com нет никакой, но и сложного там
