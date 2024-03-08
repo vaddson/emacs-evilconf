@@ -2828,6 +2828,14 @@ Return history hash-map."
 (fset 'epg-wait-for-status 'ignore)
 #+end_src
 
+Запилим его в функцию, чтобы каждый раз не искать по конфигу:
+
+#+begin_src emacs-lisp :tangle yes
+(defun my/gpg-repair-saving ()
+    (interactive)
+    (fset 'epg-wait-for-status 'ignore))
+#+end_src
+
 * Рабочие пространства (workspaces, perspectives)
 
 ** Установка и настройка рабочих пространств
@@ -4344,11 +4352,19 @@ shows it in message and put the result into registers `\"' and `t'."
 пространством оказалось удобней работать.)
 
 #+begin_src emacs-lisp :tangle yes
+(setq my/agenda-persp-name "Agenda")
+
 (defun my/new-persp-with-agenda-list ()
     (interactive)
-    (persp-frame-switch "Agenda")
+    (persp-frame-switch my/agenda-persp-name)
     (org-agenda-list)
     (delete-other-windows))
+
+(defun my/switch-to-persp-with-agenda ()
+    (interactive)
+    (if (member my/agenda-persp-name persp-names-cache)
+        (persp-frame-switch my/agenda-persp-name)
+        (my/new-persp-with-agenda-list)))
 
 (defun my/new-tab-with-agenda-list ()
     (interactive)
@@ -4358,12 +4374,12 @@ shows it in message and put the result into registers `\"' and `t'."
 
 (my/leader-def nil 'override
                "o" '(:ignore t :which-key "open")
-               "o a" '(:ignore t :which-key "agenda"))
-(my/leader-def nil 'override
-               "o a a" '(org-agenda :which-key "Agenda")
+               "o a" '(:ignore t :which-key "agenda")
                "o A" '(org-agenda :which-key "Agenda")
-               "o a n" #'my/new-persp-with-agenda-list)
-               ;; "o a n" #'my/new-tab-with-agenda-list)
+               "o a a" '(org-agenda :which-key "Agenda")
+               "o a s" '(my/switch-to-persp-with-agenda :which-key "Switch to Agenda space")
+               "o a n" #'my/new-persp-with-agenda-list
+               "o a t" #'my/new-tab-with-agenda-list)
 #+end_src
 
 Докатим привычные горячие клавиши из Doom для работы с TODO.
@@ -4707,7 +4723,10 @@ For example: 'or' logic instead of 'and' logic:
 
 #+begin_src emacs-lisp :tangle yes
 (defun my/org-roam--make-subdirectory-template (subdirectory-name)
-    (let* ((subdirectory-name (string-replace " " "-" subdirectory-name))
+    (let* ((subdirectory-name (string-replace " " "-"
+                                              subdirectory-name))
+           (subdirectory-name (string-replace "data" "datta"
+                                              subdirectory-name))  ;; bug fix
            (occupied-keys (mapcar 'car org-roam-capture-templates))
            (key (my/org-roam--choose-directory-key subdirectory-name
                                                    occupied-keys))
@@ -5122,8 +5141,8 @@ node.
         (:symbol file-atime-r
          :description "Recerse sort by file atime."
          :predicate (lambda (node1 node2)
-                        (not (string< (org-roam-node-file-atime node1)
-                                      (org-roam-node-file-atime node2)))))
+                        (not (my/time< (org-roam-node-file-atime node1)
+                                       (org-roam-node-file-atime node2)))))
         (:symbol file-title
          :description "Sort by file title."
          :predicate (lambda (node1 node2)
@@ -6160,6 +6179,31 @@ Completion item kind (тип объекта в выпадашке автодоп
 
 * Программирование
 
+** Tree-sitter. Установка и общие настройки
+
+Здесь ориентируемся на Emacs 29, в котором tree-sitter уже
+предустановлен.
+
+Полезную информацию по tree-sitter можно почитать в "Mastering Emacs":
+[[https://www.masteringemacs.org/article/how-to-get-started-tree-sitter][How to Get Started with Tree-Sitter]]
+
+Для поддержки грамматики разных языков сделаем функцию. Принимает на
+вход символ языка (например 'cpp) и путь к реализации его грамматики
+на Github (например "https://github.com/tree-sitter/tree-sitter-cpp").
+
+#+begin_src emacs-lisp :tangle yes
+(defun my/treesit-install-language-grammar (lang-symbol github-path)
+    (add-to-list 'treesit-language-source-alist
+                 `(,lang-symbol ,github-path))
+    (unless (treesit-ready-p lang-symbol)
+        (treesit-install-language-grammar lang-symbol)))
+#+end_src
+
+После регистрации необходимо заменить привычные ~<LANG>-mode~ на
+~<LANG>-ts-mode~. Например:
+: (add-to-list 'auto-mode-alist '("\\.cpp\\'" . c++-ts-mode))
+: (add-to-list 'auto-mode-alist '("\\.c\\'" . c-ts-mode))
+
 ** Навигация по ошибкам
 
 Запилим горячие клавиши для перемещения по ошибкам на основе flycheck
@@ -6556,18 +6600,32 @@ Pyright может не скачаться с серверов, поэтому �
                            "-C " user-emacs-directory)))
 #+end_src
 
+Поддержка tree-sitter. Подменяем python-mode на python-ts-mode.
+
+#+begin_src emacs-lisp :tangle yes
+(my/treesit-install-language-grammar
+ 'python
+ "https://github.com/tree-sitter/tree-sitter-python")
+
+(setq major-mode-remap-alist '((python-mode . python-ts-mode)))
+#+end_src
+
 Настраиваем активацию LSP-сервера.
 
 #+begin_src emacs-lisp :tangle yes
-(add-hook 'python-mode-hook
-          (lambda ()
-              (unless (equal (buffer-file-name)
+(mapc (apply-partially (-flip 'add-hook) 'my/python--lsp-exclude-calculator)
+      '(python-mode-hook
+        python-ts-mode-hook))
+
+(defun my/python--lsp-exclude-calculator ()
+    (unless (equal (buffer-file-name)
                              (my/calculator--get-python-filename))
                   (require 'lsp-pyright)
-                  (lsp))))  ; or lsp-deferred
+                  (lsp)))  ; or lsp-deferred
 #+end_src
 
-У сервера есть *проблема*: Ошибка в буфере *stderr* имеет следующее описание:
+У LSP-сервера pyright есть *проблема*: Ошибка в буфере *stderr* имеет
+следующее описание:
 : Process terminated. Couldn't find a valid ICU package installed on the
 : system. Set the configuration flag System.Globalization.Invariant to
 : true if you want to run with no globalization support.
@@ -6972,14 +7030,33 @@ ob-rust для работы с org-babel блоками устанавливае
 единственный способ, который я нашел, чтобы подружить clangd с
 lsp-mode (без eglot'а).
 
+Поддержка подсказок и дополнений.
+
 #+begin_src emacs-lisp :tangle yes
 (add-hook 'prog-mode-hook 'company-mode)
 (add-to-list 'company-backends 'company-capf)
+#+end_src
 
+Поддержка tree-sitter.
+
+#+begin_src emacs-lisp :tangle yes
+(my/treesit-install-language-grammar 'cpp
+                                     "https://github.com/tree-sitter/tree-sitter-cpp")
+
+(mapc (apply-partially #'add-to-list 'auto-mode-alist)
+      '(("\\.cpp\\'" . c++-ts-mode)
+        ("\\.c\\'" . c++-ts-mode)
+        ("\\.hpp\\'" . c++-ts-mode)
+        ("\\.h\\'" . c++-ts-mode)))
+#+end_src
+
+Поддержка LSP.
+
+#+begin_src emacs-lisp :tangle yes
 (use-package lsp-mode
     ;; :ensure t
-    :hook ((c-mode c++-mode) . lsp-deferred)
-    ;; :hook ((c-mode c++-mode) . lsp-clangd)
+    :hook ((c-mode c++-mode c-ts-mode c++-ts-mode) . lsp-deferred)
+    ;; ;; :hook ((c-mode c++-mode) . lsp-clangd)
     )
 #+end_src
 
@@ -7079,6 +7156,19 @@ LSP-сервер будет работать так же, как на локал
 #+begin_src emacs-lisp :tangle yes
 (use-package gradle-mode
     :ensure t)
+#+end_src
+
+Поддержка tree-sitter.
+
+#+begin_src emacs-lisp :tangle yes
+(my/treesit-install-language-grammar 'java
+                                     "https://github.com/tree-sitter/tree-sitter-java")
+
+(add-to-list 'auto-mode-alist '("\\.java\\'" . java-ts-mode))
+
+(use-package lsp-mode
+    :hook ((java-mode java-ts-mode) . lsp-deferred)
+    )
 #+end_src
 
 Позаботимся о вычислении org-babel блоков.
