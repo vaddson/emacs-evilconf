@@ -2221,6 +2221,19 @@ Spacemacs. Код находится в файле [[./funcs.el][funcs.el]].
          (display-buffer-reuse-window display-buffer-at-bottom)
          (window-height . 0.40))
 
+        ;; Docker containers
+        ("^\\*docker-containers\\*.*"
+         (display-buffer-reuse-window display-buffer-at-bottom)
+         (window-height . 0.40))
+
+        ;; Docker images
+        ("^\\*docker-images\\*.*"
+         (display-buffer-reuse-window display-buffer-at-bottom)
+         (window-height . 0.40))
+
+        ;; Docker inspect
+        ("^\\* docker inspect .*")
+
         ;; Other buffers with name like "*Name*"
         ("^\\*.*\\*<.*>$"
          (display-buffer-reuse-window display-buffer-at-bottom)
@@ -4470,7 +4483,10 @@ shows it in message and put the result into registers `\"' and `t'."
     (define-key org-roam-node-map (kbd my/leader) nil)
     (define-key org-roam-mode-map (kbd my/leader) nil)
     (add-hook 'org-roam-mode-hook #'my/set-word-wrap)
-    (setq org-roam-node-display-template (concat (propertize "${tags:40}  " 'face 'org-tag) "${title:*} "))
+    (setq org-roam-node-display-template (concat (propertize "${tags:40}  "
+                                                             'face
+                                                             'org-tag)
+                                                 "${title:-1} "))
     ;;(setq org-roam-node-display-template (concat "${title:*} " (propertize "${tags:20}" 'face 'org-tag)))
     (org-roam-db-autosync-mode 1)
     (require 'org-roam-protocol))
@@ -6177,7 +6193,7 @@ Completion item kind (тип объекта в выпадашке автодоп
                "c D" '(xref-find-references :which-key "Jump to references"))
 #+end_src
 
-* Программирование
+* Tree-sitter
 
 ** Tree-sitter. Установка и общие настройки
 
@@ -6203,6 +6219,17 @@ Completion item kind (тип объекта в выпадашке автодоп
 ~<LANG>-ts-mode~. Например:
 : (add-to-list 'auto-mode-alist '("\\.cpp\\'" . c++-ts-mode))
 : (add-to-list 'auto-mode-alist '("\\.c\\'" . c-ts-mode))
+
+** Combobulate - редактирование с tree-sitter
+
+#+begin_src emacs-lisp :tangle yes
+(use-package combobulate
+    :quelpa (combobulate :fetcher github :repo "mickeynp/combobulate")
+    :preface
+    (setq combobulate-key-prefix "C-c o"))
+#+end_src
+
+* Программирование
 
 ** Навигация по ошибкам
 
@@ -6354,6 +6381,18 @@ sudo apt install retext
 #+begin_src emacs-lisp :tangle yes
 (use-package json-mode
     :ensure t)
+#+end_src
+
+Поддержка tree-sitter. Слабенькая (json-ts-mode не тянет большие
+файлы), но если вручную выставить:
+: (json-ts-mode)
+: (combobulate-mode)
+то, может, редактировать JSON'ы будет удобнее.
+
+#+begin_src emacs-lisp :tangle yes
+(my/treesit-install-language-grammar
+ 'json
+ "https://github.com/tree-sitter/tree-sitter-json")
 #+end_src
 
 ** Make
@@ -6607,7 +6646,7 @@ Pyright может не скачаться с серверов, поэтому �
  'python
  "https://github.com/tree-sitter/tree-sitter-python")
 
-(setq major-mode-remap-alist '((python-mode . python-ts-mode)))
+(add-to-list 'major-mode-remap-alist '(python-mode . python-ts-mode))
 #+end_src
 
 Настраиваем активацию LSP-сервера.
@@ -6619,9 +6658,9 @@ Pyright может не скачаться с серверов, поэтому �
 
 (defun my/python--lsp-exclude-calculator ()
     (unless (equal (buffer-file-name)
-                             (my/calculator--get-python-filename))
-                  (require 'lsp-pyright)
-                  (lsp)))  ; or lsp-deferred
+                   (my/calculator--get-python-filename))
+        (require 'lsp-pyright)
+        (lsp)))  ; or lsp-deferred
 #+end_src
 
 У LSP-сервера pyright есть *проблема*: Ошибка в буфере *stderr* имеет
@@ -6858,6 +6897,21 @@ Pyright может не скачаться с серверов, поэтому �
       haskell-indentation-layout-offset 4)
 #+end_src
 
+Настраиваем tree-sitter. Но здесь не полностью - пока не въехал,
+откуда брать haskell-ts-mode.
+
+#+begin_src emacs-lisp :tangle yes
+(my/treesit-install-language-grammar
+ 'haskell
+ "https://github.com/tree-sitter/tree-sitter-haskell")
+
+(when (treesit-ready-p 'haskell)
+    (treesit-parser-create 'haskell))
+
+;; ;; Не реализовано.
+;; (add-to-list 'major-mode-remap-alist '(haskell-mode . haskell-ts-mode))
+#+end_src
+
 Позаботимся о вычислении org-babel блоков.
 
 #+begin_src emacs-lisp :tangle yes
@@ -7040,14 +7094,20 @@ lsp-mode (без eglot'а).
 Поддержка tree-sitter.
 
 #+begin_src emacs-lisp :tangle yes
-(my/treesit-install-language-grammar 'cpp
-                                     "https://github.com/tree-sitter/tree-sitter-cpp")
+(my/treesit-install-language-grammar
+ 'cpp
+ "https://github.com/tree-sitter/tree-sitter-cpp")
 
 (mapc (apply-partially #'add-to-list 'auto-mode-alist)
       '(("\\.cpp\\'" . c++-ts-mode)
+        ("\\.cc\\'" . c++-ts-mode)
         ("\\.c\\'" . c++-ts-mode)
         ("\\.hpp\\'" . c++-ts-mode)
         ("\\.h\\'" . c++-ts-mode)))
+
+(mapc (apply-partially #'add-to-list 'major-mode-remap-alist)
+      '((c-mode . c-ts-mode)
+        (c++-mode . c++-ts-mode)))
 #+end_src
 
 Поддержка LSP.
@@ -7234,8 +7294,12 @@ LSP-сервер будет работать так же, как на локал
 
 ** Scala
 
-LSP-сервер для Scala называется [[https://scalameta.org/metals/][Metals]]. На Arch его можно установить
-из AUR-пакета:
+LSP-сервер для Scala называется [[https://scalameta.org/metals/][Metals]]. Для компиляции Metals нужно
+установить:
+: sudo pacman -S jdk8-openjdk
+: sudo pacman -S jdk11-openjdk
+: sudo pacman -S jdk17-openjdk
+На Arch его можно установить Metals из AUR-пакета:
 : yay -S metals
 
 Для начала установим режим [[https://github.com/hvesalai/emacs-scala-mode][scala-mode]] для Scala:
