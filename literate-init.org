@@ -176,6 +176,7 @@ email clients, file templates and snippets."
 (menu-bar-mode     -1)  ;; Отключаем графическое меню.
 (tool-bar-mode     -1)  ;; Отключаем tool-bar.
 (scroll-bar-mode   -1)  ;; Отключаем полосы прокрутки.
+(tab-bar-mode      -1)  ;; Отключаем панель закладок.
 #+end_src
 
 ** Красивые темы и установка темы по-умолчанию
@@ -1406,6 +1407,17 @@ prog-mode, поэтому делаем свою функцию проверки 
                "j m d" #'bookmark-delete)
 #+end_src
 
+** Работа с Kill-ring
+
+Бывает нужно выбрать какой-то из текстов, лежащих в буферах
+обмена. Проще всего это сделать, заглянув в kill-ring.
+
+Здесь нужны только горячие клавиши.
+
+#+begin_src emacs-lisp :tangle yes
+(global-set-key (kbd "C-c y") #'yank-from-kill-ring)
+#+end_src
+
 * Подсказки, выпадашки, автодополнения
 
 ** Ivy - меню с поиском по частичному совпадению
@@ -2221,6 +2233,19 @@ Spacemacs. Код находится в файле [[./funcs.el][funcs.el]].
          (display-buffer-reuse-window display-buffer-at-bottom)
          (window-height . 0.40))
 
+        ;; Docker containers
+        ("^\\*docker-containers\\*.*"
+         (display-buffer-reuse-window display-buffer-at-bottom)
+         (window-height . 0.40))
+
+        ;; Docker images
+        ("^\\*docker-images\\*.*"
+         (display-buffer-reuse-window display-buffer-at-bottom)
+         (window-height . 0.40))
+
+        ;; Docker inspect
+        ("^\\* docker inspect .*")
+
         ;; Other buffers with name like "*Name*"
         ("^\\*.*\\*<.*>$"
          (display-buffer-reuse-window display-buffer-at-bottom)
@@ -2828,6 +2853,14 @@ Return history hash-map."
 (fset 'epg-wait-for-status 'ignore)
 #+end_src
 
+Запилим его в функцию, чтобы каждый раз не искать по конфигу:
+
+#+begin_src emacs-lisp :tangle yes
+(defun my/gpg-repair-saving ()
+    (interactive)
+    (fset 'epg-wait-for-status 'ignore))
+#+end_src
+
 * Рабочие пространства (workspaces, perspectives)
 
 ** Установка и настройка рабочих пространств
@@ -3097,7 +3130,7 @@ emacs-клиента.
 (setq grep-find-ignored-directories '("SCCS" "RCS" "CVS" "MCVS" ".src" ".svn" ".git" ".hg" ".bzr" "_MTN" "_darcs" "{arch}" "__pycache__" "build" "develop-eggs" "dist" "dist_local" "eggs" ".eggs" "sdist" ".pytest_cache" "env" "venv" "ENV" "env.bak" "venv.bak" ".mypy_cache" "build")
       helm-grep-ignored-directories '("SCCS/" "RCS/" "CVS/" "MCVS/" ".svn/" ".git/" ".hg/" ".bzr/" "_MTN/" "_darcs/" "{arch}/" ".gvfs/" "__pycache__/" "build/" "develop-eggs/" "dist/" "dist_local/" "eggs/" ".eggs/" "sdist/" ".pytest_cache/" "env/" "venv/" "ENV/" "env.bak/" "venv.bak/" ".mypy_cache/" "build/")
       projectile-globally-ignored-directories '("~/.emacs.d/.local/" "~/.emacs.d/.local/" "~/.emacs.d/.local/" ".idea" ".vscode" ".ensime_cache" ".eunit" ".git" ".hg" ".fslckout" "_FOSSIL_" ".bzr" "_darcs" ".tox" ".svn" ".stack-work" ".ccls-cache" ".cache" ".clangd" "__pycache__" "build" "develop-eggs" "dist" "dist_local" "eggs" ".eggs" "sdist" ".pytest_cache" "env" "venv" "ENV" "env.bak" "venv.bak" ".mypy_cache" "build")
-      projectile-globally-ignored-file-suffixes '(".elc" ".pyc" ".o" ".coverage" ".cache" ".ipynb_checkpoints" ".egg" ".pyo" ".pyd" ".cover" ".egg-info")
+      projectile-globally-ignored-file-suffixes '(".elc" ".pyc" ".o" ".coverage" ".cache" ".ipynb_checkpoints" ".egg" ".pyo" ".pyd" ".cover" ".egg-info" "TAGS" "tags")
       projectile-globally-ignored-files '(".DS_Store" "TAGS" "tags")
 )
 #+end_src
@@ -4344,11 +4377,19 @@ shows it in message and put the result into registers `\"' and `t'."
 пространством оказалось удобней работать.)
 
 #+begin_src emacs-lisp :tangle yes
+(setq my/agenda-persp-name "Agenda")
+
 (defun my/new-persp-with-agenda-list ()
     (interactive)
-    (persp-frame-switch "Agenda")
+    (persp-frame-switch my/agenda-persp-name)
     (org-agenda-list)
     (delete-other-windows))
+
+(defun my/switch-to-persp-with-agenda ()
+    (interactive)
+    (if (member my/agenda-persp-name persp-names-cache)
+        (persp-frame-switch my/agenda-persp-name)
+        (my/new-persp-with-agenda-list)))
 
 (defun my/new-tab-with-agenda-list ()
     (interactive)
@@ -4358,12 +4399,12 @@ shows it in message and put the result into registers `\"' and `t'."
 
 (my/leader-def nil 'override
                "o" '(:ignore t :which-key "open")
-               "o a" '(:ignore t :which-key "agenda"))
-(my/leader-def nil 'override
-               "o a a" '(org-agenda :which-key "Agenda")
+               "o a" '(:ignore t :which-key "agenda")
                "o A" '(org-agenda :which-key "Agenda")
-               "o a n" #'my/new-persp-with-agenda-list)
-               ;; "o a n" #'my/new-tab-with-agenda-list)
+               "o a a" '(org-agenda :which-key "Agenda")
+               "o a s" '(my/switch-to-persp-with-agenda :which-key "Switch to Agenda space")
+               "o a n" #'my/new-persp-with-agenda-list
+               "o a t" #'my/new-tab-with-agenda-list)
 #+end_src
 
 Докатим привычные горячие клавиши из Doom для работы с TODO.
@@ -4454,7 +4495,10 @@ shows it in message and put the result into registers `\"' and `t'."
     (define-key org-roam-node-map (kbd my/leader) nil)
     (define-key org-roam-mode-map (kbd my/leader) nil)
     (add-hook 'org-roam-mode-hook #'my/set-word-wrap)
-    (setq org-roam-node-display-template (concat (propertize "${tags:40}  " 'face 'org-tag) "${title:*} "))
+    (setq org-roam-node-display-template (concat (propertize "${tags:40}  "
+                                                             'face
+                                                             'org-tag)
+                                                 "${title:-1} "))
     ;;(setq org-roam-node-display-template (concat "${title:*} " (propertize "${tags:20}" 'face 'org-tag)))
     (org-roam-db-autosync-mode 1)
     (require 'org-roam-protocol))
@@ -4707,7 +4751,10 @@ For example: 'or' logic instead of 'and' logic:
 
 #+begin_src emacs-lisp :tangle yes
 (defun my/org-roam--make-subdirectory-template (subdirectory-name)
-    (let* ((subdirectory-name (string-replace " " "-" subdirectory-name))
+    (let* ((subdirectory-name (string-replace " " "-"
+                                              subdirectory-name))
+           (subdirectory-name (string-replace "data" "datta"
+                                              subdirectory-name))  ;; bug fix
            (occupied-keys (mapcar 'car org-roam-capture-templates))
            (key (my/org-roam--choose-directory-key subdirectory-name
                                                    occupied-keys))
@@ -5122,8 +5169,8 @@ node.
         (:symbol file-atime-r
          :description "Recerse sort by file atime."
          :predicate (lambda (node1 node2)
-                        (not (string< (org-roam-node-file-atime node1)
-                                      (org-roam-node-file-atime node2)))))
+                        (not (my/time< (org-roam-node-file-atime node1)
+                                       (org-roam-node-file-atime node2)))))
         (:symbol file-title
          :description "Sort by file title."
          :predicate (lambda (node1 node2)
@@ -6158,6 +6205,53 @@ Completion item kind (тип объекта в выпадашке автодоп
                "c D" '(xref-find-references :which-key "Jump to references"))
 #+end_src
 
+* Tree-sitter
+
+** Tree-sitter. Установка и общие настройки
+
+Здесь ориентируемся на Emacs 29, в котором tree-sitter уже
+предустановлен.
+
+Полезную информацию по tree-sitter можно почитать в "Mastering Emacs":
+[[https://www.masteringemacs.org/article/how-to-get-started-tree-sitter][How to Get Started with Tree-Sitter]]
+
+Для поддержки грамматики разных языков сделаем функцию. Принимает на
+вход символ языка (например 'cpp) и путь к реализации его грамматики
+на Github (например "https://github.com/tree-sitter/tree-sitter-cpp").
+
+#+begin_src emacs-lisp :tangle yes
+(defun my/treesit-install-language-grammar (lang-symbol github-path)
+    (add-to-list 'treesit-language-source-alist
+                 `(,lang-symbol ,github-path))
+    (unless (treesit-ready-p lang-symbol)
+        (treesit-install-language-grammar lang-symbol)))
+#+end_src
+
+После регистрации необходимо заменить привычные ~<LANG>-mode~ на
+~<LANG>-ts-mode~. Например:
+: (add-to-list 'auto-mode-alist '("\\.cpp\\'" . c++-ts-mode))
+: (add-to-list 'auto-mode-alist '("\\.c\\'" . c-ts-mode))
+
+** COMMENT Схлопывание текста с tree-sitter (ts-fold)
+
+   Не дружит со встроенным в Emacs 29 treesit.
+   Treesit и tree-sitter - это два разных пакета.
+
+#+begin_src emacs-lisp :tangle yes
+(use-package combobulate
+    :quelpa (ts-fold :fetcher github :repo "emacs-tree-sitter/ts-fold")
+    :ensure t)
+#+end_src
+
+** Combobulate - редактирование с tree-sitter
+
+#+begin_src emacs-lisp :tangle yes
+(use-package combobulate
+    :quelpa (combobulate :fetcher github :repo "mickeynp/combobulate")
+    :preface
+    (setq combobulate-key-prefix "C-c o"))
+#+end_src
+
 * Программирование
 
 ** Навигация по ошибкам
@@ -6312,6 +6406,25 @@ sudo apt install retext
     :ensure t)
 #+end_src
 
+Поддержка LSP для Json'а больше мешает, чем помогает. Оставляю тут для
+памяти.
+
+#+begin_example emacs-lisp :tangle yes
+(lsp-ensure-server 'json-ls)
+#+end_example
+
+Поддержка tree-sitter. Слабенькая (json-ts-mode не тянет большие
+файлы), но если вручную выставить:
+: (json-ts-mode)
+: (combobulate-mode)
+то, может, редактировать JSON'ы будет удобнее.
+
+#+begin_src emacs-lisp :tangle yes
+(my/treesit-install-language-grammar
+ 'json
+ "https://github.com/tree-sitter/tree-sitter-json")
+#+end_src
+
 ** Make
 
 #+begin_src emacs-lisp :tangle yes
@@ -6404,6 +6517,8 @@ Mermaid - это аналог PlantUML. Для работы требует ус�
 
 #+begin_src emacs-lisp :tangle yes
 (use-package mermaid-mode
+    :ensure t)
+(use-package ob-mermaid
     :ensure t)
 #+end_src
 
@@ -6556,18 +6671,32 @@ Pyright может не скачаться с серверов, поэтому �
                            "-C " user-emacs-directory)))
 #+end_src
 
+Поддержка tree-sitter. Подменяем python-mode на python-ts-mode.
+
+#+begin_src emacs-lisp :tangle yes
+(my/treesit-install-language-grammar
+ 'python
+ "https://github.com/tree-sitter/tree-sitter-python")
+
+(add-to-list 'major-mode-remap-alist '(python-mode . python-ts-mode))
+#+end_src
+
 Настраиваем активацию LSP-сервера.
 
 #+begin_src emacs-lisp :tangle yes
-(add-hook 'python-mode-hook
-          (lambda ()
-              (unless (equal (buffer-file-name)
-                             (my/calculator--get-python-filename))
-                  (require 'lsp-pyright)
-                  (lsp))))  ; or lsp-deferred
+(mapc (apply-partially (-flip 'add-hook) 'my/python--lsp-exclude-calculator)
+      '(python-mode-hook
+        python-ts-mode-hook))
+
+(defun my/python--lsp-exclude-calculator ()
+    (unless (equal (buffer-file-name)
+                   (my/calculator--get-python-filename))
+        (require 'lsp-pyright)
+        (lsp)))  ; or lsp-deferred
 #+end_src
 
-У сервера есть *проблема*: Ошибка в буфере *stderr* имеет следующее описание:
+У LSP-сервера pyright есть *проблема*: Ошибка в буфере *stderr* имеет
+следующее описание:
 : Process terminated. Couldn't find a valid ICU package installed on the
 : system. Set the configuration flag System.Globalization.Invariant to
 : true if you want to run with no globalization support.
@@ -6800,6 +6929,21 @@ Pyright может не скачаться с серверов, поэтому �
       haskell-indentation-layout-offset 4)
 #+end_src
 
+Настраиваем tree-sitter. Но здесь не полностью - пока не въехал,
+откуда брать haskell-ts-mode.
+
+#+begin_src emacs-lisp :tangle yes
+(my/treesit-install-language-grammar
+ 'haskell
+ "https://github.com/tree-sitter/tree-sitter-haskell")
+
+(when (treesit-ready-p 'haskell)
+    (treesit-parser-create 'haskell))
+
+;; ;; Не реализовано.
+;; (add-to-list 'major-mode-remap-alist '(haskell-mode . haskell-ts-mode))
+#+end_src
+
 Позаботимся о вычислении org-babel блоков.
 
 #+begin_src emacs-lisp :tangle yes
@@ -6820,6 +6964,8 @@ ob-rust для работы с org-babel блоками устанавливае
 
 #+begin_src emacs-lisp :tangle yes
 (use-package rustic
+    :ensure t)
+(use-package ob-rust
     :ensure t)
 #+end_src
 
@@ -6972,14 +7118,39 @@ ob-rust для работы с org-babel блоками устанавливае
 единственный способ, который я нашел, чтобы подружить clangd с
 lsp-mode (без eglot'а).
 
+Поддержка подсказок и дополнений.
+
 #+begin_src emacs-lisp :tangle yes
 (add-hook 'prog-mode-hook 'company-mode)
 (add-to-list 'company-backends 'company-capf)
+#+end_src
 
+Поддержка tree-sitter.
+
+#+begin_src emacs-lisp :tangle yes
+(my/treesit-install-language-grammar
+ 'cpp
+ "https://github.com/tree-sitter/tree-sitter-cpp")
+
+(mapc (apply-partially #'add-to-list 'auto-mode-alist)
+      '(("\\.cpp\\'" . c++-ts-mode)
+        ("\\.cc\\'" . c++-ts-mode)
+        ("\\.c\\'" . c++-ts-mode)
+        ("\\.hpp\\'" . c++-ts-mode)
+        ("\\.h\\'" . c++-ts-mode)))
+
+(mapc (apply-partially #'add-to-list 'major-mode-remap-alist)
+      '((c-mode . c-ts-mode)
+        (c++-mode . c++-ts-mode)))
+#+end_src
+
+Поддержка LSP.
+
+#+begin_src emacs-lisp :tangle yes
 (use-package lsp-mode
     ;; :ensure t
-    :hook ((c-mode c++-mode) . lsp-deferred)
-    ;; :hook ((c-mode c++-mode) . lsp-clangd)
+    :hook ((c-mode c++-mode c-ts-mode c++-ts-mode) . lsp-deferred)
+    ;; ;; :hook ((c-mode c++-mode) . lsp-clangd)
     )
 #+end_src
 
@@ -7081,6 +7252,19 @@ LSP-сервер будет работать так же, как на локал
     :ensure t)
 #+end_src
 
+Поддержка tree-sitter.
+
+#+begin_src emacs-lisp :tangle yes
+(my/treesit-install-language-grammar 'java
+                                     "https://github.com/tree-sitter/tree-sitter-java")
+
+(add-to-list 'auto-mode-alist '("\\.java\\'" . java-ts-mode))
+
+(use-package lsp-mode
+    :hook ((java-mode java-ts-mode) . lsp-deferred)
+    )
+#+end_src
+
 Позаботимся о вычислении org-babel блоков.
 
 #+begin_src emacs-lisp :tangle yes
@@ -7116,7 +7300,6 @@ LSP-сервер будет работать так же, как на локал
 #+begin_src emacs-lisp :tangle yes
 (use-package js2-mode
     :ensure t)
-(lsp-ensure-server 'json-ls)
 (lsp-ensure-server 'jsts-ls)
 (use-package typescript-mode
     :ensure t)
@@ -7144,8 +7327,12 @@ LSP-сервер будет работать так же, как на локал
 
 ** Scala
 
-LSP-сервер для Scala называется [[https://scalameta.org/metals/][Metals]]. На Arch его можно установить
-из AUR-пакета:
+LSP-сервер для Scala называется [[https://scalameta.org/metals/][Metals]]. Для компиляции Metals нужно
+установить:
+: sudo pacman -S jdk8-openjdk
+: sudo pacman -S jdk11-openjdk
+: sudo pacman -S jdk17-openjdk
+На Arch его можно установить Metals из AUR-пакета:
 : yay -S metals
 
 Для начала установим режим [[https://github.com/hvesalai/emacs-scala-mode][scala-mode]] для Scala:
