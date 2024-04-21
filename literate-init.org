@@ -689,6 +689,23 @@ email clients, file templates and snippets."
                "e d" #'my/correct-font-in-current-frame)
 #+end_src
 
+** Установка nerd-шрифтов (иконочки)
+
+Установим иконки.
+
+#+begin_src emacs-lisp :tangle yes
+(use-package nerd-icons
+    :ensure t)
+(use-package all-the-icons-nerd-fonts
+	:ensure t)
+(use-package all-the-icons
+    :if (display-graphic-p))
+(unless (boundp 'is-nerd-icons-install-fonts)
+    (nerd-icons-install-fonts t)
+    (setq is-nerd-icons-install-fonts t)
+    (customize-save-variable 'is-nerd-icons-install-fonts t))
+#+end_src
+
 ** Мигание курсора
 
 Выключаем мигание курсора.
@@ -1148,6 +1165,8 @@ Find application name in my/application-name variable."
 (setq-default plantuml-indent-level 4)
 (setq-default lisp-body-indent 4) ;; сдвигать lisp-выражения на 4 пробельных символа
 (setq lisp-indent-function 'common-lisp-indent-function)
+(setq-default c-basic-offset 4)
+(setq-default c-ts-mode-indent-offset 4)
 #+end_src
 
 ** ESC-кодирование для работы с URL
@@ -1820,6 +1839,9 @@ Emacs по-умолчанию не причисляет символ `_' к со
 Исправим положение.
 
 #+begin_src emacs-lisp :tangle yes
+(add-hook 'after-change-major-mode-hook
+          (lambda ()
+              (modify-syntax-entry ?_ "w")))
 (modify-syntax-entry ?_ "w")
 #+end_src
 
@@ -7211,6 +7233,17 @@ LSP-сервер будет работать так же, как на локал
 это хорошо помогает работать LSP-серверу.
 
 На этом все.
+
+** Cmake
+
+Для подсветки cmake-файлов установим пакет cmake-mode.
+
+#+begin_src emacs-lisp :tangle yes
+(use-package cmake-mode
+    :ensure t)
+#+end_src
+
+#+RESULTS:
 
 ** Go
 
