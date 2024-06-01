@@ -1244,6 +1244,12 @@ from urllib.parse import quote, unquote
 (global-set-key (kbd "M-h") 'backward-kill-word)
 #+end_src
 
+Уберем неудобное удаление слова перед курсором по Ctrl+Backspace.
+
+#+begin_src emacs-lisp :tangle yes
+(unbind-key (kbd "<C-backspace>"))
+#+end_src
+
 ** Переключение раскладки клавиатуры
 
 Внутри Vim и evil-mode много удобней иметь внутренне переключение
@@ -2031,6 +2037,15 @@ Imenu - дает не только удобный способ навигаци�
                "w C-S-h" #'evil-window-move-far-left
                "w C-S-j" #'evil-window-move-very-bottom
                "w C-S-k" #'evil-window-move-very-top)
+#+end_src
+
+Малое изменение размеров окон.
+
+#+begin_src emacs-lisp :tangle yes
+(global-set-key (kbd "C-{") #'shrink-window-horizontally)
+(global-set-key (kbd "C-}") #'enlarge-window-horizontally)
+(global-set-key (kbd "C-(") #'shrink-window)
+(global-set-key (kbd "C-)") #'enlarge-window)
 #+end_src
 
 Отдельно перетащим из Doom расширение окон по горизонтали и вертикали.
@@ -4965,7 +4980,9 @@ my/org-roam-vault-init.
 
 #+begin_src emacs-lisp :tangle yes
 (my/leader-def nil 'override
-               "r g" #'org-roam-ui-mode)
+               "r g" '(:ignore t :which-key "ui-mode")
+               "r g g" #'org-roam-ui-mode
+               "r g f" #'org-roam-ui-follow-mode)
 #+end_src
 
 ** Org-roam-db-query (только информация)
@@ -5218,16 +5235,16 @@ node.
 
 ** eshell
 
-Настроим приглашение для eshell.
-
-/TODO: Что-то не так с настройками приглашения в командной строке./
+Настроим приглашение для eshell (с модной буквой 'λ').
 
 #+begin_src emacs-lisp :tangle yes
-;; (setq eshell-prompt-function
-;;       (lambda ()
-;;           (concat (eshell/pwd)
-;;                   " " (my/git-current-branch)
-;;                   " λ ")))
+(setq eshell-prompt-function
+      (lambda ()
+          (concat (eshell/pwd)
+                  " " (my/git-current-branch)
+                  " λ ")))
+
+(setq eshell-prompt-regexp "^.* λ ")  ;; Necessary for eshell-prompt-function!
 
 (defun my/git-current-branch ()
     "Return current git-branch or empty string."
@@ -5265,6 +5282,38 @@ node.
 (my/leader-def nil 'override
     "o e" #'my/popup-eshell-toggle
     "o E" #'eshell)
+#+end_src
+
+** shell
+
+Делаю, как подстраховку для vterm (не нравится, как он работает на
+удаленных машинах).
+
+Вызов терминала shell. Терминал создается по возможности свой для
+каждого рабочего пространства. Если буфер с таким терминалом уже
+создан, то он показывается в окне.
+
+#+begin_src emacs-lisp :tangle yes
+(defun my/popup-shell-toggle ()
+    (interactive)
+    (let* ((buffer-name (format "*shell-popup:%s*"
+                                (my/--get-current-persp-name)))
+           (buffer (get-buffer buffer-name))
+           (window))
+        (unless buffer
+            (setq buffer (get-buffer-create buffer-name))
+            (with-current-buffer buffer
+                (shell-mode)
+                (shell)
+                (pop-to-buffer buffer)))))
+#+end_src
+
+Запилим горячие клавиши на вызов окошка shell.
+
+#+begin_src emacs-lisp :tangle yes
+(my/leader-def nil 'override
+    "o s" #'my/popup-shell-toggle
+    "o S" #'shell)
 #+end_src
 
 ** vterm
@@ -5349,6 +5398,17 @@ node.
 #+end_src
 
 * Удаленный доступ (tramp)
+
+** Клавиши для функций tramp
+
+#+begin_src emacs-lisp :tangle yes
+(my/leader-def nil 'override
+               "e t" '(:ignore t :which-key "TRAMP")
+               "e t t" #'tramp-cleanup-this-connection
+               "e t a" #'tramp-cleanup-all-connections)
+#+end_src
+
+** Ошибка "Too many authentication failures"
 
 Здесь помещена попытка преодолеть ошибку удаленного подключения по
 ssh: "Too many authentication failures".
@@ -7233,6 +7293,47 @@ LSP-сервер будет работать так же, как на локал
 это хорошо помогает работать LSP-серверу.
 
 На этом все.
+
+** Clang-format. Форматирование C++
+
+Работает просто:
+1. Выделяем текст на C++ (желательно не одну строку из контекста).
+2. Нажимаем "=" и функция =evil-indent= отформатирует текст согласно
+   правилам в файлике .clang-format в ближайшей из родительских папок.
+
+Еще работает =clang-format-buffer=.
+
+#+begin_src emacs-lisp :tangle yes
+(use-package clang-format+
+    :ensure t
+    :hook ((c-mode c++-mode c-ts-mode c++-ts-mode) . clang-format+-mode))
+#+end_src
+
+Поскольку по SSH эта штука работает до бесполезности плохо, то сделаем
+ручное сравнение через ediff-buffers.
+
+/Пока не понял, почему вызванный неинтеракривно ediff-buffer всегда/
+/показывает одну разницу во весь файл./
+
+#+begin_src emacs-lisp :tangle yes
+(defun my/clang-format-ediff-buffers ()
+    (interactive)
+    (when (member major-mode '(c-mode c++-mode c-ts-mode c++-ts-mode))
+        (let ((buffer (current-buffer)))
+            (delete-other-windows)
+            (async-shell-command (concat "clang-format --style=file "
+                                         (file-name-nondirectory
+                                          (buffer-file-name buffer))))
+            (evil-window-move-far-left)
+            (evil-window-right 1)
+            (evil-force-normal-state)
+            ;; (c++-ts-mode)
+            (let ((out-buffer (current-buffer)))
+                (evil-window-left 1)
+                ;; (ediff-buffers buffer out-buffer)  ;; Don't work. Why?!
+                (call-interactively 'ediff-buffers)
+                ))))
+#+end_src
 
 ** Cmake
 
