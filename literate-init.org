@@ -694,7 +694,7 @@ email clients, file templates and snippets."
 
 ** Установка nerd-шрифтов (иконочки)
 
-Установим иконки.
+Установим необходимые пакеты под иконки.
 
 #+begin_src emacs-lisp :tangle yes
 (use-package nerd-icons
@@ -703,13 +703,23 @@ email clients, file templates and snippets."
 	:ensure t)
 (use-package all-the-icons
     :if (display-graphic-p))
-(unless (boundp 'is-nerd-icons-install-fonts)
-    ;; TODO: Перенести custom в отдельный файл и сделать загрузку в начале.
-    ;;       А пока будем при каждом запуске спрашивать установку:
-    (unless (daemonp)
-        (nerd-icons-install-fonts nil))
-    (setq is-nerd-icons-install-fonts t)
-    (customize-save-variable 'is-nerd-icons-install-fonts t))
+#+end_src
+
+Теперь установим сами иконки. Позаботимся об их единичной установке.
+
+#+begin_src emacs-lisp :tangle yes
+(defun my/--is-nerd-packages-installed ()
+    (reduce (lambda (a b)
+                (and a b))
+            (mapcar 'package-installed-p
+                    '(nerd-icons all-the-icons-nerd-fonts all-the-icons))))
+
+(unless (my/--is-nerd-packages-installed)  ;; TODO: Перенести custom в отдельный
+                                           ;;     файл и сделать загрузку в начале.
+    (unless (boundp 'is-nerd-icons-install-fonts)
+        (nerd-icons-install-fonts t)
+        (setq is-nerd-icons-install-fonts t)
+        (customize-save-variable 'is-nerd-icons-install-fonts t)))
 #+end_src
 
 ** Мигание курсора
@@ -2196,7 +2206,14 @@ Spacemacs. Код находится в файле [[./funcs.el][funcs.el]].
                "b B" '(ivy-switch-buffer :which-key "Switch buffer")
                ;; "b B" '(counsel-switch-buffer :which-key "Switch buffer")
                "b d" '(kill-current-buffer :which-key "Kill buffer")
-               "b r" '(rename-buffer :which-key "Rename buffer"))
+               "b r" '(rename-buffer :which-key "Rename buffer")
+               "b v" '(my/revert-buffer :which-key "Revert buffer"))
+
+(defun my/revert-buffer ()
+    "Revert a buffer with ignore auto and without confirm."
+    (interactive)
+    (revert-buffer t t)
+    (message "The buffer was reverted."))
 #+end_src
 
 ** Отображение popup-буферов внизу окна и прочие настройки показа буферов
