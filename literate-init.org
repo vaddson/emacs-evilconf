@@ -1485,7 +1485,8 @@ prog-mode, поэтому делаем свою функцию проверки 
     :config
     (ivy-mode)
     (setq ivy-use-virtual-buffers t)
-    (setq enable-recursive-minibuffers t))
+    (setq enable-recursive-minibuffers t)
+    (setq ivy-wrap t))
 (use-package ivy-hydra
     :ensure t)
 #+end_src
@@ -3209,9 +3210,10 @@ emacs-клиента.
 Тут собраны в основном исключения для Python-проектов.
 
 #+begin_src emacs-lisp :tangle yes
-(setq grep-find-ignored-directories '("SCCS" "RCS" "CVS" "MCVS" ".src" ".svn" ".git" ".hg" ".bzr" "_MTN" "_darcs" "{arch}" "__pycache__" "build" "develop-eggs" "dist" "dist_local" "eggs" ".eggs" "sdist" ".pytest_cache" "env" "venv" "ENV" "env.bak" "venv.bak" ".mypy_cache" "build")
-      helm-grep-ignored-directories '("SCCS/" "RCS/" "CVS/" "MCVS/" ".svn/" ".git/" ".hg/" ".bzr/" "_MTN/" "_darcs/" "{arch}/" ".gvfs/" "__pycache__/" "build/" "develop-eggs/" "dist/" "dist_local/" "eggs/" ".eggs/" "sdist/" ".pytest_cache/" "env/" "venv/" "ENV/" "env.bak/" "venv.bak/" ".mypy_cache/" "build/")
-      projectile-globally-ignored-directories '("~/.emacs.d/.local/" "~/.emacs.d/.local/" "~/.emacs.d/.local/" ".idea" ".vscode" ".ensime_cache" ".eunit" ".git" ".hg" ".fslckout" "_FOSSIL_" ".bzr" "_darcs" ".tox" ".svn" ".stack-work" ".ccls-cache" ".cache" ".clangd" "__pycache__" "build" "develop-eggs" "dist" "dist_local" "eggs" ".eggs" "sdist" ".pytest_cache" "env" "venv" "ENV" "env.bak" "venv.bak" ".mypy_cache" "build")
+(setq grep-find-ignored-directories '("SCCS" "RCS" "CVS" "MCVS" ".src" ".svn" ".git" ".hg" ".bzr" "_MTN" "_darcs" "{arch}" "__pycache__" "build" "develop-eggs" "dist" "dist_local" "eggs" ".eggs" "sdist" ".pytest_cache" "env" "venv" "ENV" "env.bak" "venv.bak" ".mypy_cache" "build" ".ccls-cache")
+      grep-find-ignored-files (append grep-find-ignored-files '("TAGS" "tags"))
+      helm-grep-ignored-directories '("SCCS/" "RCS/" "CVS/" "MCVS/" ".svn/" ".git/" ".hg/" ".bzr/" "_MTN/" "_darcs/" "{arch}/" ".gvfs/" "__pycache__/" "build/" "develop-eggs/" "dist/" "dist_local/" "eggs/" ".eggs/" "sdist/" ".pytest_cache/" "env/" "venv/" "ENV/" "env.bak/" "venv.bak/" ".mypy_cache/" "build/" ".ccls-cache")
+      projectile-globally-ignored-directories '("~/.emacs.d/.local/" "~/.emacs.d/.local/" "~/.emacs.d/.local/" ".idea" ".vscode" ".ensime_cache" ".eunit" ".git" ".hg" ".fslckout" "_FOSSIL_" ".bzr" "_darcs" ".tox" ".svn" ".stack-work" ".ccls-cache" ".cache" ".clangd" "__pycache__" "build" "develop-eggs" "dist" "dist_local" "eggs" ".eggs" "sdist" ".pytest_cache" "env" "venv" "ENV" "env.bak" "venv.bak" ".mypy_cache" "build" ".ccls-cache")
       projectile-globally-ignored-file-suffixes '(".elc" ".pyc" ".o" ".coverage" ".cache" ".ipynb_checkpoints" ".egg" ".pyo" ".pyd" ".cover" ".egg-info" "TAGS" "tags")
       projectile-globally-ignored-files '(".DS_Store" "TAGS" "tags")
 )
@@ -3328,6 +3330,14 @@ Keywords=Text;Editor;
 * Org
 
 ** Начальная инициализация всей org-кухни
+
+До загрузки Org поправим баг с невозможностью раскрытия схлопнутых
+заголовков. Для этого предварительно установим переменную
+=org-fold-core-style=:
+
+#+begin_src emacs-lisp :tangle yes
+(setq org-fold-core-style 'overlays)
+#+end_src
 
 Некоторые мелочи, как само собой разумеющееся:
 - поддержка идентификаторов,
@@ -5345,7 +5355,8 @@ node.
                                 (my/--get-current-persp-name)))
            (buffer (get-buffer buffer-name))
            (window))
-        (unless buffer
+        (if buffer
+            (pop-to-buffer buffer)
             (setq buffer (get-buffer-create buffer-name))
             (with-current-buffer buffer
                 (shell-mode)
@@ -6443,6 +6454,34 @@ Completion item kind (тип объекта в выпадашке автодоп
     (setq xref-show-xrefs-function #'ivy-xref-show-xrefs))
 #+end_src
 
+** Dumb-jump. Решение проблемы перехода по сущностям
+
+Когда не помогают LSP-сервера и прочие инструменты, на помощь приходит
+dumb-jump. Грепает регулярками по проекту и показывает результат
+(настроено на ivy).
+
+#+begin_src emacs-lisp :tangle yes
+(use-package dumb-jump
+    :ensure t
+    :config
+    (setq dumb-jump-selector 'ivy))
+#+end_src
+
+Зададим свои горячие клавиши.
+
+#+begin_src emacs-lisp :tangle yes
+(my/leader-def nil 'override
+               "j d" '(:ignore t :which-key "Dumb Jump")
+               "j d j" '(dumb-jump-go :which-key "Go")
+               "j d o" '(dumb-jump-go-other-window :which-key "Other window")
+               "j d e" '(dumb-jump-go-prefer-external :which-key "Go external")
+               "j d x" '(dumb-jump-go-prefer-external-other-window
+                         :which-key "Go external other window")
+               "j d i" '(dumb-jump-go-prompt :which-key "Prompt")
+               "j d l" '(dumb-jump-quick-look :which-key "Quick look")
+               "j d b" '(dumb-jump-back :which-key "Back"))
+#+end_src
+
 ** Logview
 
 Пакет для просмотра логов. Дает logview-mode.
@@ -7277,14 +7316,22 @@ lsp-mode (без eglot'а).
         (c++-mode . c++-ts-mode)))
 #+end_src
 
-Поддержка LSP.
+Поддержка LSP. Установим LSP-сервер по-умолчанию (чтобы в итоге
+работал clangd). Запретим неудобное автоформатирование, которое для
+C++ больше мешает, чем помогает.
 
 #+begin_src emacs-lisp :tangle yes
 (use-package lsp-mode
-    ;; :ensure t
-    :hook ((c-mode c++-mode c-ts-mode c++-ts-mode) . lsp-deferred)
-    ;; ;; :hook ((c-mode c++-mode) . lsp-clangd)
-    )
+    :ensure t)
+
+(mapc (lambda (hook)
+          ;; (add-hook hook 'lsp-clangd)
+          (add-hook hook 'lsp-deferred)
+          (add-hook hook 'my/--disable-lsp-auto-formatting))
+      '(c-mode-hook c++-mode-hook c-ts-mode-hook c++-ts-mode-hook))
+
+(defun my/--disable-lsp-auto-formatting ()
+    (setq-local lsp-enable-on-type-formatting nil))
 #+end_src
 
 Влепим поддержку C++20 для org-babel блоков.
@@ -7353,6 +7400,17 @@ LSP-сервер будет работать так же, как на локал
    правилам в файлике .clang-format в ближайшей из родительских папок.
 
 Еще работает =clang-format-buffer=.
+
+*Подсказка:* Чтобы при автовыравнивании работали 4 пробела вместо
+двух, нужно создать файлик [[~/.clang-format]] со следующим содержимым:
+: ---
+: ConstructorInitializerIndentWidth: 4
+: ContinuationIndentWidth: 4
+: IndentWidth:     4
+: TabWidth:        4
+: ...
+
+Установим пакеты и пропишем соответствующие хуки.
 
 #+begin_src emacs-lisp :tangle yes
 (use-package clang-format+
