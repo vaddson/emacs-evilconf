@@ -690,7 +690,7 @@ email clients, file templates and snippets."
                                       my/global-font-inc))
 
 (my/leader-def nil 'override
-               "e" '(:ignore t :which-key "env"))
+               "e" '(:ignore t :which-key "env/edit"))
 (my/leader-def nil 'override
                "e d" #'my/correct-font-in-current-frame)
 #+end_src
@@ -1551,9 +1551,10 @@ prog-mode, поэтому делаем свою функцию проверки 
 для ripgrep (добавим туда "--hidden" и "-g!.git").
 
 #+begin_src emacs-lisp :tangle yes
-(setq counsel-rg-base-command
-      '("rg" "--max-columns" "240" "--with-filename" "--no-heading"
-        "--line-number" "--color" "never" "--hidden" "-g!.git" "%s"))
+;; (setq counsel-rg-base-command
+;;       '("rg" "--max-columns" "240" "--with-filename" "--no-heading"
+;;         "--line-number" "--color" "never" "--hidden" "-g!.git" "%s" "|| true"))
+(setq counsel-rg-base-command "rg --max-columns 240 --with-filename --no-heading --line-number --color never --hidden -g!.git %s || true")
 #+end_src
 
 Уберем "^" из начала поисковой строки в counsel и вообще в Ivy.
@@ -1929,6 +1930,15 @@ Imenu - дает не только удобный способ навигаци�
                    "s I" '(imenu-list-smart-toggle :which-key "IMenu content")))
 #+end_src
 
+Отменим перенос строк по умолчанию в окне оглавления.
+
+#+begin_src emacs-lisp :tangle yes
+(add-hook 'imenu-list-major-mode-hook 'my/--unwrap-words)
+
+(defun my/--unwrap-words ()
+    (my/set-word-wrap 1))
+#+end_src
+
 ** Выделение по регулярному выражению (highlight)
 
 Выделять текст будем функцией highlight-regexp.
@@ -2072,10 +2082,18 @@ Imenu - дает не только удобный способ навигаци�
 Малое изменение размеров окон.
 
 #+begin_src emacs-lisp :tangle yes
-(global-set-key (kbd "C-{") #'shrink-window-horizontally)
-(global-set-key (kbd "C-}") #'enlarge-window-horizontally)
-(global-set-key (kbd "C-(") #'shrink-window)
-(global-set-key (kbd "C-)") #'enlarge-window)
+(global-set-key (kbd "C-{") 'my/shrink-window-horizontally)
+(global-set-key (kbd "C-}") 'my/enlarge-window-horizontally)
+(global-set-key (kbd "C-(") 'shrink-window)
+(global-set-key (kbd "C-)") 'enlarge-window)
+
+(defun my/shrink-window-horizontally ()
+    (interactive)
+    (shrink-window-horizontally 4))
+
+(defun my/enlarge-window-horizontally ()
+    (interactive)
+    (enlarge-window-horizontally 4))
 #+end_src
 
 Отдельно перетащим из Doom расширение окон по горизонтали и вертикали.
@@ -3731,10 +3749,10 @@ If you use `org' and don't want your org files in the default location below, ch
 объединяет эти два вызова.
 
 #+begin_src emacs-lisp :tangle yes
-(defun my/set-word-wrap ()
+(defun my/set-word-wrap (&optional arg)
 	(interactive)
-	(toggle-word-wrap)
-	(toggle-truncate-lines))
+	(toggle-word-wrap arg)
+	(toggle-truncate-lines arg))
 #+end_src
 
 Теперь добавим обработчик для режима org-mode. Но надо быть
@@ -6326,7 +6344,7 @@ Completion item kind (тип объекта в выпадашке автодоп
 
 #+begin_src emacs-lisp :tangle yes
 (my/leader-def nil 'override
-               "e h" #'lsp-inlay-hints-mode)
+               "c h" #'lsp-inlay-hints-mode)
 #+end_src
 
 Добавим ставшую привычной из Doom навигацию по коду.
@@ -6347,6 +6365,35 @@ Completion item kind (тип объекта в выпадашке автодоп
 (my/leader-def nil 'eglot-mode-map  ;; 'prog-mode-map
                "c d" '(xref-find-definitions :which-key "Jump to definition")
                "c D" '(xref-find-references :which-key "Jump to references"))
+#+end_src
+
+** Перезагрузка
+
+В работе с LSP через TRUMP столкнулся с проблемой: "LSP :: Sending to
+process failed with the following error: Process pyright-remote not
+running". Простые перезагрузки LSP-сервера не помогают. Нашел решение:
+перед перезагрузкой сбросить переменную =lsp--session= в nil. Запилим
+это решение.
+
+#+begin_src emacs-lisp :tangle yes
+(defun my/lsp-restart ()
+    (interactive)
+    (if (boundp 'lsp--session)
+        (progn (setq lsp--session nil)
+               ;; (call-interactively 'lsp-workspace-restart)
+               (lsp-shutdown-workspace)
+               (lsp))
+        (message "WARNING: there is no lsp--session variable!")))
+#+end_src
+
+И горячие клавиши для работ
+
+#+begin_src emacs-lisp :tangle yes
+(my/leader-def nil 'override
+               "c l" '(:ignore t :which-key "LSP utils")
+               "c l l" '(lsp :which-key "Run LSP server")
+               "c l s" '(lsp-shutdown-workspace :which-key "Shutdown LSP workspace")
+               "c l r" '(my/lsp-restart :which-key "Restart LSP workspace"))
 #+end_src
 
 * Tree-sitter
@@ -6423,6 +6470,17 @@ Completion item kind (тип объекта в выпадашке автодоп
 (defun my/--check-c++/c-eglot-mode ()
     ;; (member major-mode '(c++-mode c-mode)))
     nil)
+#+end_src
+
+** Компиляция (compile). Назначение клавиш
+
+Для вызова асинхронной shell-команды есть стандартные клавиши:
+: M-&
+
+Для вызова команды =compile= сделаем свои клавиши.
+
+#+begin_src emacs-lisp :tangle yes
+(global-set-key (kbd "M-*") #'compile)
 #+end_src
 
 ** Emacs-Lisp
@@ -6961,7 +7019,6 @@ Pyright может не скачаться с серверов, поэтому �
 
 #+begin_src emacs-lisp :tangle yes
 (my/leader-def nil 'override
-               "e" '(:ignore t :which-key "env")
                "e a" #'my/pyvenv-activate
                "e i" #'my/pyvenv-select-path)
 #+end_src
@@ -7331,7 +7388,9 @@ C++ больше мешает, чем помогает.
       '(c-mode-hook c++-mode-hook c-ts-mode-hook c++-ts-mode-hook))
 
 (defun my/--disable-lsp-auto-formatting ()
-    (setq-local lsp-enable-on-type-formatting nil))
+    (setq-local lsp-enable-on-type-formatting nil
+                ;; indent-region-function nil
+                ))
 #+end_src
 
 Влепим поддержку C++20 для org-babel блоков.
