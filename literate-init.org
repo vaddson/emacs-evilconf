@@ -7612,13 +7612,17 @@ LSP-сервер будет работать так же, как на локал
 
 #+begin_src emacs-lisp :tangle yes
 (add-to-list 'auto-mode-alist '("\\.js\\'" . js2-mode))
-;; (add-hook 'js-mode-hook 'js2-minor-mode)
 (add-to-list 'interpreter-mode-alist '("node" . js2-mode))
 (add-to-list 'auto-mode-alist '("\\.jsx?\\'" . js2-jsx-mode))
 (add-to-list 'interpreter-mode-alist '("node" . js2-jsx-mode))
-(add-hook 'js-mode-hook #'lsp)
 (add-to-list 'auto-mode-alist '("\\.tsx\\'" . typescript-mode))
-(add-hook 'typescript-mode-hook #'lsp)
+;; (add-hook 'js-mode-hook 'js2-minor-mode)
+(add-hook 'js-mode-hook 'my/--lsp-except-json)
+(add-hook 'typescript-mode-hook 'my/--lsp-except-json)
+
+(defun my/--lsp-except-json ()
+    (unless (equal major-mode 'json-mode)
+        (lsp)))
 #+end_src
 
 Позаботимся о вычислении org-babel блоков.
