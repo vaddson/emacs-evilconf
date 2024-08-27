@@ -202,6 +202,9 @@ email clients, file templates and snippets."
     ;; (load-theme 'doom-gruvbox t)
     ;; (load-theme 'doom-molokai t)
     )
+
+(use-package modus-themes
+    :ensure t)
 #+end_src
 
 * Полезные пакеты, вытащенные из сторонних проектов
@@ -4584,6 +4587,16 @@ shows it in message and put the result into registers `\"' and `t'."
                "n j J" #'org-journal-new-scheduled-entry
                "n j d" #'org-journal-new-date-entry
                "n j s" #'org-journal-search-forever)
+#+end_src
+
+** Drag-n-drop в dired-mode (org-download)
+
+Перетаскиваем мышкой картинки извне в dired-mode.
+
+#+begin_src emacs-lisp :tangle yes
+(use-package org-download
+    :ensure t)
+(add-hook 'dired-mode-hook 'org-download-enable)
 #+end_src
 
 * Org-roam
