@@ -202,8 +202,9 @@ email clients, file templates and snippets."
     ;; (load-theme 'doom-gruvbox t)
     ;; (load-theme 'doom-molokai t)
     )
-
 (use-package modus-themes
+    :ensure t)
+(use-package ef-themes
     :ensure t)
 #+end_src
 
