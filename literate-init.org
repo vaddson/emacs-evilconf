@@ -5716,8 +5716,9 @@ treemacs при показе текущего файла в дереве про�
 #+begin_src emacs-lisp :tangle yes
 (use-package docker
     :ensure t)
-(use-package docker-tramp
-    :ensure t)
+;; (use-package docker-tramp  ;; Obsolete.
+;;     :ensure t)
+(require 'tramp-container)
 (use-package dockerfile-mode
     :ensure t)
 #+end_src
@@ -7494,27 +7495,30 @@ LSP-сервер будет работать так же, как на локал
 Поскольку по SSH эта штука работает до бесполезности плохо, то сделаем
 ручное сравнение через ediff-buffers.
 
-/Пока не понял, почему вызванный неинтеракривно ediff-buffer всегда/
-/показывает одну разницу во весь файл./
-
 #+begin_src emacs-lisp :tangle yes
 (defun my/clang-format-ediff-buffers ()
     (interactive)
     (when (member major-mode '(c-mode c++-mode c-ts-mode c++-ts-mode))
         (let ((buffer (current-buffer)))
             (delete-other-windows)
-            (async-shell-command (concat "clang-format --style=file "
-                                         (file-name-nondirectory
-                                          (buffer-file-name buffer))))
+            (shell-command (concat
+                            "clang-format --style=file "
+                            (file-name-nondirectory (buffer-file-name buffer))))
             (evil-window-move-far-left)
             (evil-window-right 1)
             (evil-force-normal-state)
-            ;; (c++-ts-mode)
+            (c++-ts-mode)
             (let ((out-buffer (current-buffer)))
                 (evil-window-left 1)
-                ;; (ediff-buffers buffer out-buffer)  ;; Don't work. Why?!
-                (call-interactively 'ediff-buffers)
-                ))))
+                (ediff-buffers buffer out-buffer)))))
+#+end_src
+
+Горячие клавиши.
+
+#+begin_src emacs-lisp :tangle yes
+(my/leader-def nil 'override
+               "c f" '(:ignore t :which-key "Format Code")
+               "c f c" '(my/clang-format-ediff-buffers :which-key "C++ clang-format"))
 #+end_src
 
 ** Cmake
