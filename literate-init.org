@@ -4477,8 +4477,9 @@ shows it in message and put the result into registers `\"' and `t'."
               org-agenda-start-day "-3d"
               org-agenda-inhibit-startup t)
 (evil-define-key '(normal visual motion) org-agenda-mode-map (kbd my/leader) nil)
-;;(add-hook 'org-agenda-mode-hook #'evil-force-normal-state)
-(evil-set-initial-state 'org-agenda-mode 'normal)
+(when my/evil
+    ;; (add-hook 'org-agenda-mode-hook #'evil-force-normal-state)
+    (evil-set-initial-state 'org-agenda-mode 'normal))
 #+end_src
 
 Здесь автоматизированы мои действия по созданию рабочего пространства
@@ -7506,7 +7507,8 @@ LSP-сервер будет работать так же, как на локал
                             (file-name-nondirectory (buffer-file-name buffer))))
             (evil-window-move-far-left)
             (evil-window-right 1)
-            (evil-force-normal-state)
+            (when my/evil
+                (evil-force-normal-state))
             (c++-ts-mode)
             (let ((out-buffer (current-buffer)))
                 (evil-window-left 1)
