@@ -2670,6 +2670,13 @@ dired-окне. Для этого надо установить соответс
 (setq dired-dwim-target t)
 #+end_src
 
+Вид списка файлов определяется выхлопом команды ls, параметры которой
+хранятся в переменной. Сделаем полный вид с опцией --human-readable.
+
+#+begin_src emacs-lisp :tangle yes
+(setq dired-listing-switches "-lah")
+#+end_src
+
 Файлы в Dired сортируются опциями команды "ls".
 Из коробки по-умолчанию стоит сортировка по размеру ("SXU").
 Изменим ее на сортировку по имени ("XSU"):
@@ -6394,12 +6401,19 @@ running". Простые перезагрузки LSP-сервера не пом
 #+begin_src emacs-lisp :tangle yes
 (defun my/lsp-restart ()
     (interactive)
-    (if (boundp 'lsp--session)
-        (progn (setq lsp--session nil)
-               ;; (call-interactively 'lsp-workspace-restart)
-               (lsp-shutdown-workspace)
-               (lsp))
-        (message "WARNING: there is no lsp--session variable!")))
+    (my/--lsp-reset-session-cache)
+    ;; (call-interactively 'lsp-workspace-restart)
+    (lsp-shutdown-workspace)
+    (lsp))
+
+(defun my/lsp-shutdown-workspace ()
+    (interactive)
+    (my/--lsp-reset-session-cache)
+    (lsp-shutdown-workspace))
+
+(defun my/--lsp-reset-session-cache ()
+    (when (boundp 'lsp--session)
+        (setq lsp--session nil)))
 #+end_src
 
 И горячие клавиши для работ
@@ -6408,7 +6422,7 @@ running". Простые перезагрузки LSP-сервера не пом
 (my/leader-def nil 'override
                "c l" '(:ignore t :which-key "LSP utils")
                "c l l" '(lsp :which-key "Run LSP server")
-               "c l s" '(lsp-shutdown-workspace :which-key "Shutdown LSP workspace")
+               "c l s" '(my/lsp-shutdown-workspace :which-key "Shutdown LSP workspace")
                "c l r" '(my/lsp-restart :which-key "Restart LSP workspace"))
 #+end_src
 
