@@ -1627,8 +1627,17 @@ prog-mode, поэтому делаем свою функцию проверки 
     :ensure t)
 (use-package ivy-hydra
     :ensure t)
+#+end_src
+
+Для консолек исключим автодополнения в случае shell (мешается при
+удаленной работе). Остальное оставим, как есть. По-умолчанию было так:
+: (sh-mode fish-mode shell-mode eshell-mode)
+
+#+begin_src emacs-lisp :tangle yes
 (use-package company-shell
-    :ensure t)
+    :ensure t
+    :config
+    (delete 'shell-mode company-shell-modes))
 #+end_src
 
 Чтобы автодополнения не были в lovercase, добавим следующее
@@ -5050,7 +5059,8 @@ my/org-roam-vault-init.
     (goto-char 0)
     (insert (concat ":PROPERTIES:" "\n"
                     ":ID: " (org-id-new) "\n"
-                    ":END:" "\n")))
+                    ":END:" "\n"))
+    (org-cycle-hide-drawers 'all))
 #+end_src
 
 ** Org-roam-ui
@@ -6356,7 +6366,7 @@ Completion item kind (тип объекта в выпадашке автодоп
         (delete-window eldoc-window)
         (eldoc t)))
 
-(my/evil-define-key 'normal 'lsp-mode-map  ;; 'prog-mode-map
+(my/evil-define-key '(normal motion) 'lsp-mode-map  ;; 'prog-mode-map
     "RET" #'lsp-ui-doc-show
     "K" #'my/eldoc)
 #+end_src
