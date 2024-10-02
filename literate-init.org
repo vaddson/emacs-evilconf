@@ -3408,15 +3408,24 @@ Keywords=Text;Editor;
 
 ** Клавиши для работы в org-mode
 
-Вернем привычные горячие клавиши из Doom для evil-mode.
+Подготовимся и дополним функцию org-id-copy. Добавим туда еще одно
+свойство CUSTOM_ID для перекрестных ссылок между файлами. Также
+исправим баг, где при значении переменной org-fold-core-style,
+установленной в 'overlays, возникали неудобства со схлопыванием
+drawer'ов.
 
 #+begin_src emacs-lisp :tangle yes
 (defun my/org-id-copy ()
     (interactive)
-    (when-let (id (org-id-get nil 'create))
-        (org-set-property "CUSTOM_ID" id)
-        (org-kill-new id)))
+    (let ((org-fold-core-style 'text-properties))
+        (when-let (id (org-id-get nil 'create))
+            (org-set-property "CUSTOM_ID" id)
+            (org-kill-new id))))
+#+end_src
 
+Вернем привычные горячие клавиши из Doom для evil-mode.
+
+#+begin_src emacs-lisp :tangle yes
 (my/evil-define-key '(normal visual motion) 'org-mode-map
     "[ s" #'evil-prev-flyspell-error
     "] s" #'evil-next-flyspell-error
@@ -6920,11 +6929,6 @@ Gnuplot в систему. На Arch это выглядит так:
 Настройка LSP сервера. Ориентируемся на Pyright, он более устойчивый и
 легковесный, чем Mspyls.
 
-#+begin_src emacs-lisp :tangle yes
-(use-package lsp-pyright
-    :ensure t)
-#+end_src
-
 Pyright может не скачаться с серверов, поэтому при удачной попытке его
 лучше сохранить. Лежит сервер в директории
 : ~/.emacs.d/.cache/lsp/npm/pyright
@@ -6940,6 +6944,22 @@ Pyright может не скачаться с серверов, поэтому �
                            "/lsp-saves/pyright_vanilla.tar.gz "
                            "-C " user-emacs-directory)))
 #+end_src
+
+Теперь устанавливаем сам сервер.
+
+#+begin_src emacs-lisp :tangle yes
+(use-package lsp-pyright
+    :ensure t)
+;; (lsp-ensure-server 'pyright)
+#+end_src
+
+У LSP-сервера pyright есть *проблема*: Ошибка в буфере *stderr* имеет
+следующее описание:
+: Process terminated. Couldn't find a valid ICU package installed on the
+: system. Set the configuration flag System.Globalization.Invariant to
+: true if you want to run with no globalization support.
+И лечится установкой где-нибудь в [[/etc/profile]] переменной:
+: export DOTNET_SYSTEM_GLOBALIZATION_INVARIANT=1
 
 Поддержка tree-sitter. Подменяем python-mode на python-ts-mode.
 
@@ -6963,20 +6983,6 @@ Pyright может не скачаться с серверов, поэтому �
                    (my/calculator--get-python-filename))
         (require 'lsp-pyright)
         (lsp)))  ; or lsp-deferred
-#+end_src
-
-У LSP-сервера pyright есть *проблема*: Ошибка в буфере *stderr* имеет
-следующее описание:
-: Process terminated. Couldn't find a valid ICU package installed on the
-: system. Set the configuration flag System.Globalization.Invariant to
-: true if you want to run with no globalization support.
-И лечится установкой где-нибудь в [[/etc/profile]] переменной:
-: export DOTNET_SYSTEM_GLOBALIZATION_INVARIANT=1
-
-Теперь устанавливаем сам сервер.
-
-#+begin_src emacs-lisp :tangle yes
-(lsp-ensure-server 'pyright)
 #+end_src
 
 Позаботимся о вычислении org-babel блоков.
