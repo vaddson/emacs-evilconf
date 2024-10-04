@@ -1330,33 +1330,25 @@ from urllib.parse import quote, unquote
                "y f" #'yafolding-toggle-all)
 #+end_src
 
-** Подсветка отступов
+** Подсветка отступов (indent-bars)
 
-Можно подсветить верткальньной "чертой" отступы в тексте. Почти всегда
-это удобно. Подсвечивать можно или символом "|", что не всегда
-работает гладко, или перекрашивая фон у символов (тут без проблем).
+Подсветка отступов [[https://github.com/jdtsmith/indent-bars][indent-bars]]
+(более лучшая, чем hilight-indent-guides-mode).
 
-/Замечание:/ Highlighitng-indent-guides сильно тормозит работу с
-длинными файлами по причине частого вызова функции redisplay. Поэтому
-подсветку отступов исключаем для режимов org-mode, markdown-mode и
-json-mode.  Последний из них еще подключается с минорным режимом
-prog-mode, поэтому делаем свою функцию проверки на режимы, в которых
-отступы подсвечиваться не должны.
+Умеет поддерживать tree-sitter (надо доработать конфигурацию).
 
 #+begin_src emacs-lisp :tangle yes
-(use-package highlight-indent-guides
-	:ensure t
-    :config
-	(setq highlight-indent-guides-method 'column)
-    (dolist (mode '(prog-mode-hook
-                    yaml-mode-hook))
-        (add-hook mode 'my/--highlight-indent-guides-mode)))
-
-(defun my/--highlight-indent-guides-mode (&optional arg)
-    (unless (member major-mode '(json-mode
-                                 org-mode-hook
-                                 markdown-mode-hook))
-        (highlight-indent-guides-mode arg)))
+(use-package indent-bars
+    :ensure t
+    :hook ((prog-mode
+            org-mode
+            markdown-mode
+            makefile-mode
+            json-mode
+            yaml-mode
+            xml-mode
+            nxml-mode
+            ) . indent-bars-mode))
 #+end_src
 
 ** Проверка орфографии
