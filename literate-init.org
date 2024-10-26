@@ -2538,7 +2538,7 @@ stays on current"
 (evil-ex-define-cmd "buffers" #'ibuffer)
 #+end_src
 
-** Srcatch буфер
+** Scratch буфер
 
 В Doom были удобные черновики (scratch), которые не только создавались
 уникальными для каждого проекта, но и автоматически сохраняли свое
@@ -2552,6 +2552,19 @@ stays on current"
 (setq my/scratch-dir (concat user-emacs-directory ".cache/scratches"))
 (make-directory my/scratch-dir t)
 #+end_src
+
+ Создаем суффикс для имени буфера. Если активен проект - будет имя
+ проекта, иначе имя рабочего пространства.
+
+ #+begin_src emacs-lisp :tangle yes
+(defun my/--make-buffer-suffix ()
+    (let* ((project-path (projectile-project-root))
+           (persp-name (my/--get-current-persp-name))
+           (name (if project-path
+                     (concat "PROJ-" (my/make-project-name project-path))
+                     persp-name)))
+        name))
+ #+end_src
 
 Теперь сама функция. Она принимает на вход имя буфера и какой-либо
 идентификатор, по которому строится имя файла для автосохранения.
@@ -2591,13 +2604,9 @@ scratch-буфера (на замену стандартному "*scratch*").
 #+begin_src emacs-lisp :tangle yes
 (defun my/make-scratch-perspective ()
     (interactive)
-    (let* ((project-path (projectile-project-root))
-           (persp-name (my/--get-current-persp-name))
-           (id (or project-path
-                   persp-name))
-           (name (if project-path
-                     (concat "PROJ-" (my/make-project-name project-path))
-                     persp-name))
+    (let* ((name (my/--make-buffer-suffix))
+           (id (or (projectile-project-root)
+                   (my/--get-current-persp-name)))
            (buffer (my/scratch-buffer-create name id)))
         (pop-to-buffer buffer)
         buffer))
@@ -5414,8 +5423,8 @@ node.
             (concat "[" branch "]"))))
 #+end_src
 
-Вызов терминала eshell.  Терминал создается по возможности свой для
-каждого рабочего пространства.  Если буфер с таким терминалом уже
+Вызов терминала eshell. Терминал создается по возможности свой для
+каждого рабочего пространства. Если буфер с таким терминалом уже
 создан, то он показывается в окне или окно с таким терминалом
 скрывается.
 
@@ -5423,7 +5432,7 @@ node.
 (defun my/popup-eshell-toggle ()
     (interactive)
     (let* ((buffer-name (format "*eshell-popup:%s*"
-                                (my/--get-current-persp-name)))
+                                (my/--make-buffer-suffix)))
            (buffer (get-buffer buffer-name))
            (window))
         (unless buffer
@@ -5456,9 +5465,8 @@ node.
 (defun my/popup-shell-toggle ()
     (interactive)
     (let* ((buffer-name (format "*shell-popup:%s*"
-                                (my/--get-current-persp-name)))
-           (buffer (get-buffer buffer-name))
-           (window))
+                                (my/--make-buffer-suffix)))
+           (buffer (get-buffer buffer-name)))
         (if buffer
             (pop-to-buffer buffer)
             (setq buffer (get-buffer-create buffer-name))
@@ -5485,8 +5493,8 @@ node.
     :ensure t)
 #+end_src
 
-Вызов терминала vterm.  Терминал создается по возможности свой для
-каждого рабочего пространства.  Если буфер с таким терминалом уже
+Вызов терминала vterm. Терминал создается по возможности свой для
+каждого рабочего пространства. Если буфер с таким терминалом уже
 создан, то он показывается в окне или окно с таким терминалом
 скрывается.
 
@@ -5500,7 +5508,7 @@ node.
 
 (defun my/--get-vterm-buffer-create ()
     (let* ((buffer-name (format "*vterm-popup:%s*"
-                                (my/--get-current-persp-name)))
+                                (my/--make-buffer-suffix)))
            (buffer (get-buffer buffer-name))
            (window))
         (unless buffer
