@@ -5725,6 +5725,17 @@ treemacs при показе текущего файла в дереве про�
     "g n" #'vc-annotate)
 #+end_src
 
+Клавиши с цифрами из magit-diff мешают Evil, к тому же имеют дубль с
+Alt. Отменим их, а заодно освободим клавиши движения "h" и "l".
+
+#+begin_src emacs-lisp :tangle yes
+(when my/evil
+    (mapc (lambda (key)
+              (define-key magit-diff-mode-map (kbd key) nil))
+          '("0" "1" "2" "3" "4" "5" "6" "7" "8" "9"
+            "h" "l")))
+#+end_src
+
 ** Подсветка разницы с HEAD в каждой строке (git-gutter)
 
 Метки строк по состоянию в Git добавим через пакет =Git-gutter=.
@@ -6486,6 +6497,11 @@ running". Простые перезагрузки LSP-сервера не пом
 (defun my/--lsp-reset-session-cache ()
     (when (boundp 'lsp--session)
         (setq lsp--session nil)))
+
+(defun my/lsp ()
+    (interactive)
+    (my/--lsp-reset-session-cache)
+    (lsp))
 #+end_src
 
 И горячие клавиши для работ
@@ -6494,6 +6510,7 @@ running". Простые перезагрузки LSP-сервера не пом
 (my/leader-def nil 'override
                "c l" '(:ignore t :which-key "LSP utils")
                "c l l" '(lsp :which-key "Run LSP server")
+               "c l L" '(my/lsp :which-key "Run LSP server, clear cache")
                "c l s" '(my/lsp-shutdown-workspace :which-key "Shutdown LSP workspace")
                "c l r" '(my/lsp-restart :which-key "Restart LSP workspace"))
 #+end_src
