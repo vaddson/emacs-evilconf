@@ -2840,11 +2840,12 @@ dired-окне. Для этого надо установить соответс
                   (string> (car pair1) (car pair2))))))
 #+end_src
 
-Теперь будем выбирать, какую историю показывать: файлов или директорий?
-Заведем соответствующую переключалку.
+Теперь будем выбирать, какую историю показывать: файлов или
+директорий?  Заведем соответствующую переключалку. На практике нужной
+оказалась история директорий, а история файлов почти не используется.
 
 #+begin_src emacs-lisp :tangle yes
-(defvar my/fd-saving-history 'files)
+(defvar my/fd-saving-history 'directories)
 
 (defun my/fd-saving-history (&optional ARG)
     "Select mode for show siving history.
