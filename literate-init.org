@@ -6143,7 +6143,7 @@ emacsclient.
 (defun my/emacsclient-calculator ()
     (interactive)
     (my/prepare-windows-in-new-frame 'charge)
-    (let* ((name "Bookmarks"))
+    (let* ((name "Calculator"))
         (my/set-title-bar-and-workspace-interactive name)
         (my/calculator-python-open (selected-frame))))
 #+end_src
