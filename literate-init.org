@@ -5759,15 +5759,43 @@ treemacs при показе текущего файла в дереве про�
     "g n" #'vc-annotate)
 #+end_src
 
-Клавиши с цифрами из magit-diff мешают Evil, к тому же имеют дубль с
-Alt. Отменим их, а заодно освободим клавиши движения "h" и "l".
+Клавиши с цифрами из ~magit-...-mode~ мешают Evil, к тому же имеют дубль с
+Alt. Отменим их, а заодно освободим клавиши движения "h", "j", "k" и "l".
 
 #+begin_src emacs-lisp :tangle yes
-(when my/evil
+(defun my/magit--restore-evil-keys (mode-map)
     (mapc (lambda (key)
-              (define-key magit-diff-mode-map (kbd key) nil))
+              (define-key mode-map (kbd key) nil))
           '("0" "1" "2" "3" "4" "5" "6" "7" "8" "9"
-            "h" "l")))
+            "$"
+            "h" "j" "k" "l")))
+
+(when my/evil
+    (mapc 'my/magit--restore-evil-keys
+          (list magit-blame-mode-map
+                magit-blame-read-only-mode-map
+                magit-blob-mode-map
+                magit-cherry-mode-map
+                magit-diff-mode-map
+                magit-gitflow-mode-map
+                magit-log-mode-map
+                magit-log-select-mode-map
+                magit-merge-preview-mode-map
+                magit-mode-map
+                magit-popup-help-mode-map
+                magit-popup-mode-map
+                magit-process-mode-map
+                magit-reflog-mode-map
+                magit-refs-mode-map
+                magit-repolist-mode-map
+                magit-revision-mode-map
+                magit-section-mode-map
+                magit-stashes-mode-map
+                magit-stash-mode-map
+                magit-status-mode-map
+                magit-submodule-list-mode-map
+                magit-todos-list-mode-map
+                )))
 #+end_src
 
 ** Подсветка разницы с HEAD в каждой строке (git-gutter)
