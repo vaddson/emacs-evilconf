@@ -593,9 +593,9 @@ email clients, file templates and snippets."
 3. 6.193 = 1920 / 310 -- 14", округляем до 6.
 
 #+begin_src emacs-lisp :tangle yes
-(setq my/font-families '((:family "JetBrains Mono" :size-dec 8 :size 9 :size-inc 10)
-                         (:family "Liberation Mono" :size-dec 8 :size 9 :size-inc 10)
-                         (:family "Monospace" :size-dec 8 :size 9 :size-inc 10)))
+(setq my/font-families '((:family "JetBrains Mono" :size-dec 8 :size 9 :size-inc 13)
+                         (:family "Liberation Mono" :size-dec 8 :size 9 :size-inc 13)
+                         (:family "Monospace" :size-dec 8 :size 9 :size-inc 13)))
 #+end_src
 
 Теперь напишем подстраховку на наличие в системе шрифтов.  Работать это
@@ -1124,7 +1124,7 @@ Find application name in my/application-name variable."
 три).
 
 #+begin_src emacs-lisp :tangle yes
-(setq display-line-numbers-width 4)
+(setq-default display-line-numbers-width 4)
 #+end_src
 
 Зададим в переменной нумерацию строк по-умолчанию.
@@ -4691,10 +4691,22 @@ shows it in message and put the result into registers `\"' and `t'."
 * Org-roam
 ** Установка
 
-Загрузка пакета и начальная инициализация.
+Боремся с рассинхроном пакетов при их обновлении.
 
 #+begin_src emacs-lisp :tangle yes
 (provide 'seq-25)
+
+(use-package emacsql
+    :ensure t
+    :quelpa
+    (emacsql :fetcher github
+             :repo "magit/emacsql"
+             :commit "73b9dd0c70f381aee2da8c8b27f79019aa80dcae"))
+#+end_src
+
+Загрузка пакета и начальная инициализация.
+
+#+begin_src emacs-lisp :tangle yes
 (use-package org-roam
     :ensure t
     :init
@@ -6285,6 +6297,12 @@ emacsclient.
     )
 #+end_src
 
+Исправляем баг с lsp-terraform.
+
+#+begin_src emacs-lisp :tangle yes
+(delete 'lsp-terraform lsp-client-packages)
+#+end_src
+
 На странице пакета рекомендуют загрузить следующие пакеты:
 - [[https://emacs-lsp.github.io/lsp-ui/#intro][lsp-ui]]        - for fancy sideline, popup documentation, VScode-like peek UI, etc.
 - [[https://github.com/flycheck/flycheck][flycheck]]      - if you prefer the more popular flycheck over renewed flymake. lsp-mode will automatically pick it up.
@@ -7732,9 +7750,9 @@ LSP-сервер будет работать так же, как на локал
 Если скрипт ниже не сработает, при запуске LSP-сервера Emacs спросит
 установить =jdtls=. Соглашаемся.
 
-#+begin_src emacs-lisp :tangle yes
-(lsp-ensure-server 'jdtls)
-#+end_src
+# #+begin_src emacs-lisp :tangle yes
+# (lsp-ensure-server 'jdtls)
+# #+end_src
 
 Еще нужна работа с gradle-файлами.
 
