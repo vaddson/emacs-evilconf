@@ -593,9 +593,9 @@ email clients, file templates and snippets."
 3. 6.193 = 1920 / 310 -- 14", округляем до 6.
 
 #+begin_src emacs-lisp :tangle yes
-(setq my/font-families '((:family "JetBrains Mono" :size-dec 8 :size 9 :size-inc 13)
-                         (:family "Liberation Mono" :size-dec 8 :size 9 :size-inc 13)
-                         (:family "Monospace" :size-dec 8 :size 9 :size-inc 13)))
+(setq my/font-families '((:family "JetBrains Mono" :size-dec 8 :size 9 :size-inc 10 :size-hug 13)
+                         (:family "Liberation Mono" :size-dec 8 :size 9 :size-inc 10 :size-hug 13)
+                         (:family "Monospace" :size-dec 8 :size 9 :size-inc 10 :size-hug 13)))
 #+end_src
 
 Теперь напишем подстраховку на наличие в системе шрифтов.  Работать это
@@ -607,7 +607,8 @@ email clients, file templates and snippets."
 (setq my/frame-font-families nil
       my/global-font-dec nil
       my/global-font nil
-      my/global-font-inc nil)
+      my/global-font-inc nil
+      my/global-font-hug nil)
 
 (defun my/ensure-fonts (&optional frame)
     (unless my/frame-font-families
@@ -617,11 +618,13 @@ email clients, file templates and snippets."
                 (let ((family (plist-get row :family))
                       (size-dec (plist-get row :size-dec))
                       (size (plist-get row :size))
-                      (size-inc (plist-get row :size-inc)))
+                      (size-inc (plist-get row :size-inc))
+                      (size-hug (plist-get row :size-hug)))
                     (when (member family my/frame-font-families)
                         (setq my/global-font-dec (format "%s-%s" family size-dec)
                               my/global-font (format "%s-%s" family size)
-                              my/global-font-inc (format "%s-%s" family size-inc))
+                              my/global-font-inc (format "%s-%s" family size-inc)
+                              my/global-font-hug (format "%s-%s" family size-hug))
                         (add-to-list 'default-frame-alist `(font . ,my/global-font))
                         (cl-return family)))))))
 #+end_src
@@ -630,14 +633,16 @@ email clients, file templates and snippets."
 зависимости от ширины экрана выбирает один из двух шрифтов.
 
 #+begin_src emacs-lisp :tangle yes
-(defun my/select-frame-font-for-monitor (frame font-dec font font-inc)
+(defun my/select-frame-font-for-monitor (frame font-dec font font-inc font-hug)
     (my/ensure-fonts frame)
-    (when (and font-dec font font-inc)
+    (when (and font-dec font font-inc font-hug)
         (pcase (my/--select-font-size-category frame)
             ('small
              (set-frame-font font-dec t))
             ('big
              (set-frame-font font-inc t))
+            ('hugo
+             (set-frame-font font-hug t))
             (_
              (set-frame-font font t)))))
 
@@ -646,7 +651,8 @@ email clients, file templates and snippets."
            (points (nth 3 (assoc 'workarea monitor-attrs)))
            (mm-width (cl-second (assoc 'mm-size monitor-attrs)))
            (dpmm (if mm-width (/ points (float mm-width)) 5.0)))
-        (cond ((> dpmm 6.0) 'big)
+        (cond ((> dpmm 6.4) 'hugo)
+              ((> dpmm 6.0) 'big)
               ((> dpmm 4.0) 'normal)
               (t 'small))))
 #+end_src
@@ -659,7 +665,8 @@ email clients, file templates and snippets."
     (my/select-frame-font-for-monitor nil
                                       my/global-font-dec
                                       my/global-font
-                                      my/global-font-inc))
+                                      my/global-font-inc
+                                      my/global-font-hug))
 #+end_src
 
 При создании фрейма навесим обработчик этого события, чтобы размер
@@ -672,13 +679,15 @@ email clients, file templates and snippets."
               (my/select-frame-font-for-monitor frame
                                                 my/global-font-dec
                                                 my/global-font
-                                                my/global-font-inc)))
+                                                my/global-font-inc
+                                                my/global-font-hug)))
 (add-hook 'my/server-after-make-frame-hook
           (lambda ()
               (my/select-frame-font-for-monitor nil
                                                 my/global-font-dec
                                                 my/global-font
-                                                my/global-font-inc)))
+                                                my/global-font-inc
+                                                my/global-font-hug)))
 #+end_src
 
 Не всегда получится правильно угадать и выставить шрифт
@@ -691,7 +700,8 @@ email clients, file templates and snippets."
     (my/select-frame-font-for-monitor nil
                                       my/global-font-dec
                                       my/global-font
-                                      my/global-font-inc))
+                                      my/global-font-inc
+                                      my/global-font-hug))
 
 (my/leader-def nil 'override
                "e" '(:ignore t :which-key "env/edit"))
@@ -4695,13 +4705,6 @@ shows it in message and put the result into registers `\"' and `t'."
 
 #+begin_src emacs-lisp :tangle yes
 (provide 'seq-25)
-
-(use-package emacsql
-    :ensure t
-    :quelpa
-    (emacsql :fetcher github
-             :repo "magit/emacsql"
-             :commit "73b9dd0c70f381aee2da8c8b27f79019aa80dcae"))
 #+end_src
 
 Загрузка пакета и начальная инициализация.
@@ -4713,7 +4716,7 @@ shows it in message and put the result into registers `\"' and `t'."
     (setq org-roam-directory (file-truename "~/org/roam/"))
     (mkdir org-roam-directory t)
     (setq org-roam-v2-ack t)
-    (setq org-roam-database-connector 'sqlite)
+    (setq org-roam-database-connector 'sqlite-builtin)
     :config
     (define-key org-roam-preview-map (kbd my/leader) nil)
     (define-key org-roam-node-map (kbd my/leader) nil)
