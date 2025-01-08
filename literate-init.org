@@ -6598,6 +6598,23 @@ running". Простые перезагрузки LSP-сервера не пом
                "c l r" '(my/lsp-restart :which-key "Restart LSP workspace"))
 #+end_src
 
+** Copilot
+
+С некоторых пор в lsp появился пакет lsp-copilot, который пока мешает,
+нежели чем помогает. Поэтому попробуем пока отключить его.
+
+Способ 1 (не сработал).
+
+#+begin_src emacs-lisp :tangle yes
+(setq lsp-copilot-enabled nil)
+#+end_src
+
+Способ 2 (сработал).
+
+#+begin_src emacs-lisp :tangle yes
+(delete 'lsp-copilot lsp-client-packages)
+#+end_src
+
 * Tree-sitter
 
 ** Tree-sitter. Установка и общие настройки
