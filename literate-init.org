@@ -1507,6 +1507,33 @@ prog-mode, поэтому делаем свою функцию проверки 
 (global-set-key (kbd "C-c y") #'yank-from-kill-ring)
 #+end_src
 
+** Контекстное меню по правой клавише мыши
+
+Сделаем привычное контекстное меню по правой клавише мыши.
+
+#+begin_src emacs-lisp :tangle yes
+(global-set-key [mouse-3]
+                (lambda ()
+                    (interactive)
+                    (unless (use-region-p)
+                        (mouse-set-point last-input-event)
+                        (redisplay t))
+                    (context-menu-open)))
+#+end_src
+
+** Выделение. Прямоугольная область выделения по Ctrl и клавише мышки
+
+В cua-mode по-умолчанию текст выделяется через Shift со стрелками.
+
+Сделаем прямоугольное выделение по Ctrl с левой клавишей мышки.
+
+Сочетание =Ctrl-x пробел= по-прежнему включает начало прямоугольного
+выделения, если нужно выделять клавишами.
+
+#+begin_src emacs-lisp :tangle yes
+(global-set-key [C-down-mouse-1] #'mouse-drag-region-rectangle)
+#+end_src
+
 * Подсказки, выпадашки, автодополнения
 
 ** Ivy - меню с поиском по частичному совпадению
@@ -5811,6 +5838,26 @@ Alt. Отменим их, а заодно освободим клавиши дв
                 magit-submodule-list-mode-map
                 magit-todos-list-mode-map
                 )))
+#+end_src
+
+** Git-timemachine
+
+Пакет позволяет листать открытый файл по ревизиям.
+
+#+begin_src emacs-lisp :tangle yes
+(use-package git-timemachine
+    :ensure t)
+#+end_src
+
+Горячие клавиши. Из них предопределены:
+- Ctrl-k - git-timemachine-show-previous-revision
+- Ctrl-j - git-timemachine-show-next-revision
+Нужно лишь переключиться в режим через функцию:
+: git-timemachine-toggle
+
+#+begin_src emacs-lisp :tangle yes
+(my/leader-def nil 'override
+               "g t" 'git-timemachine-toggle)
 #+end_src
 
 ** Подсветка разницы с HEAD в каждой строке (git-gutter)
