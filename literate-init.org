@@ -1035,6 +1035,17 @@ Find application name in my/application-name variable."
 
 * Редактирование текста и интерфейс к нему
 
+** Follow-mode - просматриваем непрерывный текст в нескольких буферах
+
+Длинный текст можно центрировать в окне, а можно разделить окно и
+просматривать непрерывно текст в получившихся разных буферах.
+
+Повесим включение follow-mode на горячие клавиши.
+
+#+begin_src emacs-lisp :tangle yes
+(my/leader-def nil 'override "e f" 'follow-mode)
+#+end_src
+
 ** Отмена изменений на основе дерева (undo-tree)
 
 Очень удобное окошко с деревом изменений по буферу.
@@ -6037,6 +6048,51 @@ man-страниц.
     :ensure t)
 #+end_src
 
+** Ollama-buddy. Клиент для Ollama
+
+Клиент для Ollama. Сервер для Ollama при этом должен быть
+запущен. Через docker это можно сделать так:
+: docker pull ollama/ollama
+: docker run -d --restart always -v ~/.ollama:/root/.ollama -p 11434:11434 --name ollama ollama/ollama
+Или установив ollama локально, запустить командой:
+: ollama serve
+
+Ссылка на докер с соответствующей информацией:
+- https://hub.docker.com/r/ollama/ollama
+
+Подсказка на старте:
+| Действие                           | Родные  | Свои    |
+|------------------------------------+---------+---------|
+| Ask me anything!                   | C-c C-c | M-RET   |
+| Change model                       | C-c m   | SPC l m |
+| Cancel request                     | C-c k   | SPC l k |
+| Browse prompt history              | M-p/M-n |         |
+| Advanced interface (show all tips) | C-c A   | SPC l A |
+
+Устанавливаем клиента.
+
+#+begin_src emacs-lisp :tangle yes
+(use-package ollama-buddy
+    :ensure t)
+#+end_src
+
+Горячие клавиши.
+
+#+begin_src emacs-lisp :tangle yes
+(my/leader-def nil 'override
+               "l" '(:ignore t :which-key "Ollama")
+               "l l" '(ollama-buddy-menu :which-key "Menu")
+               "l L" '(ollama-buddy-transient-menu :which-key "Transient menu"))
+(my/leader-def nil 'ollama-buddy-mode-map
+               "l m" '(ollama-buddy--swap-model :which-key "Change model")
+               "l k" '(ollama-buddy--cancel-request :which-key "Cancel request")
+               "l A" '(ollama-buddy-toggle-interface-level
+                       :which-key "Advanced interface (show all tips)"))
+(my/evil-define-key nil 'ollama-buddy-mode-map
+                    "M-RET" '(ollama-buddy--send-prompt
+                              :which-key "Ask me anything!"))
+#+end_src
+
 * Инструменты свои
 
 ** Словарик под StarDict
@@ -7809,9 +7865,13 @@ LSP-сервер будет работать так же, как на локал
 
 #+begin_src emacs-lisp :tangle yes
 (use-package lsp-java
-    :ensure t)
+    :ensure t
+    :hook ((java-mode java-ts-mode) . lsp)
+    :config
+    (when (member 'lsp-java-boot features)
+        (require 'lsp-java-boot)))
 
-(add-hook 'java-mode-hook #'lsp)
+;; (add-hook 'java-mode-hook #'lsp)
 #+end_src
 
 Если скрипт ниже не сработает, при запуске LSP-сервера Emacs спросит
@@ -7847,20 +7907,25 @@ LSP-сервер будет работать так же, как на локал
 (my/--register-org-babel 'java)
 #+end_src
 
-** COMMENT Java. Spring Boot
+** Java. Spring Boot
+
+/Пока не работает поддержка Spring Boot./
 
 Чтобы установить Spring Boot, вводим следующие команды:
 : curl -s "https://get.sdkman.io" | bash
 : sdk install springboot
 Пакет появится по пути: [[~/.sdkman/candidates/springboot/current/]].
 
-Добавляем поддержку Spring Boot.
-(Надо еще как-то поставить STS4.)
+(Надо еще как-то поставить STS4 - Spring Tool Suite. Как сказано тут,
+он должен подтянуться при установке lsp-сервера jdtls.)
+: yay -S spring-tool-suite
 
 #+begin_src emacs-lisp :tangle yes
 ;; (require 'jsp-java-boot)
-(add-hook 'lsp-mode-hook #'lsp-lens-mode)
-(add-hook 'java-mode-hook #'lsp-java-boot-lens-mode)
+(use-package lsp-java
+    :hook ((lsp-mode-hook . lsp-lens-mode)
+           ((java-mode java-ts-mode) . lsp-deferred)
+           ((java-mode java-ts-mode) . lsp-java-boot-lens-mode)))
 #+end_src
 
 ** JavaScript/TypeScript
@@ -7990,5 +8055,5 @@ lsp-сервера.
         ;; projectile-mode  ;; Название текущего проекта (длинновато).
         ))
 
-(diminish 'lsp-mode " LSP")  ;; Сокращаем длинный текст.
+;; (diminish 'lsp-mode " LSP")  ;; Сокращаем длинный текст.
 #+end_src
