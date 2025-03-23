@@ -1101,7 +1101,7 @@ Find application name in my/application-name variable."
 #+begin_src emacs-lisp :tangle yes
 (setq scroll-step 1
       scroll-preserve-screen-position t  ;; nil
-      scroll-margin 0  ;; 0
+      scroll-margin (if (>= emacs-major-version 30) 1 0)  ;; 0
       scroll-conservatively 10000  ;; 0
       maximum-scroll-margin 0.0  ;; 0.25
       scroll-up-aggressively 0.0   ;; nil
@@ -6060,16 +6060,32 @@ man-страниц.
 Ссылка на докер с соответствующей информацией:
 - https://hub.docker.com/r/ollama/ollama
 
-Подсказка на старте:
-| Действие                           | Родные  | Свои    |
-|------------------------------------+---------+---------|
-| Ask me anything!                   | C-c C-c | M-RET   |
-| Change model                       | C-c m   | SPC l m |
-| Cancel request                     | C-c k   | SPC l k |
-| Browse prompt history              | M-p/M-n |         |
-| Advanced interface (show all tips) | C-c A   | SPC l A |
+Сокращенная подсказка на старте:
+| Действие                           | Родные  | Свои               |
+|------------------------------------+---------+--------------------|
+| Ask me anything!                   | C-c C-c | M-RET              |
+| Change model                       | C-c m   | SPC l m m          |
+| Cancel request                     | C-c k   | SPC l k, SPC l m k |
+| Browse prompt history              | M-p/M-n |                    |
+| Advanced interface (show all tips) | C-c A   | SPC l A            |
+
+Полная подсказка:
 
 Устанавливаем клиента.
+| Действие                            | Родные                | Свои               |
+|-------------------------------------+-----------------------+--------------------|
+| Ask me anything!                    | C-c C-c               | M-RET              |
+| Show Help/Token-usage/System-prompt | C-c h/U/C-s           | SPC l v h/U/S      |
+| Model Change/Info/Cancel            | C-c m/i/k             | SPC l m m/i/k      |
+| Cancel request                      | C-c k                 | SPC l k, SPC l m k |
+| Prompt history                      | M-p/M-n               |                    |
+| Session New/Load/Save/List/Delete   | C-c N/L/S/Q/Z         | SPC l s N/L/S/Q/Z  |
+| History Toggle/Clear/Show/Edit      | C-c H/X/V/E           | SCP l h H/X/V/E    |
+| Prompt to multiple models           | C-c M                 | SPC l M            |
+| Parameter Edit/Show/Help/Reset      | C-c P/G/I/K           | SPC l p P/G/I/K    |
+| System Prompt/Clear                 | C-u/+C-u +C-u C-c C-c | SPC l y p/c        |
+| Toggle JSON/Token/Params/Format     | C-c D/T/F/C-o         | SPC l t D/T/F/O    |
+| Basic interface (simpler display)   | C-c A                 | SPC l A            |
 
 #+begin_src emacs-lisp :tangle yes
 (use-package ollama-buddy
@@ -6084,13 +6100,49 @@ man-страниц.
                "l l" '(ollama-buddy-menu :which-key "Menu")
                "l L" '(ollama-buddy-transient-menu :which-key "Transient menu"))
 (my/leader-def nil 'ollama-buddy-mode-map
-               "l m" '(ollama-buddy--swap-model :which-key "Change model")
-               "l k" '(ollama-buddy--cancel-request :which-key "Cancel request")
                "l A" '(ollama-buddy-toggle-interface-level
-                       :which-key "Advanced interface (show all tips)"))
+                       :which-key "Toggle interface (basic/advance)")
+               "l M" '(ollama-buddy--multishot-prompt
+                       :which-key "Prompt to multiple models")
+               "l v" '(:ignore t :which-key "Show")
+               "l v h" '(ollama-buddy--menu-help-assistant :which-key "Help")
+               "l v U" '(ollama-buddy-display-token-stats :which-key "Token-usage")
+               "l v S" '(ollama-buddy-show-system-prompt :which-key "System-prompt")
+               "l m" '(:ignore t :which-key "Model")
+               "l m m" '(ollama-buddy--swap-model :which-key "Change model")
+               "l m k" '(ollama-buddy--cancel-request :which-key "Cancel request")
+               "l k" '(ollama-buddy--cancel-request :which-key "Cancel request")
+               "l s" '(:ignore t :which-key "Session")
+               "l s N" '(ollama-buddy-sessions-new :which-key "New")
+               "l s L" '(ollama-buddy-sessions-load :which-key "Load")
+               "l s S" '(ollama-buddy-sessions-save :which-key "Save")
+               "l s Q" '(ollama-buddy-sessions-list :which-key "List")
+               "l s Z" '(ollama-buddy-sessions-delete :which-key "Delete")
+               "l h" '(:ignore t :which-key "History")
+               "l h H" '(ollama-buddy-toggle-history :which-key "Toggle")
+               "l h X" '(ollama-buddy-clear-history :which-key "Clear")
+               "l h V" '(ollama-buddy-display-history :which-key "Show")
+               "l h E" '(ollama-buddy-history-edit :which-key "Edit")
+               "l p" '(:ignore t :which-key "Parameter")
+               "l p P" '(my/ollama-buddy-params-edit :which-key "Edit")
+               "l p G" '(ollama-buddy-params-display :which-key "Show")
+               "l p I" '(ollama-buddy-params-help :which-key "Help")
+               "l p K" '(ollama-buddy-params-reset :which-key "Reset")
+               "l y" '(:ignore t :which-key "System")
+               "l y p" '(ollama-buddy-set-system-prompt :which-key "Prompt (set)")
+               "l y c" '(ollama-buddy-reset-system-prompt :which-key "Clear (reset)")
+               "l t" '(:ignore t :which-key "Toggle")
+               "l t D" '(ollama-buddy-toggle-debug-mode :which-key "JSON")
+               "l t T" '(ollama-buddy-toggle-token-display :which-key "Token")
+               "l t F" '(evil-find-char-backward :which-key "Params")
+               "l t O" '(ollama-buddy-toggle-markdown-conversion :which-key "Format"))
 (my/evil-define-key nil 'ollama-buddy-mode-map
                     "M-RET" '(ollama-buddy--send-prompt
                               :which-key "Ask me anything!"))
+
+(defun my/ollama-buddy-params-edit ()
+    (interactive)
+    (call-interactively (keymap-lookup ollama-buddy-mode-map "C-c P")))
 #+end_src
 
 * Инструменты свои
