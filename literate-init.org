@@ -1542,15 +1542,31 @@ prog-mode, поэтому делаем свою функцию проверки 
 
 ** Выделение. Прямоугольная область выделения по Ctrl и клавише мышки
 
-В cua-mode по-умолчанию текст выделяется через Shift со стрелками.
-
 Сделаем прямоугольное выделение по Ctrl с левой клавишей мышки.
 
 Сочетание =Ctrl-x пробел= по-прежнему включает начало прямоугольного
 выделения, если нужно выделять клавишами.
 
+(Почти работает в normal режиме.)
+
 #+begin_src emacs-lisp :tangle yes
-(global-set-key [C-down-mouse-1] #'mouse-drag-region-rectangle)
+(if (not my/evil)
+    (progn
+        (global-set-key [C-down-mouse-1] #'mouse-drag-region-rectangle))
+    (progn
+        (defun my/mouse-start-rectangle (start-event)
+            (interactive "e")
+            (deactivate-mark)
+            (mouse-set-point start-event)
+            (rectangle-mark-mode +1)
+            (let ((drag-event))
+                (track-mouse
+                    (while (progn
+                               (setq drag-event (read-event))
+                               (mouse-movement-p drag-event))
+                        (mouse-set-point drag-event)))))
+
+        (global-set-key (kbd "C-<down-mouse-1>") #'my/mouse-start-rectangle)))
 #+end_src
 
 * Подсказки, выпадашки, автодополнения
@@ -2225,7 +2241,7 @@ Imenu - дает не только удобный способ навигаци�
 (my/leader-def nil 'override
     "w p" '(:ignore 1 :which-key "Position of windows")
     "w p s" '(window-configuration-to-register :which-key "Save to register")
-    "w p r" '(jump-to-register :which-key "Restore from register"))
+    "w p l" '(jump-to-register :which-key "Restore from register"))
 #+end_src
 
 ** Нумерация окон
