@@ -7985,8 +7985,6 @@ LSP-сервер будет работать так же, как на локал
 
 ** Java. Spring Boot
 
-/Пока не работает поддержка Spring Boot./
-
 Чтобы установить Spring Boot, вводим следующие команды:
 : curl -s "https://get.sdkman.io" | bash
 : sdk install springboot
