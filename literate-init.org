@@ -6997,6 +6997,34 @@ sudo apt install retext
 
 #+end_src
 
+** CSV и TSV
+
+Режим для работы с CSV-файлами. Определяет правильно поля и колонки,
+перемещается по ним через TAB и S-TAB. Умеет сортировать по колонкам и
+т.п..
+
+Подцепляет также работу с TSV.
+
+#+begin_src emacs-lisp :tangle yes
+(use-package csv-mode
+    :ensure t
+    :hook (csv-mode . csv-guess-set-separator))
+#+end_src
+
+Горячие клавиши.
+
+#+begin_src emacs-lisp :tangle yes
+(my/localleader-def nil 'csv-mode-map
+                    "s" '(csv-sort-fields :which-key "csv-sort-fields")
+                    "n" 'csv-sort-numeric-fields
+                    "r" 'csv-reverse-region
+                    "k" 'csv-kill-fields
+                    "y" 'csv-yank-fields
+                    "a" 'csv-align-fields
+                    "u" 'csv-unalign-fields
+                    "t" 'csv-transpose)
+#+end_src
+
 ** PDF
 
 Позволяет просматривать PDF'ки и делать аннотации, просматривать их и
