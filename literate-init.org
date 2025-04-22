@@ -2652,9 +2652,9 @@ stays on current"
 #+begin_src emacs-lisp :tangle yes
 (defun my/scratch-buffer-create (name id)
     (let* ((buffer-name (format "*scratch:%s*" name))
-           (file-name (expand-file-name (file-name-concat my/scratch-dir "/"
-                                                          (md5 (format "%s" id))
-                                                          ".txt")))
+           (file-name (expand-file-name
+                       (file-name-concat my/scratch-dir
+                                         (concat (md5 (format "%s" id)) ".txt"))))
            (buffer (get-buffer buffer-name)))
         (unless buffer
             (setq buffer (get-buffer-create buffer-name))
