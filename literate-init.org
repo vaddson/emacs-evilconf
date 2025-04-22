@@ -2849,10 +2849,13 @@ dired-окне. Для этого надо установить соответс
 
 #+begin_src emacs-lisp :tangle yes
 (defun my/files-history-save-file ()
-    (file-name-concat user-emacs-directory
-                      "files-saving-history-"
-                      (if (bound-and-true-p server-name) server-name "server")
-                      ".el"))
+    (expand-file-name
+     (file-name-concat user-emacs-directory
+                       (concat "files-saving-history-"
+                               (if (bound-and-true-p server-name)
+                                   server-name
+                                   "server")
+                               ".el"))))
 #+end_src
 
 Создадим хэш-таблицу сохраненных файлов: имя-файла - время сохранения.
