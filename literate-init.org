@@ -6580,7 +6580,7 @@ JSON-ответа от API.
 #+begin_src emacs-lisp :tangle yes
 (defun my/gptel-gigachat-access-token ()
     (let* ((token-struct my/gptel-gigachat-access-token-struct)
-           (now-time (truncate (float-time)))
+           (now-time (truncate (* 1000.0 (float-time))))
            (expires-at (alist-get 'expires_at token-struct 0))
            (valid-p (> expires-at now-time)))
         (unless valid-p
