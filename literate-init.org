@@ -219,10 +219,10 @@
   - [[#tldr-примеры-запуска-утилит-из-командной-строки][Tldr. Примеры запуска утилит из командной строки]]
 - [[#llm-всевозможные-клиенты][LLM. Всевозможные клиенты]]
   - [[#общие-клавиши][Общие клавиши]]
-  - [[#ollama-buddy-клиент-для-ollama][Ollama-buddy. Клиент для Ollama]]
-  - [[#gptel-a-simple-llm-client-for-emacs][Gptel (a simple LLM client for Emacs)]]
-  - [[#gptel-подключаем-deepseek][Gptel. Подключаем DeepSeek]]
-  - [[#gptel-подключаем-gigachat][Gptel. Подключаем GigaChat]]
+  - [[#ollama-buddy-клиент-для-ollama][Ollama-buddy (клиент для Ollama)]]
+  - [[#gptel-простой-llm-клиент-для-emacs][GPTel (простой LLM-клиент для Emacs)]]
+  - [[#gptel-подключаем-deepseek][GPTel. Подключаем DeepSeek]]
+  - [[#gptel-подключаем-gigachat][GPTel. Подключаем GigaChat]]
 - [[#инструменты-свои][Инструменты свои]]
   - [[#словарик-под-stardict][Словарик под StarDict]]
   - [[#калькулятор-на-python][Калькулятор на Python]]
@@ -6379,7 +6379,7 @@ man-страниц.
                "l" '(:ignore t :which-key "LLM"))
  #+end_src
 
-** Ollama-buddy. Клиент для Ollama
+** Ollama-buddy (клиент для Ollama)
 
 Клиент для Ollama. Сервер для Ollama при этом должен быть
 запущен. Через docker это можно сделать так:
@@ -6476,13 +6476,15 @@ man-страниц.
     (call-interactively (keymap-lookup ollama-buddy-mode-map "C-c P")))
 #+end_src
 
-** Gptel (a simple LLM client for Emacs)
+** GPTel (простой LLM-клиент для Emacs)
+
+Работает с кучей API от разных LLM'ок, включая и Ollama.
 
 Ссылки на страницы инструментов:
-- GitHub: [[https://github.com/deepseek-ai/awesome-deepseek-integration?tab=readme-ov-file#table-of-contents][deepseek-ai / awesome-deepseek-integration]]
 - GitHub: [[https://github.com/karthink/gptel?tab=readme-ov-file#usage][karthink / gptel]]
 - GitHub: [[https://github.com/ultronozm/ai-org-chat.el][ultronozm / ai-org-chat.el]]
 - GitHub: [[https://github.com/milanglacier/minuet-ai.el][milanglacier / minuet-ai.el]]
+- GitHub: [[https://github.com/deepseek-ai/awesome-deepseek-integration?tab=readme-ov-file#table-of-contents][deepseek-ai / awesome-deepseek-integration]]
 
 Устанавливаем пакет и делаем по умолчанию режим org-mode в окне
 диалога. В целом, окно диалога и не нужно, достаточно выделить текст и
@@ -6507,7 +6509,7 @@ man-страниц.
                "l g r" '(gptel-rewrite :which-key "Rewrite"))
 #+end_src
 
-** Gptel. Подключаем DeepSeek
+** GPTel. Подключаем DeepSeek
 
 Через customize устанавливаем API ключ DeepSeek в переменную
 my/deepseek-api-key.
@@ -6522,7 +6524,7 @@ my/deepseek-api-key.
              my/deepseek-api-key))
 #+end_src
 
-** Gptel. Подключаем GigaChat
+** GPTel. Подключаем GigaChat
 
 *** Материалы (только информация и ссылки)
 
@@ -6674,9 +6676,6 @@ gptel-make-deepseek.
 my/gptel-gigachat-access-token.
 
 #+begin_src emacs-lisp :tangle yes
-(defcustom my/gigachat-access-token "Your access token"
-  "Your access token.")
-
 (setq gptel-use-curl nil  ;; Only for GigaChat.
       gptel-model 'GigaChat
       gptel-log-level 'info  ;; 'debug
