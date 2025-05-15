@@ -6792,6 +6792,12 @@ emacsclient.
     (gptel-default-mode 'org-mode))
 #+end_src
 
+Общие настройки запроса в LLM (temperature и т.п.).
+
+#+begin_src emacs-lisp :tangle yes
+(setq my/gptel-def-request-params '(:temperature 0.1))
+#+end_src
+
 Беседы с LLM'ками удобно сохранять в org-файлах. После можно открыть
 файл и продолжить беседу. Чтобы не устанавливать каждый раз руками
 gptel-mode, в заголовок файла можно воткнуть команду (gptel-mode) для
@@ -6835,7 +6841,8 @@ my/deepseek-api-key.
 (gptel-make-deepseek "DeepSeek"      ;; Any name you want
     :stream t                        ;; for streaming responses
     :key (lambda ()                  ;; can be a function that returns the key
-             my/deepseek-api-key))
+             my/deepseek-api-key)
+    :request-params my/gptel-def-request-params)
 #+end_src
 
 ** GPTel. Подключаем GigaChat
@@ -7088,21 +7095,7 @@ my/gptel-gigachat-access-token.
                         "GigaChat"
                         :stream t
                         :key 'my/gptel-gigachat-access-token
-                        :models '(GigaChat
-                                  GigaChat-2
-                                  GigaChat-2-Max
-                                  GigaChat-2-Max-preview
-                                  GigaChat-2-Pro
-                                  GigaChat-2-Pro-preview
-                                  GigaChat-2-preview
-                                  GigaChat-Max
-                                  GigaChat-Max-preview
-                                  GigaChat-Plus
-                                  GigaChat-Plus-preview
-                                  GigaChat-Pro
-                                  GigaChat-Pro-preview
-                                  GigaChat-preview)
-                        :request-params '(:temperature 0.1)))
+                        :request-params my/gptel-def-request-params))
 #+end_src
 
 * LSP сервер (vs Eglot)
