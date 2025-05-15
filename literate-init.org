@@ -217,12 +217,6 @@
   - [[#docker][Docker]]
   - [[#календарь-как-его-представление][Календарь, как его представление]]
   - [[#tldr-примеры-запуска-утилит-из-командной-строки][Tldr. Примеры запуска утилит из командной строки]]
-- [[#llm-всевозможные-клиенты][LLM. Всевозможные клиенты]]
-  - [[#общие-клавиши][Общие клавиши]]
-  - [[#ollama-buddy-клиент-для-ollama][Ollama-buddy (клиент для Ollama)]]
-  - [[#gptel-простой-llm-клиент-для-emacs][GPTel (простой LLM-клиент для Emacs)]]
-  - [[#gptel-подключаем-deepseek][GPTel. Подключаем DeepSeek]]
-  - [[#gptel-подключаем-gigachat][GPTel. Подключаем GigaChat]]
 - [[#инструменты-свои][Инструменты свои]]
   - [[#словарик-под-stardict][Словарик под StarDict]]
   - [[#калькулятор-на-python][Калькулятор на Python]]
@@ -233,6 +227,12 @@
 - [[#панель-на-старте-с-логотипом-dashboard][Панель на старте с логотипом (dashboard)]]
   - [[#выбор-случайной-картинки-для-стартового-логотипа][Выбор случайной картинки для стартового логотипа]]
   - [[#настройка-панели][Настройка панели]]
+- [[#llm-всевозможные-клиенты][LLM. Всевозможные клиенты]]
+  - [[#общие-клавиши][Общие клавиши]]
+  - [[#ollama-buddy-клиент-для-ollama][Ollama-buddy (клиент для Ollama)]]
+  - [[#gptel-простой-llm-клиент-для-emacs][GPTel (простой LLM-клиент для Emacs)]]
+  - [[#gptel-подключаем-deepseek][GPTel. Подключаем DeepSeek]]
+  - [[#gptel-подключаем-gigachat][GPTel. Подключаем GigaChat]]
 - [[#lsp-сервер-vs-eglot][LSP сервер (vs Eglot)]]
   - [[#установка-1][Установка]]
   - [[#общие-настройки][Общие настройки]]
@@ -1950,7 +1950,8 @@ prog-mode, поэтому делаем свою функцию проверки 
                "h o" '(counsel-describe-symbol :which-key "Descrive symbol")
                "h t" '(counsel-load-theme :which-key "Load visual theme")
                "h a" '(counsel-apropos :which-key "Apropos")
-               "h m" '(describe-mode :which-key "Describe mode"))
+               "h m" '(describe-mode :which-key "Describe mode")
+               "h i" '(emacs-index-search :which-key "Emacs index search"))
 #+end_src
 
 ** Company. Автодополнения
@@ -6368,326 +6369,6 @@ man-страниц.
     :ensure t)
 #+end_src
 
-* LLM. Всевозможные клиенты
-
-** Общие клавиши
-
-Меню для работы с LLM'ками.
-
- #+begin_src emacs-lisp :tangle yes
-(my/leader-def nil 'override
-               "l" '(:ignore t :which-key "LLM"))
- #+end_src
-
-** Ollama-buddy (клиент для Ollama)
-
-Клиент для Ollama. Сервер для Ollama при этом должен быть
-запущен. Через docker это можно сделать так:
-: docker pull ollama/ollama
-: docker run -d --restart always -v ~/.ollama:/root/.ollama -p 11434:11434 --name ollama ollama/ollama
-Или установив ollama локально, запустить командой:
-: ollama serve
-
-Ссылка на докер с соответствующей информацией:
-- https://hub.docker.com/r/ollama/ollama
-
-Сокращенная подсказка на старте:
-| Действие                           | Родные  | Свои               |
-|------------------------------------+---------+--------------------|
-| Ask me anything!                   | C-c C-c | M-RET              |
-| Change model                       | C-c m   | SPC l m m          |
-| Cancel request                     | C-c k   | SPC l k, SPC l m k |
-| Browse prompt history              | M-p/M-n |                    |
-| Advanced interface (show all tips) | C-c A   | SPC l A            |
-
-Полная подсказка:
-| Действие                            | Родные                | Свои               |
-|-------------------------------------+-----------------------+--------------------|
-| Ask me anything!                    | C-c C-c               | M-RET              |
-| Show Help/Token-usage/System-prompt | C-c h/U/C-s           | SPC l v h/U/S      |
-| Model Change/Info/Cancel            | C-c m/i/k             | SPC l m m/i/k      |
-| Cancel request                      | C-c k                 | SPC l k, SPC l m k |
-| Prompt history                      | M-p/M-n               |                    |
-| Session New/Load/Save/List/Delete   | C-c N/L/S/Q/Z         | SPC l s N/L/S/Q/Z  |
-| History Toggle/Clear/Show/Edit      | C-c H/X/V/E           | SCP l h H/X/V/E    |
-| Prompt to multiple models           | C-c M                 | SPC l M            |
-| Parameter Edit/Show/Help/Reset      | C-c P/G/I/K           | SPC l p P/G/I/K    |
-| System Prompt/Clear                 | C-u/+C-u +C-u C-c C-c | SPC l y p/c        |
-| Toggle JSON/Token/Params/Format     | C-c D/T/F/C-o         | SPC l t D/T/F/O    |
-| Basic interface (simpler display)   | C-c A                 | SPC l A            |
-
-Устанавливаем клиента.
-
-#+begin_src emacs-lisp :tangle yes
-(use-package ollama-buddy
-    :ensure t)
-#+end_src
-
-Горячие клавиши.
-
-#+begin_src emacs-lisp :tangle yes
-(my/leader-def nil 'override
-               "l o" '(:ignore t :which-key "Ollama Buddy")
-               "l o o" '(ollama-buddy-menu :which-key "Ollama Menu")
-               "l o O" '(ollama-buddy-transient-menu :which-key "Ollama Transient menu"))
-(my/leader-def nil 'ollama-buddy-mode-map
-               "l A" '(ollama-buddy-toggle-interface-level
-                       :which-key "Toggle interface (basic/advance)")
-               "l M" '(ollama-buddy--multishot-prompt
-                       :which-key "Prompt to multiple models")
-               "l v" '(:ignore t :which-key "Show")
-               "l v h" '(ollama-buddy--menu-help-assistant :which-key "Help")
-               "l v U" '(ollama-buddy-display-token-stats :which-key "Token-usage")
-               "l v S" '(ollama-buddy-show-system-prompt :which-key "System-prompt")
-               "l m" '(:ignore t :which-key "Model")
-               "l m m" '(ollama-buddy--swap-model :which-key "Change model")
-               "l m k" '(ollama-buddy--cancel-request :which-key "Cancel request")
-               "l k" '(ollama-buddy--cancel-request :which-key "Cancel request")
-               "l s" '(:ignore t :which-key "Session")
-               "l s N" '(ollama-buddy-sessions-new :which-key "New")
-               "l s L" '(ollama-buddy-sessions-load :which-key "Load")
-               "l s S" '(ollama-buddy-sessions-save :which-key "Save")
-               "l s Q" '(ollama-buddy-sessions-list :which-key "List")
-               "l s Z" '(ollama-buddy-sessions-delete :which-key "Delete")
-               "l h" '(:ignore t :which-key "History")
-               "l h H" '(ollama-buddy-toggle-history :which-key "Toggle")
-               "l h X" '(ollama-buddy-clear-history :which-key "Clear")
-               "l h V" '(ollama-buddy-display-history :which-key "Show")
-               "l h E" '(ollama-buddy-history-edit :which-key "Edit")
-               "l p" '(:ignore t :which-key "Parameter")
-               "l p P" '(my/ollama-buddy-params-edit :which-key "Edit")
-               "l p G" '(ollama-buddy-params-display :which-key "Show")
-               "l p I" '(ollama-buddy-params-help :which-key "Help")
-               "l p K" '(ollama-buddy-params-reset :which-key "Reset")
-               "l y" '(:ignore t :which-key "System")
-               "l y p" '(ollama-buddy-set-system-prompt :which-key "Prompt (set)")
-               "l y c" '(ollama-buddy-reset-system-prompt :which-key "Clear (reset)")
-               "l t" '(:ignore t :which-key "Toggle")
-               "l t D" '(ollama-buddy-toggle-debug-mode :which-key "JSON")
-               "l t T" '(ollama-buddy-toggle-token-display :which-key "Token")
-               "l t F" '(evil-find-char-backward :which-key "Params")
-               "l t O" '(ollama-buddy-toggle-markdown-conversion :which-key "Format"))
-(my/evil-define-key nil 'ollama-buddy-mode-map
-                    "M-RET" '(ollama-buddy--send-prompt
-                              :which-key "Ask me anything!"))
-
-(defun my/ollama-buddy-params-edit ()
-    (interactive)
-    (call-interactively (keymap-lookup ollama-buddy-mode-map "C-c P")))
-#+end_src
-
-** GPTel (простой LLM-клиент для Emacs)
-
-Работает с кучей API от разных LLM'ок, включая и Ollama.
-
-Ссылки на страницы инструментов:
-- GitHub: [[https://github.com/karthink/gptel?tab=readme-ov-file#usage][karthink / gptel]]
-- GitHub: [[https://github.com/ultronozm/ai-org-chat.el][ultronozm / ai-org-chat.el]]
-- GitHub: [[https://github.com/milanglacier/minuet-ai.el][milanglacier / minuet-ai.el]]
-- GitHub: [[https://github.com/deepseek-ai/awesome-deepseek-integration?tab=readme-ov-file#table-of-contents][deepseek-ai / awesome-deepseek-integration]]
-
-Устанавливаем пакет и делаем по умолчанию режим org-mode в окне
-диалога. В целом, окно диалога и не нужно, достаточно выделить текст и
-вызвать ~gptel-send~.
-
-#+begin_src emacs-lisp :tangle yes
-(use-package gptel
-    :ensure t
-    :custom
-    (gptel-default-mode 'org-mode))
-#+end_src
-
-Горячие клавиши.
-
-#+begin_src emacs-lisp :tangle yes
-(my/leader-def nil 'override
-               "l g" '(:ignore t :which-key "GPTel client")
-               "l g g" '(gptel :which-key "GPTel buffer")
-               "l g G" '(gptel-menu :which-key "Menu")
-               "l g i" '(gptel-mode :which-key "GPTel minor mode")
-               "l g s" '(gptel-send :which-key "Send request")
-               "l g r" '(gptel-rewrite :which-key "Rewrite"))
-#+end_src
-
-** GPTel. Подключаем DeepSeek
-
-Через customize устанавливаем API ключ DeepSeek в переменную
-my/deepseek-api-key.
-
-#+begin_src emacs-lisp :tangle yes
-(defcustom my/deepseek-api-key "your-api-key"
-  "Deepseek API key.")
-
-(gptel-make-deepseek "DeepSeek"      ;; Any name you want
-    :stream t                        ;; for streaming responses
-    :key (lambda ()                  ;; can be a function that returns the key
-             my/deepseek-api-key))
-#+end_src
-
-** GPTel. Подключаем GigaChat
-
-*** Материалы (только информация и ссылки)
-
-- Сбер.API :: [[https://developers.sber.ru/studio/login][Личный кабинет]]
-  + Здесь можно зарегистрироваться в личном кабинете и создать проект
-    GigaChap API.
-
-- Сбер.API :: [[https://developers.sber.ru/docs/ru/gigachat/individuals-quickstart][Быстрый старт для физических лиц]]
-
-- Сбер.API :: [[https://developers.sber.ru/docs/redirect/?uniq_id=gigaOpenApi][REST. Справочная информация в формате Yaml]]
-
-- Сбер.API :: [[https://developers.sber.ru/docs/redirect/?uniq_id=gigaRpcProto][gRPC. Справочная информация в формате Yaml]]
-
-- Сбер.API :: [[https://developers.sber.ru/docs/ru/gigachat/models][Документация / Разработчикам / Модели GigaChat]]
-
-- GitHub :: [[https://github.com/ai-forever/gigachain][gigachain]]
-
-- Сбер.API :: [[https://developers.sber.ru/docs/ru/gigachat/quickstart/ind-using-api][Документация / Разработчикам / Начало работы с API]]
-  + Здесь можно посмотреть URL'ы для настроек Gtpel.
-    #+begin_src shell :eval no :hidden
-    curl -L -X POST 'https://gigachat.devices.sberbank.ru/api/v1/chat/completions' \
-    -H 'Content-Type: application/json' \
-    -H 'Accept: application/json' \
-    -H 'Authorization: Bearer <токен_доступа>' \
-    --data-raw '{
-      "model": "GigaChat",
-      "messages": [
-        {
-          "role": "user",
-          "content": "Привет! Как дела?"
-        }
-      ],
-      "stream": false,
-      "repetition_penalty": 1
-    }'
-    #+end_src
-
-*** Получение access token
-
-В отличии от представленных в gptel моделей, GigaChat использует
-oauth2. Поэтому перед отправкой запросов в API нужно получить access
-token по API ключу.
-
-Будем хранить данные access token в переменной
-my/gptel-gigachat-access-token-struct. Она содержит структуру из
-JSON-ответа от API.
-
-#+begin_src emacs-lisp :tangle yes
-(setq my/gptel-gigachat-access-token-struct nil)
-#+end_src
-
-Следующая функция проверяет на валидность структуру access token'а
-(наличие и просрочка). Если токен не валиден, он запрашивается в API.
-
-#+begin_src emacs-lisp :tangle yes
-(defun my/gptel-gigachat-access-token ()
-    (let* ((token-struct my/gptel-gigachat-access-token-struct)
-           (now-time (truncate (* 1000.0 (float-time))))
-           (expires-at (alist-get 'expires_at token-struct 0))
-           (valid-p (> expires-at now-time)))
-        (unless valid-p
-            (setq my/gptel-gigachat-access-token-struct
-                  (my/gptel--get-oauth-token-sync)))
-        (alist-get 'access_token my/gptel-gigachat-access-token-struct)))
-#+end_src
-
-Вспомогательная функция. Получает access token из API и время его
-работы.
-
-#+begin_src emacs-lisp :tangle yes
-(defun my/gptel--get-oauth-token-sync ()
-    (let* ((url-request-method "POST")
-           (url-request-extra-headers
-            `(("Content-Type" . "application/x-www-form-urlencoded")
-              ("Accept" . "application/json")
-              ("RqUID" . ,(org-id-uuid))
-              ("Authorization" . ,(concat "Basic " my/gigachat-api-key))))
-           (url-request-data "scope=GIGACHAT_API_PERS")
-           (response-buffer (url-retrieve-synchronously
-                             "https://ngw.devices.sberbank.ru:9443/api/v2/oauth")))
-        (with-current-buffer response-buffer
-            (goto-char (point-min))
-            (search-forward "\n\n" nil t)
-            (let ((json-data (json-read)))
-                (kill-buffer response-buffer)
-                json-data))))
-#+end_src
-
-*** Настройки
-
-Через customize устанавливаем API ключ GigaChat в переменную
-my/gigachat-api-key.
-
-#+begin_src emacs-lisp :tangle yes
-(defcustom my/gigachat-api-key "your-api-key"
-  "GigaChat API key.")
-#+end_src
-
-Создаем структуру под GigaChat. Сделано по образцу кода из пакета
-gptel.
-
-#+begin_src emacs-lisp :tangle yes
-(cl-defstruct (gptel-gigachat (:include gptel-openai)
-                              (:copier nil)
-                              (:constructor gptel--make-gigachat)))
-#+end_src
-
-Подготавливаем функцию инициализации модели по аналогии с
-gptel-make-deepseek.
-
-#+begin_src emacs-lisp :tangle yes
-(cl-defun gptel-make-gigachat
-    (name &key curl-args stream key request-params
-            (header (lambda () (when-let* ((key (gptel--get-api-key)))
-                                   `(("Authorization" . ,(concat "Bearer " key))
-                                     ("Content-Type" . "application/json")
-                                     ("Accept" . "application/json")))))
-            (host "gigachat.devices.sberbank.ru")
-            (protocol "https")
-            (endpoint "/api/v1/chat/completions")
-            (models '((GigaChat
-                       :capabilities (tool reasoning)
-                       :context-window 64
-                       :input-cost 0.55
-                       :output-cost 2.19))))
-    "Register a GigaChat backend for gptel with NAME"
-    (declare (indent 1))
-    (let ((backend (gptel--make-gigachat
-                    :name name
-                    :host host
-                    :header header
-                    :key key
-                    :models (gptel--process-models models)
-                    :protocol protocol
-                    :endpoint endpoint
-                    :stream stream
-                    :request-params request-params
-                    :curl-args curl-args
-                    :url (if protocol
-                             (concat protocol "://" host endpoint)
-                             (concat host endpoint)))))
-        (prog1 backend
-            (setf (alist-get name gptel--known-backends
-                             nil nil #'equal)
-                  backend))))
-#+end_src
-
-Регистрируем модель GigaChat'а. Функция выдачи ключа для запросов -
-my/gptel-gigachat-access-token.
-
-#+begin_src emacs-lisp :tangle yes
-(setq gptel-use-curl nil  ;; Only for GigaChat.
-      gptel-model 'GigaChat
-      gptel-log-level 'info  ;; 'debug
-      gptel-backend (gptel-make-gigachat
-                     "GigaChat"
-                     :stream t
-                     :key 'my/gptel-gigachat-access-token
-                     :models '(GigaChat)
-                     :request-params '(:temperature 0.1)
-                     ))
-#+end_src
-
 * Инструменты свои
 
 ** Словарик под StarDict
@@ -6980,6 +6661,448 @@ emacsclient.
               (format "Change frame title with workspace          %s\n"
                       (my/get-function-key 'my/set-title-bar-and-workspace-interactive))
               ))
+#+end_src
+
+* LLM. Всевозможные клиенты
+
+** Общие клавиши
+
+Меню для работы с LLM'ками.
+
+ #+begin_src emacs-lisp :tangle yes
+(my/leader-def nil 'override
+               "l" '(:ignore t :which-key "LLM"))
+ #+end_src
+
+** Ollama-buddy (клиент для Ollama)
+
+Клиент для Ollama. Сервер для Ollama при этом должен быть
+запущен. Через docker это можно сделать так:
+: docker pull ollama/ollama
+: docker run -d --restart always -v ~/.ollama:/root/.ollama -p 11434:11434 --name ollama ollama/ollama
+Или установив ollama локально, запустить командой:
+: ollama serve
+
+Ссылка на докер с соответствующей информацией:
+- https://hub.docker.com/r/ollama/ollama
+
+Сокращенная подсказка на старте:
+| Действие                           | Родные  | Свои               |
+|------------------------------------+---------+--------------------|
+| Ask me anything!                   | C-c C-c | M-RET              |
+| Change model                       | C-c m   | SPC l m m          |
+| Cancel request                     | C-c k   | SPC l k, SPC l m k |
+| Browse prompt history              | M-p/M-n |                    |
+| Advanced interface (show all tips) | C-c A   | SPC l A            |
+
+Полная подсказка:
+| Действие                            | Родные                | Свои               |
+|-------------------------------------+-----------------------+--------------------|
+| Ask me anything!                    | C-c C-c               | M-RET              |
+| Show Help/Token-usage/System-prompt | C-c h/U/C-s           | SPC l v h/U/S      |
+| Model Change/Info/Cancel            | C-c m/i/k             | SPC l m m/i/k      |
+| Cancel request                      | C-c k                 | SPC l k, SPC l m k |
+| Prompt history                      | M-p/M-n               |                    |
+| Session New/Load/Save/List/Delete   | C-c N/L/S/Q/Z         | SPC l s N/L/S/Q/Z  |
+| History Toggle/Clear/Show/Edit      | C-c H/X/V/E           | SCP l h H/X/V/E    |
+| Prompt to multiple models           | C-c M                 | SPC l M            |
+| Parameter Edit/Show/Help/Reset      | C-c P/G/I/K           | SPC l p P/G/I/K    |
+| System Prompt/Clear                 | C-u/+C-u +C-u C-c C-c | SPC l y p/c        |
+| Toggle JSON/Token/Params/Format     | C-c D/T/F/C-o         | SPC l t D/T/F/O    |
+| Basic interface (simpler display)   | C-c A                 | SPC l A            |
+
+Устанавливаем клиента.
+
+#+begin_src emacs-lisp :tangle yes
+(use-package ollama-buddy
+    :ensure t)
+#+end_src
+
+Горячие клавиши.
+
+#+begin_src emacs-lisp :tangle yes
+(my/leader-def nil 'override
+               "l o" '(:ignore t :which-key "Ollama Buddy")
+               "l o o" '(ollama-buddy-menu :which-key "Ollama Menu")
+               "l o O" '(ollama-buddy-transient-menu :which-key "Ollama Transient menu"))
+(my/leader-def nil 'ollama-buddy-mode-map
+               "l A" '(ollama-buddy-toggle-interface-level
+                       :which-key "Toggle interface (basic/advance)")
+               "l M" '(ollama-buddy--multishot-prompt
+                       :which-key "Prompt to multiple models")
+               "l v" '(:ignore t :which-key "Show")
+               "l v h" '(ollama-buddy--menu-help-assistant :which-key "Help")
+               "l v U" '(ollama-buddy-display-token-stats :which-key "Token-usage")
+               "l v S" '(ollama-buddy-show-system-prompt :which-key "System-prompt")
+               "l m" '(:ignore t :which-key "Model")
+               "l m m" '(ollama-buddy--swap-model :which-key "Change model")
+               "l m k" '(ollama-buddy--cancel-request :which-key "Cancel request")
+               "l k" '(ollama-buddy--cancel-request :which-key "Cancel request")
+               "l s" '(:ignore t :which-key "Session")
+               "l s N" '(ollama-buddy-sessions-new :which-key "New")
+               "l s L" '(ollama-buddy-sessions-load :which-key "Load")
+               "l s S" '(ollama-buddy-sessions-save :which-key "Save")
+               "l s Q" '(ollama-buddy-sessions-list :which-key "List")
+               "l s Z" '(ollama-buddy-sessions-delete :which-key "Delete")
+               "l h" '(:ignore t :which-key "History")
+               "l h H" '(ollama-buddy-toggle-history :which-key "Toggle")
+               "l h X" '(ollama-buddy-clear-history :which-key "Clear")
+               "l h V" '(ollama-buddy-display-history :which-key "Show")
+               "l h E" '(ollama-buddy-history-edit :which-key "Edit")
+               "l p" '(:ignore t :which-key "Parameter")
+               "l p P" '(my/ollama-buddy-params-edit :which-key "Edit")
+               "l p G" '(ollama-buddy-params-display :which-key "Show")
+               "l p I" '(ollama-buddy-params-help :which-key "Help")
+               "l p K" '(ollama-buddy-params-reset :which-key "Reset")
+               "l y" '(:ignore t :which-key "System")
+               "l y p" '(ollama-buddy-set-system-prompt :which-key "Prompt (set)")
+               "l y c" '(ollama-buddy-reset-system-prompt :which-key "Clear (reset)")
+               "l t" '(:ignore t :which-key "Toggle")
+               "l t D" '(ollama-buddy-toggle-debug-mode :which-key "JSON")
+               "l t T" '(ollama-buddy-toggle-token-display :which-key "Token")
+               "l t F" '(evil-find-char-backward :which-key "Params")
+               "l t O" '(ollama-buddy-toggle-markdown-conversion :which-key "Format"))
+(my/evil-define-key nil 'ollama-buddy-mode-map
+                    "M-RET" '(ollama-buddy--send-prompt
+                              :which-key "Ask me anything!"))
+
+(defun my/ollama-buddy-params-edit ()
+    (interactive)
+    (call-interactively (keymap-lookup ollama-buddy-mode-map "C-c P")))
+#+end_src
+
+** GPTel (простой LLM-клиент для Emacs)
+
+Работает с кучей API от разных LLM'ок, включая и Ollama.
+
+Ссылки на страницы инструментов:
+- GitHub: [[https://github.com/karthink/gptel?tab=readme-ov-file#usage][karthink / gptel]]
+- GitHub: [[https://github.com/ultronozm/ai-org-chat.el][ultronozm / ai-org-chat.el]]
+- GitHub: [[https://github.com/milanglacier/minuet-ai.el][milanglacier / minuet-ai.el]]
+- GitHub: [[https://github.com/deepseek-ai/awesome-deepseek-integration?tab=readme-ov-file#table-of-contents][deepseek-ai / awesome-deepseek-integration]]
+
+Устанавливаем пакет и делаем по умолчанию режим org-mode в окне
+диалога. В целом, окно диалога и не нужно, достаточно выделить текст и
+вызвать ~gptel-send~.
+
+#+begin_src emacs-lisp :tangle yes
+(use-package gptel
+    :ensure t
+    :custom
+    (gptel-default-mode 'org-mode))
+#+end_src
+
+Беседы с LLM'ками удобно сохранять в org-файлах. После можно открыть
+файл и продолжить беседу. Чтобы не устанавливать каждый раз руками
+gptel-mode, в заголовок файла можно воткнуть команду (gptel-mode) для
+автоматического исполнения при открытии. Сделаем функцию вставки
+такого заголовка.
+
+#+begin_src emacs-lisp :tangle yes
+(defun my/gptel-convert-org-file-to-talk ()
+    (interactive)
+    (goto-char 0)
+    (insert (concat "# Local Variables:" "\n"
+                    "# eval: (gptel-mode)" "\n"
+                    "# End:" "\n")))
+#+end_src
+
+Горячие клавиши.
+
+#+begin_src emacs-lisp :tangle yes
+(my/leader-def nil 'override
+               "l g" '(:ignore t :which-key "GPTel client")
+               "l g g" '(gptel :which-key "GPTel buffer")
+               "l g G" '(gptel-menu :which-key "Menu")
+               "l g e" '(gptel-mode :which-key "GPTel minor mode")
+               "l g s" '(gptel-send :which-key "Send request")
+               "l g r" '(gptel-rewrite :which-key "Rewrite"))
+
+(my/leader-def nil 'org-mode-map
+               "l g o" '(my/gptel-convert-org-file-to-talk
+                         :which-key "GPTel mode header"))
+#+end_src
+
+** GPTel. Подключаем DeepSeek
+
+Через customize устанавливаем API ключ DeepSeek в переменную
+my/deepseek-api-key.
+
+#+begin_src emacs-lisp :tangle yes
+(defcustom my/deepseek-api-key "your-api-key"
+  "Deepseek API key.")
+
+(gptel-make-deepseek "DeepSeek"      ;; Any name you want
+    :stream t                        ;; for streaming responses
+    :key (lambda ()                  ;; can be a function that returns the key
+             my/deepseek-api-key))
+#+end_src
+
+** GPTel. Подключаем GigaChat
+
+*** Материалы (только информация и ссылки)
+
+- Сбер.API :: [[https://developers.sber.ru/studio/login][Личный кабинет]]
+  + Здесь можно зарегистрироваться в личном кабинете и создать проект
+    GigaChap API.
+
+- Сбер.API :: [[https://developers.sber.ru/docs/ru/gigachat/individuals-quickstart][Быстрый старт для физических лиц]]
+
+- Сбер.API :: [[https://developers.sber.ru/docs/redirect/?uniq_id=gigaOpenApi][REST. Справочная информация в формате Yaml]]
+
+- Сбер.API :: [[https://developers.sber.ru/docs/redirect/?uniq_id=gigaRpcProto][gRPC. Справочная информация в формате Yaml]]
+
+- Сбер.API :: [[https://developers.sber.ru/docs/ru/gigachat/models][Документация / Разработчикам / Модели GigaChat]]
+
+- GitHub :: [[https://github.com/ai-forever/gigachain][gigachain]]
+
+- Сбер.API :: [[https://developers.sber.ru/docs/ru/gigachat/quickstart/ind-using-api][Документация / Разработчикам / Начало работы с API]]
+  + Здесь можно посмотреть URL'ы для настроек Gtpel.
+    #+begin_src shell :eval no :hidden
+    curl -L -X POST 'https://gigachat.devices.sberbank.ru/api/v1/chat/completions' \
+    -H 'Content-Type: application/json' \
+    -H 'Accept: application/json' \
+    -H 'Authorization: Bearer <токен_доступа>' \
+    --data-raw '{
+      "model": "GigaChat",
+      "messages": [
+        {
+          "role": "user",
+          "content": "Привет! Как дела?"
+        }
+      ],
+      "stream": false,
+      "repetition_penalty": 1
+    }'
+    #+end_src
+
+*** Получение access token
+
+В отличии от представленных в gptel моделей, GigaChat использует
+oauth2. Поэтому перед отправкой запросов в API нужно получить access
+token по API ключу.
+
+Будем хранить данные access token в переменной
+my/gptel-gigachat-access-token-struct. Она содержит структуру из
+JSON-ответа от API.
+
+#+begin_src emacs-lisp :tangle yes
+(setq my/gptel-gigachat-access-token-struct nil)
+#+end_src
+
+Следующая функция проверяет на валидность структуру access token'а
+(наличие и просрочка). Если токен не валиден, он запрашивается в API.
+
+#+begin_src emacs-lisp :tangle yes
+(defun my/gptel-gigachat-access-token ()
+    (let* ((token-struct my/gptel-gigachat-access-token-struct)
+           (now-time (truncate (* 1000.0 (float-time))))
+           (expires-at (alist-get 'expires_at token-struct 0))
+           (valid-p (> expires-at now-time)))
+        (unless valid-p
+            (setq my/gptel-gigachat-access-token-struct
+                  (my/gptel--get-oauth-token-sync)))
+        (alist-get 'access_token my/gptel-gigachat-access-token-struct)))
+#+end_src
+
+Вспомогательная функция. Получает access token из API и время его
+работы.
+
+#+begin_src emacs-lisp :tangle yes
+(defun my/gptel--get-oauth-token-sync ()
+    (let* ((url-request-method "POST")
+           (url-request-extra-headers
+            `(("Content-Type" . "application/x-www-form-urlencoded")
+              ("Accept" . "application/json")
+              ("RqUID" . ,(org-id-uuid))
+              ("Authorization" . ,(concat "Basic " my/gigachat-api-key))))
+           (url-request-data "scope=GIGACHAT_API_PERS")
+           (response-buffer (url-retrieve-synchronously
+                             "https://ngw.devices.sberbank.ru:9443/api/v2/oauth")))
+        (with-current-buffer response-buffer
+            (goto-char (point-min))
+            (search-forward "\n\n" nil t)
+            (let ((json-data (json-read)))
+                (kill-buffer response-buffer)
+                json-data))))
+#+end_src
+
+Обеспечим кеширование токенов. В API GigaChat'а оно задается через
+передачу идентификатора сессии в заголовке запроса X-Session-ID. В
+Emacs это удобно - можно хранить идентификаторы сессий в локальных
+переменных буферов: одни буфер - одна сессия.
+
+Функция ниже генерирует session-id (при отсутствии) и записывает его в
+локальные переменные текущего буфера. Идентификатор возвращает.
+
+#+begin_src emacs-lisp :tangle yes
+(defun my/gptel--session-id ()
+    (unless (boundp 'my/gptel--session-id)
+        (setq-local my/gptel--session-id (org-id-uuid)))
+    my/gptel--session-id)
+#+end_src
+
+*** Настройки
+
+Через customize устанавливаем API ключ GigaChat в переменную
+my/gigachat-api-key.
+
+#+begin_src emacs-lisp :tangle yes
+(defcustom my/gigachat-api-key "your-api-key"
+  "GigaChat API key.")
+#+end_src
+
+Создаем структуру под GigaChat. Сделано по образцу кода из пакета
+gptel.
+
+#+begin_src emacs-lisp :tangle yes
+(cl-defstruct (gptel-gigachat (:include gptel-openai)
+                              (:copier nil)
+                              (:constructor gptel--make-gigachat)))
+#+end_src
+
+Подготавливаем функцию инициализации модели по аналогии с
+gptel-make-deepseek.
+
+#+begin_src emacs-lisp :tangle yes
+(cl-defun gptel-make-gigachat
+    (name &key curl-args stream key request-params
+            (header (lambda () (when-let* ((key (gptel--get-api-key)))
+                                   `(("Authorization" . ,(concat "Bearer " key))
+                                     ("X-Session-ID" . ,(my/gptel--session-id))
+                                     ("Content-Type" . "application/json")
+                                     ("Accept" . "application/json")))))
+            (host "gigachat.devices.sberbank.ru")
+            (protocol "https")
+            (endpoint "/api/v1/chat/completions")
+            (models '((GigaChat-Max
+                       :capabilities (tool reasoning)
+                       :context-window 64
+                       :input-cost 0.55
+                       :output-cost 2.19)
+                      (GigaChat-2-Max
+                       :capabilities (tool reasoning)
+                       :context-window 64
+                       :input-cost 0.55
+                       :output-cost 2.19)
+                      (GigaChat
+                       :capabilities (tool reasoning)
+                       :context-window 64
+                       :input-cost 0.55
+                       :output-cost 2.19)
+                      (GigaChat-2
+                       :capabilities (tool reasoning)
+                       :context-window 64
+                       :input-cost 0.55
+                       :output-cost 2.19)
+                      (GigaChat-2-Max
+                       :capabilities (tool reasoning)
+                       :context-window 64
+                       :input-cost 0.55
+                       :output-cost 2.19)
+                      (GigaChat-2-Max-preview
+                       :capabilities (tool reasoning)
+                       :context-window 64
+                       :input-cost 0.55
+                       :output-cost 2.19)
+                      (GigaChat-2-Pro
+                       :capabilities (tool reasoning)
+                       :context-window 64
+                       :input-cost 0.55
+                       :output-cost 2.19)
+                      (GigaChat-2-Pro-preview
+                       :capabilities (tool reasoning)
+                       :context-window 64
+                       :input-cost 0.55
+                       :output-cost 2.19)
+                      (GigaChat-2-preview
+                       :capabilities (tool reasoning)
+                       :context-window 64
+                       :input-cost 0.55
+                       :output-cost 2.19)
+                      (GigaChat-Max
+                       :capabilities (tool reasoning)
+                       :context-window 64
+                       :input-cost 0.55
+                       :output-cost 2.19)
+                      (GigaChat-Max-preview
+                       :capabilities (tool reasoning)
+                       :context-window 64
+                       :input-cost 0.55
+                       :output-cost 2.19)
+                      (GigaChat-Plus
+                       :capabilities (tool reasoning)
+                       :context-window 64
+                       :input-cost 0.55
+                       :output-cost 2.19)
+                      (GigaChat-Plus-preview
+                       :capabilities (tool reasoning)
+                       :context-window 64
+                       :input-cost 0.55
+                       :output-cost 2.19)
+                      (GigaChat-Pro
+                       :capabilities (tool reasoning)
+                       :context-window 64
+                       :input-cost 0.55
+                       :output-cost 2.19)
+                      (GigaChat-Pro-preview
+                       :capabilities (tool reasoning)
+                       :context-window 64
+                       :input-cost 0.55
+                       :output-cost 2.19)
+                      (GigaChat-preview
+                       :capabilities (tool reasoning)
+                       :context-window 64
+                       :input-cost 0.55
+                       :output-cost 2.19))))
+    "Register a GigaChat backend for gptel with NAME"
+    (declare (indent 1))
+    (let ((backend (gptel--make-gigachat
+                    :name name
+                    :host host
+                    :header header
+                    :key key
+                    :models (gptel--process-models models)
+                    :protocol protocol
+                    :endpoint endpoint
+                    :stream stream
+                    :request-params request-params
+                    :curl-args curl-args
+                    :url (if protocol
+                             (concat protocol "://" host endpoint)
+                             (concat host endpoint)))))
+        (prog1 backend
+            (setf (alist-get name gptel--known-backends
+                             nil nil #'equal)
+                  backend))))
+#+end_src
+
+Регистрируем модель GigaChat'а. Функция выдачи ключа для запросов -
+my/gptel-gigachat-access-token.
+
+#+begin_src emacs-lisp :tangle yes
+(setq gptel-use-curl nil  ;; Only for GigaChat.
+      gptel-model 'GigaChat-2-Max
+      gptel-log-level 'info  ;; 'debug
+      gptel-backend (gptel-make-gigachat
+                        "GigaChat"
+                        :stream t
+                        :key 'my/gptel-gigachat-access-token
+                        :models '(GigaChat
+                                  GigaChat-2
+                                  GigaChat-2-Max
+                                  GigaChat-2-Max-preview
+                                  GigaChat-2-Pro
+                                  GigaChat-2-Pro-preview
+                                  GigaChat-2-preview
+                                  GigaChat-Max
+                                  GigaChat-Max-preview
+                                  GigaChat-Plus
+                                  GigaChat-Plus-preview
+                                  GigaChat-Pro
+                                  GigaChat-Pro-preview
+                                  GigaChat-preview)
+                        :request-params '(:temperature 0.1)))
 #+end_src
 
 * LSP сервер (vs Eglot)
