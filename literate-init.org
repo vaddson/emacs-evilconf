@@ -232,6 +232,7 @@
   - [[#ollama-buddy-клиент-для-ollama][Ollama-buddy (клиент для Ollama)]]
   - [[#gptel-простой-llm-клиент-для-emacs][GPTel (простой LLM-клиент для Emacs)]]
   - [[#gptel-подключаем-deepseek][GPTel. Подключаем DeepSeek]]
+  - [[#gptel-подключаем-ollama][GPTel. Подключаем Ollama]]
   - [[#gptel-подключаем-gigachat][GPTel. Подключаем GigaChat]]
 - [[#lsp-сервер-vs-eglot][LSP сервер (vs Eglot)]]
   - [[#установка-1][Установка]]
@@ -6792,10 +6793,44 @@ emacsclient.
     (gptel-default-mode 'org-mode))
 #+end_src
 
+Регистрации бекэндов сделаем через функции. Там решим проблему
+обновления бекэндов под изменяющиеся среду моделей.
+
+Функция ниже получает имя бекэнда и функцию его создания, принимающую
+то же имя бекэнда. Оба аргумента запоминаются для будущего
+переиспользования.
+
+#+begin_src emacs-lisp :tangle yes
+(setq my/gptel--backends-hash (make-hash-table :test 'equal))
+
+(defun my/gptel--register-backend (backend-name make-backend-func)
+    (puthash backend-name make-backend-func my/gptel--backends-hash)
+    (funcall make-backend-func backend-name))
+#+end_src
+
+Теперь поддержим обновление бекэндов (например, когда меняется
+параметр модели или в Ollama добавляется новая модель).
+
+#+begin_src emacs-lisp :tangle yes
+(defun my/gptel-refresh-backend (backend-name)
+    (interactive (list (ivy-read "Enter backend name: "
+                                 (hash-table-keys my/gptel--backends-hash)
+                                 :initial-input (gptel-backend-name gptel-backend))))
+    (when-let* ((make-backend-func (gethash backend-name my/gptel--backends-hash))
+                (backend (funcall make-backend-func backend-name)))
+        (when (equal (gptel-backend-name gptel-backend) backend-name)
+            (setq gptel-backend backend))))
+#+end_src
+
 Общие настройки запроса в LLM (temperature и т.п.).
 
 #+begin_src emacs-lisp :tangle yes
-(setq my/gptel-def-request-params '(:temperature 0.1))
+(defcustom my/gptel-def-request-params '(:temperature 0.1)
+  "Default request parameters for LLM models (like temperature).")
+
+(defun my/customize-def-request-params ()
+    (interactive)
+    (customize-option 'my/gptel-def-request-params))
 #+end_src
 
 Беседы с LLM'ками удобно сохранять в org-файлах. После можно открыть
@@ -6822,7 +6857,10 @@ gptel-mode, в заголовок файла можно воткнуть ком�
                "l g G" '(gptel-menu :which-key "Menu")
                "l g e" '(gptel-mode :which-key "GPTel minor mode")
                "l g s" '(gptel-send :which-key "Send request")
-               "l g r" '(gptel-rewrite :which-key "Rewrite"))
+               "l g r" '(gptel-rewrite :which-key "Rewrite")
+               "l g u" '(my/gptel-refresh-backend :which-key "Refresh backend")
+               "l g p" '(my/customize-def-request-params :which-key
+                         "Set models paramerets"))
 
 (my/leader-def nil 'org-mode-map
                "l g o" '(my/gptel-convert-org-file-to-talk
@@ -6838,11 +6876,52 @@ my/deepseek-api-key.
 (defcustom my/deepseek-api-key "your-api-key"
   "Deepseek API key.")
 
-(gptel-make-deepseek "DeepSeek"      ;; Any name you want
-    :stream t                        ;; for streaming responses
-    :key (lambda ()                  ;; can be a function that returns the key
-             my/deepseek-api-key)
-    :request-params my/gptel-def-request-params)
+(my/gptel--register-backend "DeepSeek"
+                            (lambda (backend-name)
+                                (gptel-make-deepseek backend-name
+                                    :stream t
+                                    :key (lambda () my/deepseek-api-key)
+                                    :request-params my/gptel-def-request-params)))
+#+end_src
+
+** GPTel. Подключаем Ollama
+
+#+begin_src emacs-lisp :tangle yes
+(defun my/gptel-get-ollama-models-names ()
+    (let* ((response-data (my/gptel--get-ollama-models))
+           (models-data (alist-get 'models response-data))
+           (models-names (mapcar (lambda (model-struc)
+                                     (make-symbol (alist-get 'model model-struc)))
+                                 models-data)))
+        models-names))
+
+(defun my/gptel--get-ollama-models ()
+    (condition-case err
+        (let* ((url-request-method "GET")
+               (url-mime-accept-string "application/json")
+               (response-buffer (url-retrieve-synchronously
+                                 "http://localhost:11434/api/tags")))
+            (if response-buffer
+                (with-current-buffer response-buffer
+                    (goto-char (point-min))
+                    (search-forward "\n\n" nil t)
+                    (let ((json-data (json-read)))
+                        (kill-buffer response-buffer)
+                        json-data))
+                nil))
+        ('error ;; Обрабатываем любые ошибки
+         (message "Error: %s" err)
+         nil)))
+#+end_src
+
+#+begin_src emacs-lisp :tangle yes
+(my/gptel--register-backend "Ollama"
+                            (lambda (backend-name)
+                                (gptel-make-ollama backend-name
+                                    :host "localhost:11434"
+                                    :stream t
+                                    :models (my/gptel-get-ollama-models-names)
+                                    :request-params my/gptel-def-request-params)))
 #+end_src
 
 ** GPTel. Подключаем GigaChat
@@ -7088,14 +7167,20 @@ gptel-make-deepseek.
 my/gptel-gigachat-access-token.
 
 #+begin_src emacs-lisp :tangle yes
+(defun my/gptel--register-backend-gigachat (backend-name)
+    (my/gptel--register-backend
+     backend-name
+     (lambda (backend-name)
+         (gptel-make-gigachat
+             backend-name
+             :stream t
+             :key 'my/gptel-gigachat-access-token
+             :request-params my/gptel-def-request-params))))
+
 (setq gptel-use-curl nil  ;; Only for GigaChat.
       gptel-model 'GigaChat-2-Max
       gptel-log-level 'info  ;; 'debug
-      gptel-backend (gptel-make-gigachat
-                        "GigaChat"
-                        :stream t
-                        :key 'my/gptel-gigachat-access-token
-                        :request-params my/gptel-def-request-params))
+      gptel-backend (my/gptel--register-backend-gigachat "GigaChat"))
 #+end_src
 
 * LSP сервер (vs Eglot)
