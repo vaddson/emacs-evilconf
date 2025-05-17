@@ -6819,7 +6819,15 @@ emacsclient.
     (when-let* ((make-backend-func (gethash backend-name my/gptel--backends-hash))
                 (backend (funcall make-backend-func backend-name)))
         (when (equal (gptel-backend-name gptel-backend) backend-name)
-            (setq gptel-backend backend))))
+            (setq gptel-backend backend)
+            (setq gptel-model (my/find-symbol-by-same-name
+                               gptel-model
+                               (gptel-backend-models gptel-backend))))))
+
+(defun my/find-symbol-by-same-name (symbol sequence)
+    (car (cl-remove-if-not (lambda (x)
+                               (equal (symbol-name x) (symbol-name symbol)))
+                           sequence)))
 #+end_src
 
 Общие настройки запроса в LLM (temperature и т.п.).
