@@ -240,6 +240,7 @@
   - [[#клавиши-для-работы][Клавиши для работы]]
   - [[#перезагрузка][Перезагрузка]]
   - [[#copilot][Copilot]]
+  - [[#semgrep][Semgrep]]
 - [[#tree-sitter][Tree-sitter]]
   - [[#tree-sitter-установка-и-общие-настройки][Tree-sitter. Установка и общие настройки]]
   - [[#combobulate---редактирование-с-tree-sitter][Combobulate - редактирование с tree-sitter]]
@@ -6820,11 +6821,11 @@ emacsclient.
                 (backend (funcall make-backend-func backend-name)))
         (when (equal (gptel-backend-name gptel-backend) backend-name)
             (setq gptel-backend backend)
-            (setq gptel-model (my/find-symbol-by-same-name
+            (setq gptel-model (my/find-symbol-with-same-name
                                gptel-model
                                (gptel-backend-models gptel-backend))))))
 
-(defun my/find-symbol-by-same-name (symbol sequence)
+(defun my/find-symbol-with-same-name (symbol sequence)
     (car (cl-remove-if-not (lambda (x)
                                (equal (symbol-name x) (symbol-name symbol)))
                            sequence)))
@@ -6834,7 +6835,14 @@ emacsclient.
 
 #+begin_src emacs-lisp :tangle yes
 (defcustom my/gptel-def-request-params '(:temperature 0.1)
-  "Default request parameters for LLM models (like temperature).")
+  "Default request parameters for LLM models (like temperature):
+    key   - :temperature
+    value - 0.1"
+  :type '(plist
+          :key-type (restricted-sexp :match-alternatives 'keywordp
+                     :tag "Parameter (:keyword)")
+          :value-type (choice integer float string))
+  :group 'pgtel)
 
 (defun my/customize-def-request-params ()
     (interactive)
@@ -7520,6 +7528,14 @@ running". Простые перезагрузки LSP-сервера не пом
 
 #+begin_src emacs-lisp :tangle yes
 (delete 'lsp-copilot lsp-client-packages)
+#+end_src
+
+** Semgrep
+
+Мешается. Убираем.
+
+#+begin_src emacs-lisp :tangle yes
+(delete 'lsp-semgrep lsp-client-packages)
 #+end_src
 
 * Tree-sitter
