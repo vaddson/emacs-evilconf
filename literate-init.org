@@ -6860,6 +6860,7 @@ gptel-mode, в заголовок файла можно воткнуть ком�
     (interactive)
     (goto-char 0)
     (insert (concat "# Local Variables:" "\n"
+                    "# chat-session-id: \"" (my/gptel--session-id) "\"" "\n"
                     "# eval: (gptel-mode)" "\n"
                     "# End:" "\n")))
 #+end_src
@@ -7039,9 +7040,9 @@ Emacs это удобно - можно хранить идентификатор
 
 #+begin_src emacs-lisp :tangle yes
 (defun my/gptel--session-id ()
-    (unless (boundp 'my/gptel--session-id)
-        (setq-local my/gptel--session-id (org-id-uuid)))
-    my/gptel--session-id)
+    (unless (boundp 'chat-session-id)
+        (setq-local chat-session-id (org-id-uuid)))
+    chat-session-id)
 #+end_src
 
 *** Настройки
