@@ -6823,7 +6823,8 @@ emacsclient.
             (setq gptel-backend backend)
             (setq gptel-model (my/find-symbol-with-same-name
                                gptel-model
-                               (gptel-backend-models gptel-backend))))))
+                               (gptel-backend-models gptel-backend))))
+        (my/gptel-set-curl-mode)))
 
 (defun my/find-symbol-with-same-name (symbol sequence)
     (car (cl-remove-if-not (lambda (x)
@@ -7194,10 +7195,22 @@ my/gptel-gigachat-access-token.
              :key 'my/gptel-gigachat-access-token
              :request-params my/gptel-def-request-params))))
 
-(setq gptel-use-curl nil  ;; Only for GigaChat.
+(setq gptel-use-curl t
       gptel-model 'GigaChat-2-Max
       gptel-log-level 'info  ;; 'debug
       gptel-backend (my/gptel--register-backend-gigachat "GigaChat"))
+#+end_src
+
+Мне не удалось посылать через GPTel запросы в GigaChat через curl. Но
+без curl не работает стриминг ответа в буфере. Поэтому запретим
+пользоваться curl'ом только для буферов с GigaChat.
+
+#+begin_src emacs-lisp :tangle yes
+(defun my/gptel-set-curl-mode ()
+    (setq-local gptel-use-curl (not (equal "GigaChat"
+                                           (gptel-backend-name gptel-backend)))))
+
+(add-hook 'gptel-mode-hook 'my/gptel-set-curl-mode)
 #+end_src
 
 * LSP сервер (vs Eglot)
