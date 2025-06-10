@@ -241,9 +241,10 @@
   - [[#перезагрузка][Перезагрузка]]
   - [[#copilot][Copilot]]
   - [[#semgrep][Semgrep]]
-- [[#tree-sitter][Tree-sitter]]
-  - [[#tree-sitter-установка-и-общие-настройки][Tree-sitter. Установка и общие настройки]]
-  - [[#combobulate---редактирование-с-tree-sitter][Combobulate - редактирование с tree-sitter]]
+- [[#tree-sitter-treesit][Tree sitter (treesit)]]
+  - [[#treesit-установка-и-общие-настройки][Treesit. Установка и общие настройки]]
+  - [[#combobulate---редактирование-с-treesit][Combobulate - редактирование с treesit]]
+  - [[#выделение-родительских-блоков-в-программном-коде][Выделение родительских блоков (в программном коде)]]
 - [[#программирование][Программирование]]
   - [[#навигация-по-ошибкам][Навигация по ошибкам]]
   - [[#компиляция-compile-назначение-клавиш][Компиляция (compile). Назначение клавиш]]
@@ -7552,9 +7553,9 @@ running". Простые перезагрузки LSP-сервера не пом
 (delete 'lsp-semgrep lsp-client-packages)
 #+end_src
 
-* Tree-sitter
+* Tree sitter (treesit)
 
-** Tree-sitter. Установка и общие настройки
+** Treesit. Установка и общие настройки
 
 Здесь ориентируемся на Emacs 29, в котором tree-sitter уже
 предустановлен.
@@ -7590,13 +7591,159 @@ running". Простые перезагрузки LSP-сервера не пом
     :ensure t)
 #+end_src
 
-** Combobulate - редактирование с tree-sitter
+** Combobulate - редактирование с treesit
 
 #+begin_src emacs-lisp :tangle yes
 (use-package combobulate
     :quelpa (combobulate :fetcher github :repo "mickeynp/combobulate")
     :preface
     (setq combobulate-key-prefix "C-c o"))
+#+end_src
+
+** Выделение родительских блоков (в программном коде)
+
+Сделаем выделение блоков по дереву treesit. Может пригодится для
+визуализации или для отправки выделенного фрагмента в LLM-модель.
+
+Выделять будем по границам ноды. Если выделение уже есть, то
+увеличиваем его до границ родительской ноды.
+
+Чтобы можно было откатывать выделение назад, будем хранить историю
+выделений. Соответственно, обеспечим функции для работы с этой
+историей (push, pop с автоматической очисткой). Историю ведем локально
+для каждого буфера.
+
+#+begin_src emacs-lisp :tangle yes
+(defvar my/treesit--selection-history nil
+  "History of treesit selection.
+Must be a list of pairs (begin . end).")
+
+(defun my/treesit--selection-history-push (begin end)
+    (when (my/treesit--selection-history-clear-p)
+        (setq-local my/treesit--selection-history nil))
+    (push (cons begin end) my/treesit--selection-history))
+
+(defun my/treesit--selection-history-pop ()
+    (when (my/treesit--selection-history-clear-p)
+        (setq-local my/treesit--selection-history nil))
+    (when my/treesit--selection-history
+        (pop my/treesit--selection-history)))
+
+(defun my/treesit--selection-history-clear-p ()
+    (not (and (use-region-p)
+              my/treesit--selection-history)))
+#+end_src
+
+Выделять будем только при наличии парсера treesit. Обертку с проверкой
+будем держать в следующей функции.
+
+#+begin_src emacs-lisp :tangle yes
+(defun my/treesit-saver (func &rest args)
+    (if (and (fboundp 'treesit-parser-list)
+             (treesit-parser-list))
+        (apply func args)
+        (message "Treesit mode is required.")))
+#+end_src
+
+Теперь сделаем три интерактивных функции для выделения:
+- =my/treesit-select-parent-node= - расширяет выделение до
+  родительской ноды.
+- =my/treesit-select-to-parent-node-top= - расширяет выделение до
+  начала родительской ноды.
+- =my/treesit-select-back= - откатывает выделение на предыдущее.
+
+#+begin_src emacs-lisp :tangle yes
+(defun my/treesit-select-parent-node ()
+    (interactive)
+    (my/treesit-saver 'my/treesit--select-parent-node))
+
+(defun my/treesit--select-parent-node ()
+    (let* ((node (my/treesit--get-node))
+           (point-in-begin-p (my/treesit--point-in-region-begin-p))
+           (parent-node (my/treesit--bigger-parent-node node t t))
+           (begin (treesit-node-start parent-node))
+           (end (treesit-node-end parent-node)))
+        (my/treesit--selection-history-push (treesit-node-start node)
+                                            (treesit-node-end node))
+        (if point-in-begin-p
+            (progn (set-mark end)
+                   (goto-char begin))
+            (progn (set-mark begin)
+                   (goto-char end)))
+        (activate-mark)))
+
+(defun my/treesit-select-to-parent-node-top ()
+    (interactive)
+    (my/treesit-saver 'my/treesit--select-to-parent-node-top))
+
+(defun my/treesit--select-to-parent-node-top ()
+    (let* ((node (my/treesit--get-node))
+           (point-in-begin-p (my/treesit--point-in-region-begin-p t))
+           (parent-node (my/treesit--bigger-parent-node node t nil))
+           (begin (treesit-node-start parent-node))
+           (end (if (use-region-p)
+                    (use-region-end)
+                    (treesit-node-end node))))
+        (my/treesit--selection-history-push (treesit-node-start node)
+                                            end)
+        (if point-in-begin-p
+            (progn (set-mark end)
+                   (goto-char begin))
+            (progn (set-mark begin)
+                   (goto-char end)))
+        (activate-mark)))
+
+(defun my/treesit-select-back ()
+    (interactive)
+    (my/treesit-saver 'my/treesit--select-back))
+
+(defun my/treesit--select-back ()
+    (if-let ((region (my/treesit--selection-history-pop)))
+        (progn (deactivate-mark)
+               (set-mark (cdr region))
+               (goto-char (car region))
+               (activate-mark))
+        (deactivate-mark)))
+
+(defun my/treesit--get-node ()
+    (if (use-region-p)
+        (treesit-node-on (use-region-beginning)
+                         (use-region-end))
+        (treesit-node-at (point))))
+
+(defun my/treesit--point-in-region-begin-p (&optional prefer-end-p)
+    (if (use-region-p)
+        (cond
+          ((= (use-region-beginning) (use-region-end))
+           (not prefer-end-p))
+          (t
+           (< (- (point) (use-region-beginning))
+              (- (use-region-end) (point)))))
+        (not prefer-end-p)))
+
+(defun my/treesit--bigger-parent-node (node begin-p end-p)
+    (if (or begin-p end-p)
+        (let* ((node node)
+               (parent-node (treesit-node-parent node))
+               (begin (when begin-p (treesit-node-start node)))
+               (end (when end-p (treesit-node-end node))))
+            (while (and (not (equal node parent-node))
+                        (or (not begin-p)
+                            (= begin (treesit-node-start parent-node)))
+                        (or (not end-p)
+                            (= end (treesit-node-end parent-node))))
+                (setq node parent-node
+                      parent-node (treesit-node-parent node)))
+            parent-node)
+        node))
+#+end_src
+
+Горячие клавиши.
+
+#+begin_src emacs-lisp :tangle yes
+(global-set-key (kbd "M-:") 'my/treesit-select-parent-node)
+(global-set-key (kbd "M-P") 'my/treesit-select-to-parent-node-top)
+(global-set-key (kbd "M-N") 'my/treesit-select-back)
 #+end_src
 
 * Программирование
