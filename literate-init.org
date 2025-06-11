@@ -79,7 +79,7 @@
   - [[#esc-кодирование-для-работы-с-url][ESC-кодирование для работы с URL]]
   - [[#более-привычная-раскладка-клавиш-для-evil-mode-ближе-к-vim-и-консоли][Более привычная раскладка клавиш для evil-mode (ближе к Vim и консоли)]]
   - [[#переключение-раскладки-клавиатуры][Переключение раскладки клавиатуры]]
-  - [[#схлопывание-текста][Схлопывание текста]]
+  - [[#схлопывание-текста-yafolding][Схлопывание текста (yafolding)]]
   - [[#подсветка-отступов-highlight-indent-guides][Подсветка отступов (highlight-indent-guides)]]
   - [[#подсветка-отступов-indent-bars][Подсветка отступов (indent-bars)]]
   - [[#проверка-орфографии][Проверка орфографии]]
@@ -1594,7 +1594,7 @@ from urllib.parse import quote, unquote
 (define-key evil-ex-map (kbd "C-d") #'toggle-input-method)
 #+end_src
 
-** Схлопывание текста
+** Схлопывание текста (yafolding)
 
 Выбрал пакет =yafolding=. Объект схлопывания определяется по
 отступам. Есть три варианта схлопывания:
@@ -1609,12 +1609,26 @@ from urllib.parse import quote, unquote
 	(add-hook 'buffer-list-update-hook 'yafolding-mode))
 #+end_src
 
+Но также удобно схлопывать выделенный текст. Для этого допишем
+yafolding-toggle-element. Можно сочетать с выделением блоков в коде
+через treesit.
+
+#+begin_src emacs-lisp :tangle yes
+(defun my/yafolding-toggle-element ()
+    (interactive)
+    (if (not (use-region-p))
+        (yafolding-toggle-element)
+        (yafolding-hide-region (use-region-beginning)
+                               (use-region-end))
+        (deactivate-mark)))
+#+end_src
+
 Назначим горячие клавиши для схлопывания текста.
 
 #+begin_src emacs-lisp :tangle yes
 (my/leader-def '(normal visual motion) 'override
                "y" '(:ignore t :which-key "folding")
-               "y RET" #'yafolding-toggle-element
+               "y RET" #'my/yafolding-toggle-element
                "y p" #'yafolding-hide-parent-element
                "y f" #'yafolding-toggle-all)
 #+end_src
@@ -7697,7 +7711,7 @@ Must be a list of pairs (begin . end).")
         (activate-mark)
         parent-node))
 
-(defun my/treesit-select-back ()
+(defun my/treesit-select-back ()"you request"
     (interactive)
     (when-let ((node (my/treesit-saver 'my/treesit--select-back)))
         (message (treesit-node-type node))))
