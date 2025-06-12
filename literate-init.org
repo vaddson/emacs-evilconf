@@ -7662,8 +7662,8 @@ Must be a list of pairs (begin . end).")
 Теперь сделаем три интерактивных функции для выделения:
 - =my/treesit-select-parent-node= - расширяет выделение до
   родительской ноды.
-- =my/treesit-select-to-parent-node-top= - расширяет выделение до
-  начала родительской ноды.
+- =my/treesit-select-to-parent-node-top= - расширяет выделение только
+  в одну сторону до начала родительской ноды.
 - =my/treesit-select-back= - откатывает выделение на предыдущее.
 
 #+begin_src emacs-lisp :tangle yes
