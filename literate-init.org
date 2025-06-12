@@ -1609,6 +1609,12 @@ from urllib.parse import quote, unquote
 	(add-hook 'buffer-list-update-hook 'yafolding-mode))
 #+end_src
 
+Текст на месте сворачивания.
+
+#+begin_src emacs-lisp :tangle yes
+(setq yafolding-ellipsis-content "•••")
+#+end_src
+
 Но также удобно схлопывать выделенный текст. Для этого допишем
 yafolding-toggle-element. Можно сочетать с выделением блоков в коде
 через treesit.
@@ -7607,6 +7613,12 @@ running". Простые перезагрузки LSP-сервера не пом
 
 ** Combobulate - редактирование с treesit
 
+Навигация посредством tree sitter. Сделано для очень ограниченного
+количества языков (см. на [[https://github.com/mickeynp/combobulate][странице]]). При навигации рисует дерево
+разбора.
+
+Чтобы заработало, нужно включить =combobulate-mode=.
+
 #+begin_src emacs-lisp :tangle yes
 (use-package combobulate
     :quelpa (combobulate :fetcher github :repo "mickeynp/combobulate")
@@ -7662,8 +7674,8 @@ Must be a list of pairs (begin . end).")
 Теперь сделаем три интерактивных функции для выделения:
 - =my/treesit-select-parent-node= - расширяет выделение до
   родительской ноды.
-- =my/treesit-select-to-parent-node-top= - расширяет выделение до
-  начала родительской ноды.
+- =my/treesit-select-to-parent-node-top= - расширяет выделение только
+  в одну сторону до начала родительской ноды.
 - =my/treesit-select-back= - откатывает выделение на предыдущее.
 
 #+begin_src emacs-lisp :tangle yes
@@ -7711,7 +7723,7 @@ Must be a list of pairs (begin . end).")
         (activate-mark)
         parent-node))
 
-(defun my/treesit-select-back ()"you request"
+(defun my/treesit-select-back ()
     (interactive)
     (when-let ((node (my/treesit-saver 'my/treesit--select-back)))
         (message (treesit-node-type node))))
