@@ -3823,6 +3823,14 @@ Keywords=Text;Editor;
     (evil-org-agenda-set-keys))
 #+end_src
 
+Текст на месте сворачивания.
+
+#+begin_src emacs-lisp :tangle yes
+(setq org-ellipsis " ••• "  ;; " ▼"  ;; " ↴ "  ;; " ••• "
+      org-cliplink-ellipsis "•••"
+      org-columns-ellipses "••")
+#+end_src
+
 ** Клавиши для работы в org-mode
 
 Подготовимся и дополним функцию org-id-copy. Добавим туда еще одно
