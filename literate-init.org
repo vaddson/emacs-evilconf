@@ -1609,6 +1609,12 @@ from urllib.parse import quote, unquote
 	(add-hook 'buffer-list-update-hook 'yafolding-mode))
 #+end_src
 
+Текст на месте сворачивания.
+
+#+begin_src emacs-lisp :tangle yes
+(setq yafolding-ellipsis-content "•••")
+#+end_src
+
 Но также удобно схлопывать выделенный текст. Для этого допишем
 yafolding-toggle-element. Можно сочетать с выделением блоков в коде
 через treesit.
@@ -7606,6 +7612,12 @@ running". Простые перезагрузки LSP-сервера не пом
 #+end_src
 
 ** Combobulate - редактирование с treesit
+
+Навигация посредством tree sitter. Сделано для очень ограниченного
+количества языков (см. на [[https://github.com/mickeynp/combobulate][странице]]). При навигации рисует дерево
+разбора.
+
+Чтобы заработало, нужно включить =combobulate-mode=.
 
 #+begin_src emacs-lisp :tangle yes
 (use-package combobulate
