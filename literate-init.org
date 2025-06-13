@@ -228,6 +228,7 @@
   - [[#выбор-случайной-картинки-для-стартового-логотипа][Выбор случайной картинки для стартового логотипа]]
   - [[#настройка-панели][Настройка панели]]
 - [[#llm-всевозможные-клиенты][LLM. Всевозможные клиенты]]
+  - [[#чтение-ключей-из-gpg-файлов][Чтение ключей из gpg-файлов]]
   - [[#общие-клавиши][Общие клавиши]]
   - [[#ollama-buddy-клиент-для-ollama][Ollama-buddy (клиент для Ollama)]]
   - [[#gptel-простой-llm-клиент-для-emacs][GPTel (простой LLM-клиент для Emacs)]]
@@ -6696,6 +6697,28 @@ emacsclient.
 
 * LLM. Всевозможные клиенты
 
+
+** Чтение ключей из gpg-файлов
+
+Ключи можно положить в gpg-файлы и читать их оттуда. Ниже функция для
+чтения текста (ключа) из gpg-файла.
+
+#+begin_src emacs-lisp :tangle yes
+(defun my/llm-read-api-key (api-key filename)
+    (if (and api-key
+             (stringp api-key)
+             (not (string-empty-p api-key)))
+        api-key
+        (my/llm-read-gpg-file filename)))
+
+(defun my/llm-read-gpg-file (filename)
+    (when (and (string-equal "gpg" (file-name-extension filename))
+               (file-exists-p filename))
+        (with-temp-buffer
+            (insert-file-contents filename)
+            (string-trim (buffer-string)))))
+#+end_src
+
 ** Общие клавиши
 
 Меню для работы с LLM'ками.
@@ -6920,14 +6943,21 @@ gptel-mode, в заголовок файла можно воткнуть ком�
 my/deepseek-api-key.
 
 #+begin_src emacs-lisp :tangle yes
-(defcustom my/deepseek-api-key "your-api-key"
-  "Deepseek API key.")
+(defcustom my/deepseek-api-key-gpg-file ""
+  "GPG-file with DeepSeek API key."
+  :type 'file)
+
+(setq my/deepseek-api-key nil)
+
+(defun my/deepseek-get-api-key ()
+    (setq my/deepseek-api-key (my/llm-read-gpg-file my/deepseek-api-key
+                                                    my/deepseek-api-key-gpg-file)))
 
 (my/gptel--register-backend "DeepSeek"
                             (lambda (backend-name)
                                 (gptel-make-deepseek backend-name
                                     :stream t
-                                    :key (lambda () my/deepseek-api-key)
+                                    :key 'my/deepseek-get-api-key
                                     :request-params my/gptel-def-request-params)))
 #+end_src
 
@@ -7048,7 +7078,11 @@ JSON-ответа от API.
             `(("Content-Type" . "application/x-www-form-urlencoded")
               ("Accept" . "application/json")
               ("RqUID" . ,(org-id-uuid))
-              ("Authorization" . ,(concat "Basic " my/gigachat-api-key))))
+              ("Authorization" . ,(concat "Basic "
+                                          (setq my/gigachat-api-key
+                                                (my/llm-read-api-key
+                                                 my/gigachat-api-key
+                                                 my/gigachat-api-key-gpg-file))))))
            (url-request-data "scope=GIGACHAT_API_PERS")
            (response-buffer (url-retrieve-synchronously
                              "https://ngw.devices.sberbank.ru:9443/api/v2/oauth")))
@@ -7077,12 +7111,18 @@ Emacs это удобно - можно хранить идентификатор
 
 *** Настройки
 
-Через customize устанавливаем API ключ GigaChat в переменную
-my/gigachat-api-key.
+Будем хранить API key для GigaChat в GPG-файле, путь к которому
+зададим в custom-переменной =my/gigachat-api-key-gpg-file=.
+
+При первом успешном чтении файла его содержимое поместим в переменную
+my/gigachat-api-key и больше трогать файл не будем.
 
 #+begin_src emacs-lisp :tangle yes
-(defcustom my/gigachat-api-key "your-api-key"
-  "GigaChat API key.")
+(defcustom my/gigachat-api-key-gpg-file ""
+  "GPG-file with GigaChat API key."
+  :type 'file)
+
+(setq my/gigachat-api-key nil)
 #+end_src
 
 Создаем структуру под GigaChat. Сделано по образцу кода из пакета
@@ -7108,12 +7148,12 @@ gptel-make-deepseek.
             (host "gigachat.devices.sberbank.ru")
             (protocol "https")
             (endpoint "/api/v1/chat/completions")
-            (models '((GigaChat-Max
+            (models '((GigaChat-2-Max
                        :capabilities (tool reasoning)
                        :context-window 64
                        :input-cost 0.55
                        :output-cost 2.19)
-                      (GigaChat-2-Max
+                      (GigaChat-Max
                        :capabilities (tool reasoning)
                        :context-window 64
                        :input-cost 0.55
@@ -7124,11 +7164,6 @@ gptel-make-deepseek.
                        :input-cost 0.55
                        :output-cost 2.19)
                       (GigaChat-2
-                       :capabilities (tool reasoning)
-                       :context-window 64
-                       :input-cost 0.55
-                       :output-cost 2.19)
-                      (GigaChat-2-Max
                        :capabilities (tool reasoning)
                        :context-window 64
                        :input-cost 0.55
