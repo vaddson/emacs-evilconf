@@ -6950,8 +6950,8 @@ my/deepseek-api-key.
 (setq my/deepseek-api-key nil)
 
 (defun my/deepseek-get-api-key ()
-    (setq my/deepseek-api-key (my/llm-read-gpg-file my/deepseek-api-key
-                                                    my/deepseek-api-key-gpg-file)))
+    (setq my/deepseek-api-key (my/llm-read-api-key my/deepseek-api-key
+                                                   my/deepseek-api-key-gpg-file)))
 
 (my/gptel--register-backend "DeepSeek"
                             (lambda (backend-name)
@@ -7079,10 +7079,7 @@ JSON-ответа от API.
               ("Accept" . "application/json")
               ("RqUID" . ,(org-id-uuid))
               ("Authorization" . ,(concat "Basic "
-                                          (setq my/gigachat-api-key
-                                                (my/llm-read-api-key
-                                                 my/gigachat-api-key
-                                                 my/gigachat-api-key-gpg-file))))))
+                                          (my/gigachat-get-api-key)))))
            (url-request-data "scope=GIGACHAT_API_PERS")
            (response-buffer (url-retrieve-synchronously
                              "https://ngw.devices.sberbank.ru:9443/api/v2/oauth")))
@@ -7123,6 +7120,10 @@ my/gigachat-api-key и больше трогать файл не будем.
   :type 'file)
 
 (setq my/gigachat-api-key nil)
+
+(defun my/gigachat-get-api-key ()
+    (setq my/gigachat-api-key (my/llm-read-api-key my/gigachat-api-key
+                                                   my/gigachat-api-key-gpg-file)))
 #+end_src
 
 Создаем структуру под GigaChat. Сделано по образцу кода из пакета
