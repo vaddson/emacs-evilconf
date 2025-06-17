@@ -83,7 +83,7 @@
   - [[#подсветка-отступов-highlight-indent-guides][Подсветка отступов (highlight-indent-guides)]]
   - [[#подсветка-отступов-indent-bars][Подсветка отступов (indent-bars)]]
   - [[#проверка-орфографии][Проверка орфографии]]
-  - [[#сниппеты-yasnippet][Сниппеты Yasnippet]]
+  - [[#сниппеты-yasnippet][Сниппеты (Yasnippet)]]
   - [[#закладки][Закладки]]
   - [[#работа-с-kill-ring][Работа с Kill-ring]]
   - [[#контекстное-меню-по-правой-клавише-мыши][Контекстное меню по правой клавише мыши]]
@@ -235,6 +235,7 @@
   - [[#gptel-подключаем-deepseek][GPTel. Подключаем DeepSeek]]
   - [[#gptel-подключаем-ollama][GPTel. Подключаем Ollama]]
   - [[#gptel-подключаем-gigachat][GPTel. Подключаем GigaChat]]
+  - [[#работа-с-кодом-автодополнение-оптимизация-и-прочее][Работа с кодом (автодополнение, оптимизация и прочее)]]
 - [[#lsp-сервер-vs-eglot][LSP сервер (vs Eglot)]]
   - [[#установка-1][Установка]]
   - [[#общие-настройки][Общие настройки]]
@@ -274,6 +275,7 @@
   - [[#clang-format-форматирование-c][Clang-format. Форматирование C++]]
   - [[#cmake][Cmake]]
   - [[#go][Go]]
+  - [[#groovy][Groovy]]
   - [[#java][Java]]
   - [[#java-spring-boot][Java. Spring Boot]]
   - [[#javascripttypescript][JavaScript/TypeScript]]
@@ -1736,7 +1738,7 @@ prog-mode, поэтому делаем свою функцию проверки 
 
 Подсказки по исправлению слова зашиты на функцию =ispell-word=.
 
-** Сниппеты Yasnippet
+** Сниппеты (Yasnippet)
 
 Сниппет в Emacs - это заранее подготовленный кусок текста, который
 можно вставить себе в документ при редактировании.  Очень удобный и
@@ -1763,9 +1765,9 @@ prog-mode, поэтому делаем свою функцию проверки 
 
 #+begin_src emacs-lisp :tangle yes
 (my/leader-def nil 'override
-               "i" '(:ignore t :which-key "insert"))
+               "I" '(:ignore t :which-key "insert"))
 (my/leader-def nil 'override
-               "i s" #'yas-insert-snippet)
+               "I s" #'yas-insert-snippet)
 #+end_src
 
 ** Закладки
@@ -2749,6 +2751,12 @@ Spacemacs. Код находится в файле [[./funcs.el][funcs.el]].
 
         ;; Docker inspect
         ("^\\* docker inspect .*")
+
+        ;; Code completion window
+        ("^\\*CodeCompletion\\*$"
+         (display-buffer-reuse-window display-buffer-in-side-window)
+         (side . right)
+         (window-width . 0.40))
 
         ;; Other buffers with name like "*Name*"
         ("^\\*.*\\*<.*>$"
@@ -6697,7 +6705,6 @@ emacsclient.
 
 * LLM. Всевозможные клиенты
 
-
 ** Чтение ключей из gpg-файлов
 
 Ключи можно положить в gpg-файлы и читать их оттуда. Ниже функция для
@@ -6844,6 +6851,14 @@ emacsclient.
     :ensure t
     :custom
     (gptel-default-mode 'org-mode))
+#+end_src
+
+В дальнейшем использование curl по-умолчанию будет мешать, поэтому
+сбросим его. В gptel-mode для моделей, отличных от GigaChat, этот
+параметр будет локально восстановлен.
+
+#+begin_src emacs-lisp :tangle yes
+(setq gptel-use-curl nil)
 #+end_src
 
 Регистрации бекэндов сделаем через функции. Там решим проблему
@@ -7260,8 +7275,7 @@ my/gptel-gigachat-access-token.
              :key 'my/gptel-gigachat-access-token
              :request-params my/gptel-def-request-params))))
 
-(setq gptel-use-curl t
-      gptel-model 'GigaChat-2-Max
+(setq gptel-model 'GigaChat-2-Max
       gptel-log-level 'info  ;; 'debug
       gptel-backend (my/gptel--register-backend-gigachat "GigaChat"))
 #+end_src
@@ -7276,6 +7290,268 @@ my/gptel-gigachat-access-token.
                                            (gptel-backend-name gptel-backend)))))
 
 (add-hook 'gptel-mode-hook 'my/gptel-set-curl-mode)
+#+end_src
+
+** Работа с кодом (автодополнение, оптимизация и прочее)
+
+*** Буфер для результатов работы с кодом
+
+Это попытка поставить на службу LLM в качестве работы с кодом. Не
+сложилось пока с copilot, minuet и прочими.
+
+Будем выделять в произвольном буфере код, после чего вызывать функцию
+из набора ниже. Результат будем отображать в org-буфере слева. Выберем
+имя для этого буфера и определим функцию для его показа.
+
+#+begin_src emacs-lisp :tangle yes
+(defvar my/llm-codework-out-buffer "*CodeCompletion*"
+  "Buffer for code LLM results.")
+
+(defun my/llm-codework-toggle-out-buffer ()
+    (interactive)
+    (if-let ((window (get-buffer-window my/llm-codework-out-buffer)))
+        (delete-window window)
+        (my/llm-codework-switch-to-out-buffer my/llm-codework-out-buffer)))
+
+(defun my/llm-codework-switch-to-out-buffer (out-buffer)
+    (let* ((created-p (get-buffer out-buffer))
+           (buffer (get-buffer-create out-buffer)))
+        (switch-to-buffer-other-window buffer)
+        (unless created-p
+            (org-mode))))
+#+end_src
+
+Подготовим буфер к дальнейшему диалогу с ИИ. Для этого в промпт
+положим все до родительского заголовка первого уровня. Реплики будут
+строиться по заголовкам второго уровня (заголовок - вопрос,
+содержимое - ответ). Последний заголовок вместе с содержимым будет
+считаться одним вопросом.
+
+Содержимое промпта оформим в виде диалога user-assistant. Функция ниже
+возвращает такой диалог для дальнейшей передачи в =gptel-requiest=.
+
+#+begin_src emacs-lisp :tangle yes
+(defun my/llm-codework-out-buffer--make-theme-prompts ()
+    (save-excursion
+        (when (my/llm-codework-out-buffer--find-theme-paragraph)
+            (let ((prompts ()))
+                (my/llm-codework-out-buffer--map-children
+                 (lambda (last-p)
+                     (setq prompts (my/llm-codework-out-buffer--append-replica
+                                    prompts
+                                    last-p))))
+                prompts))))
+
+(defun my/llm-codework-out-buffer--find-theme-paragraph ()
+    (org-back-to-heading-or-point-min)
+    (while (and (org-current-level)
+                (< 1 (org-current-level)))
+        (org-up-heading-safe))
+    (org-current-level))
+
+(defun my/llm-codework-out-buffer--map-children (func)
+    (when (org-goto-first-child)
+        (funcall func (my/llm-codework-out-buffer--last-in-theme-p))
+        (while (org-goto-sibling)
+            (funcall func (my/llm-codework-out-buffer--last-in-theme-p)))))
+
+(defun my/llm-codework-out-buffer--last-in-theme-p ()
+    (save-excursion
+        (not (org-goto-sibling))))
+
+(defun my/llm-codework-out-buffer--get-type ()
+    (when-let* ((header (org-get-heading))
+                (level (org-current-level)))
+        (cond ((not (equal level 2))
+               nil)
+              ((string= header "Source")
+               'source)
+              ((string= header "Answer")
+               'answer)
+              (t
+               'any))))
+
+(defun my/llm-codework-out-buffer--append-replica (prompts last-p)
+    (let* ((type (my/llm-codework-out-buffer--get-type))
+           (header (org-get-heading))
+           (body (my/llm-codework-out-buffer--get-entry-text)))
+        (pcase type
+            ('source
+             (setq prompts (append prompts (list body
+                                                 nil))))
+            ('answer
+             (setq prompts (append prompts (list nil
+                                                 body))))
+            ('any
+             (if last-p
+                 (setq prompts (append prompts (list (concat header "\n\n" body)
+                                                     nil)))
+                 (setq prompts (append prompts (list header nil
+                                                     nil body)))))))
+    prompts)
+
+(defun my/llm-codework-out-buffer--goto-end-of-theme ()
+    (when (my/llm-codework-out-buffer--find-theme-paragraph)
+        (let* ((element (org-element-at-point))
+               (begin (org-element-property :contents-begin element))
+               (end (org-element-property :contents-end element)))
+            (goto-char end)
+            end)))
+
+(defun my/llm-codework-out-buffer--get-entry-text ()
+    (when (org-at-heading-p)
+        (let* ((element (org-element-at-point))
+               (content (org-element-property :contents-begin element))
+               (end (org-element-property :contents-end element)))
+            (if (and content end)
+                (buffer-substring-no-properties content end)
+                ""))))
+#+end_src
+
+*** Функции работы с кодом
+
+Для начала постоим системный промпт под работу с кодом.
+
+#+begin_src emacs-lisp :tangle yes
+(defcustom my/llm-codework-system
+  "You are a large language model and a careful programmer. Provide code and only code as output without any additional text, prompt or note. All headers must be third level. In code safe orgignal indentation."
+  "System prompt for change code."
+  :type 'string)
+#+end_src
+
+Язык кода будем вытаскивать из названия major-mode буфера.
+
+#+begin_src emacs-lisp :tangle yes
+(defun my/get-lang ()
+    (car (string-split (symbol-name major-mode) "-")))
+#+end_src
+
+Ниже находятся интерактивные функции для
+- продолжения выделенного кода,
+- вариантов продолжения выделенного кода,
+- оптимизации выделенного кода,
+- пояснения выделенного кода.
+
+#+begin_src emacs-lisp :tangle yes
+(defun my/llm-codework-complete ()
+    (interactive)
+    (let* ((lang (my/get-lang))
+           (system my/llm-codework-system)
+           (prompt (format "Complete the code below in %s. The code starts with the <src_code_block> tag and ends with the </src_code_block> tag. All explanations give in russian:"
+                           lang)))
+        (my/llm-codework-base (format "(%s) Completion of Code" lang)
+                              system
+                              prompt)))
+
+(defun my/llm-codework-completion-variants ()
+    (interactive)
+    (let* ((lang (my/get-lang))
+           (system my/llm-codework-system)
+           (prompt (format "Complete the code below in %s. The code starts with the <src_code_block> tag and ends with the </src_code_block> tag. Make three variants of comletion. Show results. All explanations give in russian:"
+                           lang)))
+        (my/llm-codework-base (format "(%s) Completion Variants of Code" lang)
+                              system
+                              prompt)))
+
+(defun my/llm-codework-optimize ()
+    (interactive)
+    (let* ((lang (my/get-lang))
+           (system my/llm-codework-system)
+           (prompt (format "Optimize the code below in %s. The code starts with the <src_code_block> tag and ends with the </src_code_block> tag. When a optimizaion isn't necessary, say about it and don't change the code. All explanations give in russian."
+                           lang)))
+        (my/llm-codework-base (format "(%s) Optimization of Code" lang)
+                              system
+                              prompt)))
+
+(defun my/llm-codework-explain ()
+    (interactive)
+    (let* ((lang (my/get-lang))
+           (system "You are a large language model living in Emacs and a helpful assistant. Respond concisely.")
+           (prompt (format "Объясни код ниже на %s. Код начинается с тега <src_code_block> и заканчивается тегом </src_code_block>. Объяснение дай на русском языке."
+                           lang)))
+        (my/llm-codework-base (format "(%s) Explanation of Code" lang)
+                              system
+                              prompt)))
+#+end_src
+
+Для дальнейших уточнений работы ИИ сделаем обработку последующих
+вопросов. Вопросы строятся в заголовке второго уровня в буфере
+результатов работы ИИ.
+
+#+begin_src emacs-lisp :tangle yes
+(defun my/llm-codework-inquire-further ()
+    (interactive)
+    (when (and (string= (buffer-name) my/llm-codework-out-buffer)
+               (org-current-level)
+               (equal 2 (org-current-level)))
+        (let* ((lang (my/get-lang))
+               (system "You are a large language model living in Emacs and a helpful assistant. Respond concisely.")
+               (prompts (my/llm-codework-out-buffer--make-theme-prompts)))
+            (my/llm-codework-out-buffer--goto-end-of-theme)
+            (insert "\n\n\n")
+            (goto-line (- (line-number-at-pos) 2))
+            (gptel-request
+                prompts
+                :system system))))
+#+end_src
+
+Далее идут вспомогательные функции к функциям выше. Одна из них делает
+запрос к LLM, пользуясь gptel, как бекэндом. Вторая принимает ответ и
+размещает его в org-буфере справа.
+
+#+begin_src emacs-lisp :tangle yes
+(defun my/llm-codework-base (header system prompt)
+    (when (use-region-p)
+        (let* ((text (buffer-substring-no-properties (use-region-beginning)
+                                                     (use-region-end)))
+               (text (string-trim-right text))
+               (mode (car (string-split (symbol-name major-mode) "-")))
+               (request (concat prompt "\n\n<src_code_block>\n" text "\n</src_code_block>")))
+            (gptel-request
+                request
+                :system system
+                :callback (apply-partially 'my/llm-codework-callback
+                                           header
+                                           request
+                                           my/llm-codework-out-buffer)))))
+
+(defun my/llm-codework-callback (header text out-buffer response _info)
+    (when (and response
+               (not (string-empty-p response)))
+        (my/llm-codework-switch-to-out-buffer out-buffer)
+        (unless (boundp 'my/header-count)
+            (setq-local my/header-count 0))
+        (goto-char (point-max))
+        (insert (format "\n* %s. %s\n\n"
+                        (setq-local my/header-count (1+ my/header-count))
+                        (string-trim header)))
+        (insert "** Source\n\n")
+        (insert (string-trim-right text))
+        (save-excursion
+            (when (re-search-backward "^\\*\\* Source" nil t)
+                (org-cycle)))
+        (insert "\n\n** Answer\n\n")
+        (insert (gptel--convert-markdown->org response))
+        (insert "\n")))
+#+end_src
+
+*** Горячие клавиши
+
+#+begin_src emacs-lisp :tangle yes
+(my/leader-def nil 'override
+               "i" '(:ignore t :which-key "Code AI-changing")
+               "i I" '(my/llm-codework-toggle-out-buffer
+                       :which-key "Show out buffer")
+               "i c" '(my/llm-codework-complete
+                       :which-key "Complete code region")
+               "i v" '(my/llm-codework-completion-variants
+                       :which-key "Completion variants of code region")
+               "i o" '(my/llm-codework-optimize
+                       :which-key "Optimize code region")
+               "i e" '(my/llm-codework-explain
+                       :which-key "Explain code region")
+               "i f" '(my/llm-codework-inquire-further
+                       :which-key "Inquire further"))
 #+end_src
 
 * LSP сервер (vs Eglot)
@@ -8935,8 +9211,29 @@ LSP-сервер будет работать так же, как на локал
 На минималках.
 
 #+begin_src emacs-lisp :tangle yes
+(use-package go-mode
+    :ensure t)
 (use-package ob-go
     :ensure t)
+#+end_src
+
+Позаботимся о вычислении org-babel блоков.
+
+#+begin_src emacs-lisp :tangle yes
+(my/--register-org-babel 'go)
+#+end_src
+
+** Groovy
+
+#+begin_src emacs-lisp :tangle yes
+(use-package groovy-mode
+    :ensure t)
+#+end_src
+
+Позаботимся о вычислении org-babel блоков.
+
+#+begin_src emacs-lisp :tangle yes
+(my/--register-org-babel 'groovy)
 #+end_src
 
 ** Java
