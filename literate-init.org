@@ -7515,6 +7515,8 @@ my/gptel-gigachat-access-token.
                (prompt (format "Remember code in %s. The code starts with the <src_code_block> tag and ends with the </src_code_block> tag. All explanations give in russian." lang)))
             (my/llm-codework-switch-to-out-buffer my/llm-codework-out-buffer)
             (goto-char (point-max))
+            (unless (boundp 'my/header-count)
+                (setq-local my/header-count 0))
             (insert (format "\n* %s. (%s) Research code\n\n"
                             (setq-local my/header-count (1+ my/header-count))
                             lang))
