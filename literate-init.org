@@ -7423,7 +7423,14 @@ my/gptel-gigachat-access-token.
 
 #+begin_src emacs-lisp :tangle yes
 (defun my/get-lang ()
-    (car (string-split (symbol-name major-mode) "-")))
+    (let ((lang (car (string-split (symbol-name major-mode) "-"))))
+        (cond
+          ((string= lang "emacs")
+           "emacs-lisp")
+          ((string= lang "org")
+           "emacs-lisp")
+          (t
+           lang))))
 #+end_src
 
 Ниже находятся интерактивные функции для
@@ -7495,6 +7502,27 @@ my/gptel-gigachat-access-token.
                 :system system))))
 #+end_src
 
+Помимо функций выше может потребоваться просто поместить выделенный
+код с запросом в буфер результатов работы ИИ для дальнейшего его
+исследования. Сделаем для этого функцию.
+
+#+begin_src emacs-lisp :tangle yes
+(defun my/llm-codework-remember ()
+    (interactive)
+    (when (use-region-p)
+        (let* ((lang (my/get-lang))
+               (text (my/llm-codework-get-region-code))
+               (prompt (format "Remember code in %s. The code starts with the <src_code_block> tag and ends with the </src_code_block> tag. All explanations give in russian." lang)))
+            (my/llm-codework-switch-to-out-buffer my/llm-codework-out-buffer)
+            (goto-char (point-max))
+            (insert (format "\n* %s. (%s) Research code\n\n"
+                            (setq-local my/header-count (1+ my/header-count))
+                            lang))
+            (insert "** Source\n\n")
+            (insert (my/llm-codework-make-request prompt text))
+            (insert "\n\n** "))))
+#+end_src
+
 Далее идут вспомогательные функции к функциям выше. Одна из них делает
 запрос к LLM, пользуясь gptel, как бекэндом. Вторая принимает ответ и
 размещает его в org-буфере справа.
@@ -7502,11 +7530,8 @@ my/gptel-gigachat-access-token.
 #+begin_src emacs-lisp :tangle yes
 (defun my/llm-codework-base (header system prompt)
     (when (use-region-p)
-        (let* ((text (buffer-substring-no-properties (use-region-beginning)
-                                                     (use-region-end)))
-               (text (string-trim-right text))
-               (mode (car (string-split (symbol-name major-mode) "-")))
-               (request (concat prompt "\n\n<src_code_block>\n" text "\n</src_code_block>")))
+        (let* ((text (my/llm-codework-get-region-code))
+               (request (my/llm-codework-make-request prompt text)))
             (gptel-request
                 request
                 :system system
@@ -7514,6 +7539,20 @@ my/gptel-gigachat-access-token.
                                            header
                                            request
                                            my/llm-codework-out-buffer)))))
+
+(defun my/llm-codework-get-region-code ()
+    (when (use-region-p)
+        (let* ((begin (use-region-beginning))
+               (end (use-region-end)))
+            (save-excursion
+                (goto-char begin)
+                (unless (equal begin (line-beginning-position))
+                    (when-let ((indent (re-search-backward "^ +" nil t)))
+                        (setq begin indent))))
+            (string-trim-right (buffer-substring-no-properties begin end)))))
+
+(defun my/llm-codework-make-request (prompt text)
+    (concat prompt "\n\n<src_code_block>\n" text "\n</src_code_block>"))
 
 (defun my/llm-codework-callback (header text out-buffer response _info)
     (when (and response
@@ -7545,11 +7584,13 @@ my/gptel-gigachat-access-token.
                "i c" '(my/llm-codework-complete
                        :which-key "Complete code region")
                "i v" '(my/llm-codework-completion-variants
-                       :which-key "Completion variants of code region")
+                       :which-key "completion variants of code region")
                "i o" '(my/llm-codework-optimize
-                       :which-key "Optimize code region")
+                       :which-key "optimize code region")
                "i e" '(my/llm-codework-explain
-                       :which-key "Explain code region")
+                       :which-key "explain code region")
+               "i r" '(my/llm-codework-remember
+                       :which-key "remember code region")
                "i f" '(my/llm-codework-inquire-further
                        :which-key "Inquire further"))
 #+end_src
