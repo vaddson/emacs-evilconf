@@ -2911,14 +2911,14 @@ stays on current"
 эту директорию.
 
 #+begin_src emacs-lisp :tangle yes
-(setq my/scratch-dir (file-name-concat user-emacs-directory ".cache/scratches"))
+(setq my/scratch-dir (file-name-concat user-emacs-directory ".cache" "scratches"))
 (make-directory my/scratch-dir t)
 #+end_src
 
- Создаем суффикс для имени буфера. Если активен проект - будет имя
- проекта, иначе имя рабочего пространства.
+Создаем суффикс для имени буфера. Если активен проект - будет имя
+проекта, иначе имя рабочего пространства.
 
- #+begin_src emacs-lisp :tangle yes
+#+begin_src emacs-lisp :tangle yes
 (defun my/--make-buffer-suffix ()
     (let* ((project-path (projectile-project-root))
            (persp-name (my/--get-current-persp-name))
@@ -2926,7 +2926,7 @@ stays on current"
                      (concat "PROJ-" (my/make-project-name project-path))
                      persp-name)))
         name))
- #+end_src
+#+end_src
 
 Теперь сама функция. Она принимает на вход имя буфера и какой-либо
 идентификатор, по которому строится имя файла для автосохранения.
@@ -6938,14 +6938,17 @@ gptel-mode, в заголовок файла можно воткнуть ком�
 #+begin_src emacs-lisp :tangle yes
 (my/leader-def nil 'override
                "l g" '(:ignore t :which-key "GPTel client")
+               "l g a" '(gptel-add :which-key "Add region to context")
+               "l g D" '(gptel-context-remove-all :which-key "Remove all context")
+               "l g e" '(gptel-mode :which-key "GPTel minor mode")
                "l g g" '(gptel :which-key "GPTel buffer")
                "l g G" '(gptel-menu :which-key "Menu")
-               "l g e" '(gptel-mode :which-key "GPTel minor mode")
-               "l g s" '(gptel-send :which-key "Send request")
-               "l g r" '(gptel-rewrite :which-key "Rewrite")
-               "l g u" '(my/gptel-refresh-backend :which-key "Refresh backend")
+               "l g k" '(gptel-abort :which-key "Abort request")
                "l g p" '(my/customize-def-request-params :which-key
-                         "Set models paramerets"))
+                         "Set models paramerets")
+               "l g r" '(gptel-rewrite :which-key "Rewrite")
+               "l g s" '(gptel-send :which-key "Send request")
+               "l g u" '(my/gptel-refresh-backend :which-key "Refresh backend"))
 
 (my/leader-def nil 'org-mode-map
                "l g o" '(my/gptel-convert-org-file-to-talk
@@ -7294,10 +7297,10 @@ my/gptel-gigachat-access-token.
 
 ** Работа с кодом (автодополнение, оптимизация и прочее)
 
-*** Буфер для результатов работы с кодом
-
 Это попытка поставить на службу LLM в качестве работы с кодом. Не
 сложилось пока с copilot, minuet и прочими.
+
+*** Буфер для результатов работы с кодом
 
 Будем выделять в произвольном буфере код, после чего вызывать функцию
 из набора ниже. Результат будем отображать в org-буфере слева. Выберем
@@ -7306,6 +7309,15 @@ my/gptel-gigachat-access-token.
 #+begin_src emacs-lisp :tangle yes
 (defvar my/llm-codework-out-buffer "*CodeCompletion*"
   "Buffer for code LLM results.")
+
+(setq my/llm-codework-out-buffer-file
+      (expand-file-name
+       (file-name-concat user-emacs-directory
+                         ".cache"
+                         (concat (if-let ((daemon (daemonp)))
+                                     (concat daemon "-")
+                                     "")
+                                 "code-completion.org"))))
 
 (defun my/llm-codework-toggle-out-buffer ()
     (interactive)
@@ -7318,6 +7330,7 @@ my/gptel-gigachat-access-token.
            (buffer (get-buffer-create out-buffer)))
         (switch-to-buffer-other-window buffer)
         (unless created-p
+            (setq-local buffer-auto-save-file-name my/llm-codework-out-buffer-file)
             (org-mode))))
 #+end_src
 
@@ -7443,9 +7456,11 @@ my/gptel-gigachat-access-token.
 (defun my/llm-codework-complete ()
     (interactive)
     (let* ((lang (my/get-lang))
-           (system my/llm-codework-system)
-           (prompt (format "Complete the code below in %s. The code starts with the <src_code_block> tag and ends with the </src_code_block> tag. All explanations give in russian:"
+           (prompt "")
+           (system (format "Complete or finish the following code written in %s that starts after the =<src_code_block>= tag and ends before the =</src_code_block>= tag. Do not modify or add comments to the original code. Use only objects and variables present in the source code; do not invent new ones. If you need more context to complete the task, request additional preceding code. Include both the original and completed code in your response."
                            lang)))
+           ;; (system (format "Дополни или заверши приведенный ниже код на %s, который начинается после тега <src_code_block> и завершается перед тегом </src_code_block>. Исходный код не исправляй и не дополняй комментариями. В ответе используй только те объекты и переменные, которые есть в исходном коде, других не придумывай. Если для выполнения задачи тебе не хватает контекста, то ответом запроси нужный тебе предшествующий код. Результат приведи вместе с исходным кодом."
+           ;;                 lang)))
         (my/llm-codework-base (format "(%s) Completion of Code" lang)
                               system
                               prompt)))
@@ -7453,9 +7468,11 @@ my/gptel-gigachat-access-token.
 (defun my/llm-codework-completion-variants ()
     (interactive)
     (let* ((lang (my/get-lang))
-           (system my/llm-codework-system)
-           (prompt (format "Complete the code below in %s. The code starts with the <src_code_block> tag and ends with the </src_code_block> tag. Make three variants of comletion. Show results. All explanations give in russian:"
+           (prompt "")
+           (system (format "Complete or finish the provided code snippet below written in %s which begins after the =<src_code_block>= tag and ends before the =</src_code_block>= tag. Do not correct or comment on the existing code. In your answer, use only those objects and variables already present in the given code—do not introduce any others. Present your result along with the original code. Provide 1-5 different versions of the solution and number them accordingly."
                            lang)))
+        ;; (system (format "Дополни или заверши приведенный ниже код на %s, который начинается после тега <src_code_block> и завершается перед тегом </src_code_block>. Исходный код не исправляй и не дополняй комментариями. В ответе используй только те объекты и переменные, которые есть в исходном коде, других не придумывай. Результат приведи вместе с исходным кодом. Сделай таким образом от одного до пяти вариантов ответа и пронумеруй их."
+        ;;                 lang)))
         (my/llm-codework-base (format "(%s) Completion Variants of Code" lang)
                               system
                               prompt)))
@@ -7463,9 +7480,11 @@ my/gptel-gigachat-access-token.
 (defun my/llm-codework-optimize ()
     (interactive)
     (let* ((lang (my/get-lang))
-           (system my/llm-codework-system)
-           (prompt (format "Optimize the code below in %s. The code starts with the <src_code_block> tag and ends with the </src_code_block> tag. When a optimizaion isn't necessary, say about it and don't change the code. All explanations give in russian."
+           (prompt "")
+           (system (format "Optimize the following %s code, starting from the =<src_code_block>= tag and ending at the =</src_code_block>= tag. Below, provide an explanation for your optimization. If no optimization is needed, state this in your response without changing the original code. You may utilize more efficient solutions or libraries. All explanations should be in Russian."
                            lang)))
+        ;; (system (format "Оптимизируй код на %s, приведенный ниже, который начинается после тега <src_code_block> и завершается перед тегом </src_code_block>. Ниже приведи объяснение своей оптимизации. Если оптимизации не требуется, сообщи об этом в ответе, а не меняй исходный код. Можешь использовать более эффективные решения или библиотеки. Все пояснения приведи на русском языке."
+        ;;                 lang)))
         (my/llm-codework-base (format "(%s) Optimization of Code" lang)
                               system
                               prompt)))
@@ -7473,9 +7492,11 @@ my/gptel-gigachat-access-token.
 (defun my/llm-codework-explain ()
     (interactive)
     (let* ((lang (my/get-lang))
-           (system "You are a large language model living in Emacs and a helpful assistant. Respond concisely.")
-           (prompt (format "Объясни код ниже на %s. Код начинается с тега <src_code_block> и заканчивается тегом </src_code_block>. Объяснение дай на русском языке."
+           (prompt "")
+           (system (format "Explain the following %s code, which starts after the =<src_code_block>= tag and ends before the =</src_code_block>= tag. Provide the explanation in Russian."
                            lang)))
+        ;; (system (format "Объясни код ниже на %s, который начинается после тега <src_code_block> и завершается перед тегом </src_code_block>. Объяснение дай на русском языке."
+        ;;                 lang)))
         (my/llm-codework-base (format "(%s) Explanation of Code" lang)
                               system
                               prompt)))
@@ -7499,6 +7520,7 @@ my/gptel-gigachat-access-token.
             (goto-line (- (line-number-at-pos) 2))
             (gptel-request
                 prompts
+                :stream nil
                 :system system))))
 #+end_src
 
@@ -7522,6 +7544,9 @@ my/gptel-gigachat-access-token.
                             lang))
             (insert "** Source\n\n")
             (insert (my/llm-codework-make-request prompt text))
+            (save-excursion
+                (when (re-search-backward "^\\*\\* Source" nil t)
+                    (org-cycle)))
             (insert "\n\n** "))))
 #+end_src
 
@@ -7534,8 +7559,10 @@ my/gptel-gigachat-access-token.
     (when (use-region-p)
         (let* ((text (my/llm-codework-get-region-code))
                (request (my/llm-codework-make-request prompt text)))
+            (my/llm-codework-switch-to-out-buffer my/llm-codework-out-buffer)
             (gptel-request
                 request
+                :stream nil
                 :system system
                 :callback (apply-partially 'my/llm-codework-callback
                                            header
