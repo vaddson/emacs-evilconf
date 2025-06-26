@@ -69,6 +69,7 @@
   - [[#общий-буфер-обмена-для-emacs-и-ос][Общий буфер обмена для Emacs и ОС]]
   - [[#быстрая-работа-с-регистрами--и-][Быстрая работа с регистрами `+' и `"']]
 - [[#редактирование-текста-и-интерфейс-к-нему][Редактирование текста и интерфейс к нему]]
+  - [[#общие-клавиши-для-редактирования-текста][Общие клавиши для редактирования текста]]
   - [[#follow-mode---просматриваем-непрерывный-текст-в-нескольких-буферах][Follow-mode - просматриваем непрерывный текст в нескольких буферах]]
   - [[#отмена-изменений-на-основе-дерева-undo-tree][Отмена изменений на основе дерева (undo-tree)]]
   - [[#прокручивание-текста][Прокручивание текста]]
@@ -235,7 +236,13 @@
   - [[#gptel-подключаем-deepseek][GPTel. Подключаем DeepSeek]]
   - [[#gptel-подключаем-ollama][GPTel. Подключаем Ollama]]
   - [[#gptel-подключаем-gigachat][GPTel. Подключаем GigaChat]]
+    - [[#материалы-только-информация-и-ссылки][Материалы (только информация и ссылки)]]
+    - [[#получение-access-token][Получение access token]]
+    - [[#настройки][Настройки]]
   - [[#работа-с-кодом-автодополнение-оптимизация-и-прочее][Работа с кодом (автодополнение, оптимизация и прочее)]]
+    - [[#буфер-для-результатов-работы-с-кодом][Буфер для результатов работы с кодом]]
+    - [[#функции-работы-с-кодом][Функции работы с кодом]]
+    - [[#горячие-клавиши][Горячие клавиши]]
 - [[#lsp-сервер-vs-eglot][LSP сервер (vs Eglot)]]
   - [[#установка-1][Установка]]
   - [[#общие-настройки][Общие настройки]]
@@ -1290,6 +1297,13 @@ Find application name in my/application-name variable."
 #+end_src
 
 * Редактирование текста и интерфейс к нему
+
+** Общие клавиши для редактирования текста
+
+#+begin_src emacs-lisp :tangle yes
+(my/leader-def nil 'override
+               "e a" 'align-regexp)
+#+end_src
 
 ** Follow-mode - просматриваем непрерывный текст в нескольких буферах
 
@@ -4387,6 +4401,12 @@ text-mode, то он отменит перенос строк. :)
     (warn "toc-org not found"))
 #+end_src
 
+Глубина заголовков в оглавлении.
+
+#+begin_src emacs-lisp :tangle yes
+(setq toc-org-max-depth 10)
+#+end_src
+
 ** Вычисление babel-блоков при экспорте
 
 Запрещаем вычисление блоков при экспорте.  (Не сбрасывать
@@ -6748,29 +6768,29 @@ emacsclient.
 - https://hub.docker.com/r/ollama/ollama
 
 Сокращенная подсказка на старте:
-| Действие                           | Родные  | Свои               |
-|------------------------------------+---------+--------------------|
-| Ask me anything!                   | C-c C-c | M-RET              |
-| Change model                       | C-c m   | SPC l m m          |
-| Cancel request                     | C-c k   | SPC l k, SPC l m k |
-| Browse prompt history              | M-p/M-n |                    |
-| Advanced interface (show all tips) | C-c A   | SPC l A            |
+| Действие                           | Родные  | Свои                   |
+|------------------------------------+---------+------------------------|
+| Ask me anything!                   | C-c C-c | M-RET                  |
+| Change model                       | C-c m   | SPC l o m m            |
+| Cancel request                     | C-c k   | SPC l o k, SPC l o m k |
+| Browse prompt history              | M-p/M-n |                        |
+| Advanced interface (show all tips) | C-c A   | SPC l o A              |
 
 Полная подсказка:
-| Действие                            | Родные                | Свои               |
-|-------------------------------------+-----------------------+--------------------|
-| Ask me anything!                    | C-c C-c               | M-RET              |
-| Show Help/Token-usage/System-prompt | C-c h/U/C-s           | SPC l v h/U/S      |
-| Model Change/Info/Cancel            | C-c m/i/k             | SPC l m m/i/k      |
-| Cancel request                      | C-c k                 | SPC l k, SPC l m k |
-| Prompt history                      | M-p/M-n               |                    |
-| Session New/Load/Save/List/Delete   | C-c N/L/S/Q/Z         | SPC l s N/L/S/Q/Z  |
-| History Toggle/Clear/Show/Edit      | C-c H/X/V/E           | SCP l h H/X/V/E    |
-| Prompt to multiple models           | C-c M                 | SPC l M            |
-| Parameter Edit/Show/Help/Reset      | C-c P/G/I/K           | SPC l p P/G/I/K    |
-| System Prompt/Clear                 | C-u/+C-u +C-u C-c C-c | SPC l y p/c        |
-| Toggle JSON/Token/Params/Format     | C-c D/T/F/C-o         | SPC l t D/T/F/O    |
-| Basic interface (simpler display)   | C-c A                 | SPC l A            |
+| Действие                            | Родные                | Свои                   |
+|-------------------------------------+-----------------------+------------------------|
+| Ask me anything!                    | C-c C-c               | M-RET                  |
+| Show Help/Token-usage/System-prompt | C-c h/U/C-s           | SPC l o v h/U/S        |
+| Model Change/Info/Cancel            | C-c m/i/k             | SPC l o m m/i/k        |
+| Cancel request                      | C-c k                 | SPC l o k, SPC l o m k |
+| Prompt history                      | M-p/M-n               |                        |
+| Session New/Load/Save/List/Delete   | C-c N/L/S/Q/Z         | SPC l o s N/L/S/Q/Z    |
+| History Toggle/Clear/Show/Edit      | C-c H/X/V/E           | SCP l o h H/X/V/E      |
+| Prompt to multiple models           | C-c M                 | SPC l o M              |
+| Parameter Edit/Show/Help/Reset      | C-c P/G/I/K           | SPC l o p P/G/I/K      |
+| System Prompt/Clear                 | C-u/+C-u +C-u C-c C-c | SPC l o y p/c          |
+| Toggle JSON/Token/Params/Format     | C-c D/T/F/C-o         | SPC l o t D/T/F/O      |
+| Basic interface (simpler display)   | C-c A                 | SPC l o A              |
 
 Устанавливаем клиента.
 
@@ -6787,42 +6807,42 @@ emacsclient.
                "l o o" '(ollama-buddy-menu :which-key "Ollama Menu")
                "l o O" '(ollama-buddy-transient-menu :which-key "Ollama Transient menu"))
 (my/leader-def nil 'ollama-buddy-mode-map
-               "l A" '(ollama-buddy-toggle-interface-level
+               "l o A" '(ollama-buddy-toggle-interface-level
                        :which-key "Toggle interface (basic/advance)")
-               "l M" '(ollama-buddy--multishot-prompt
+               "l o M" '(ollama-buddy--multishot-prompt
                        :which-key "Prompt to multiple models")
-               "l v" '(:ignore t :which-key "Show")
-               "l v h" '(ollama-buddy--menu-help-assistant :which-key "Help")
-               "l v U" '(ollama-buddy-display-token-stats :which-key "Token-usage")
-               "l v S" '(ollama-buddy-show-system-prompt :which-key "System-prompt")
-               "l m" '(:ignore t :which-key "Model")
-               "l m m" '(ollama-buddy--swap-model :which-key "Change model")
-               "l m k" '(ollama-buddy--cancel-request :which-key "Cancel request")
-               "l k" '(ollama-buddy--cancel-request :which-key "Cancel request")
-               "l s" '(:ignore t :which-key "Session")
-               "l s N" '(ollama-buddy-sessions-new :which-key "New")
-               "l s L" '(ollama-buddy-sessions-load :which-key "Load")
-               "l s S" '(ollama-buddy-sessions-save :which-key "Save")
-               "l s Q" '(ollama-buddy-sessions-list :which-key "List")
-               "l s Z" '(ollama-buddy-sessions-delete :which-key "Delete")
-               "l h" '(:ignore t :which-key "History")
-               "l h H" '(ollama-buddy-toggle-history :which-key "Toggle")
-               "l h X" '(ollama-buddy-clear-history :which-key "Clear")
-               "l h V" '(ollama-buddy-display-history :which-key "Show")
-               "l h E" '(ollama-buddy-history-edit :which-key "Edit")
-               "l p" '(:ignore t :which-key "Parameter")
-               "l p P" '(my/ollama-buddy-params-edit :which-key "Edit")
-               "l p G" '(ollama-buddy-params-display :which-key "Show")
-               "l p I" '(ollama-buddy-params-help :which-key "Help")
-               "l p K" '(ollama-buddy-params-reset :which-key "Reset")
-               "l y" '(:ignore t :which-key "System")
-               "l y p" '(ollama-buddy-set-system-prompt :which-key "Prompt (set)")
-               "l y c" '(ollama-buddy-reset-system-prompt :which-key "Clear (reset)")
-               "l t" '(:ignore t :which-key "Toggle")
-               "l t D" '(ollama-buddy-toggle-debug-mode :which-key "JSON")
-               "l t T" '(ollama-buddy-toggle-token-display :which-key "Token")
-               "l t F" '(evil-find-char-backward :which-key "Params")
-               "l t O" '(ollama-buddy-toggle-markdown-conversion :which-key "Format"))
+               "l o v" '(:ignore t :which-key "Show")
+               "l o v h" '(ollama-buddy--menu-help-assistant :which-key "Help")
+               "l o v U" '(ollama-buddy-display-token-stats :which-key "Token-usage")
+               "l o v S" '(ollama-buddy-show-system-prompt :which-key "System-prompt")
+               "l o m" '(:ignore t :which-key "Model")
+               "l o m m" '(ollama-buddy--swap-model :which-key "Change model")
+               "l o m k" '(ollama-buddy--cancel-request :which-key "Cancel request")
+               "l o k" '(ollama-buddy--cancel-request :which-key "Cancel request")
+               "l o s" '(:ignore t :which-key "Session")
+               "l o s N" '(ollama-buddy-sessions-new :which-key "New")
+               "l o s L" '(ollama-buddy-sessions-load :which-key "Load")
+               "l o s S" '(ollama-buddy-sessions-save :which-key "Save")
+               "l o s Q" '(ollama-buddy-sessions-list :which-key "List")
+               "l o s Z" '(ollama-buddy-sessions-delete :which-key "Delete")
+               "l o h" '(:ignore t :which-key "History")
+               "l o h H" '(ollama-buddy-toggle-history :which-key "Toggle")
+               "l o h X" '(ollama-buddy-clear-history :which-key "Clear")
+               "l o h V" '(ollama-buddy-display-history :which-key "Show")
+               "l o h E" '(ollama-buddy-history-edit :which-key "Edit")
+               "l o p" '(:ignore t :which-key "Parameter")
+               "l o p P" '(my/ollama-buddy-params-edit :which-key "Edit")
+               "l o p G" '(ollama-buddy-params-display :which-key "Show")
+               "l o p I" '(ollama-buddy-params-help :which-key "Help")
+               "l o p K" '(ollama-buddy-params-reset :which-key "Reset")
+               "l o y" '(:ignore t :which-key "System")
+               "l o y p" '(ollama-buddy-set-system-prompt :which-key "Prompt (set)")
+               "l o y c" '(ollama-buddy-reset-system-prompt :which-key "Clear (reset)")
+               "l o t" '(:ignore t :which-key "Toggle")
+               "l o t D" '(ollama-buddy-toggle-debug-mode :which-key "JSON")
+               "l o t T" '(ollama-buddy-toggle-token-display :which-key "Token")
+               "l o t F" '(evil-find-char-backward :which-key "Params")
+               "l o t O" '(ollama-buddy-toggle-markdown-conversion :which-key "Format"))
 (my/evil-define-key nil 'ollama-buddy-mode-map
                     "M-RET" '(ollama-buddy--send-prompt
                               :which-key "Ask me anything!"))
@@ -8776,8 +8796,8 @@ Pyright может не скачаться с серверов, поэтому �
 
 #+begin_src emacs-lisp :tangle yes
 (my/leader-def nil 'override
-               "e a" #'my/pyvenv-activate
-               "e i" #'my/pyvenv-select-path)
+               "c a" #'my/pyvenv-activate
+               "c i" #'my/pyvenv-select-path)
 #+end_src
 
 ** Emacs IPython Notebook (ein)
