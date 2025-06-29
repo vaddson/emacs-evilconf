@@ -181,6 +181,7 @@
   - [[#latex-preview-ручное-изменение-размеров-формул-костыль][LaTeX preview. Ручное изменение размеров формул (костыль)]]
   - [[#копирование-ссылки-в-буфер-обмена][Копирование ссылки в буфер обмена]]
   - [[#преобразование-url-в-ссылку-с-именем-задачи-или-файла][Преобразование URL в ссылку с именем задачи или файла]]
+  - [[#открытие-картинок-и-файлов-по-ссылке-в-том-же-буфере][Открытие картинок (и файлов) по ссылке в том же буфере]]
   - [[#клавиши-для-работы-с-таблицами][Клавиши для работы с таблицами]]
   - [[#показ-картинок-результатов-выполнения-org-babel-блоков][Показ картинок-результатов выполнения org-babel блоков]]
   - [[#показ-времени-выполнения-babel-блока][Показ времени выполнения babel-блока]]
@@ -4671,6 +4672,32 @@ sudo pacman -S texlive
 (my/localleader-def nil 'org-mode-map
     "l m" #'my/make-task-link
     "l M" #'my/make-link-for-call)
+#+end_src
+
+** Открытие картинок (и файлов) по ссылке в том же буфере
+
+Сделаем возможность открыть показанную в org-буфере картинку
+отдельно. Это может быть нужно для более детального ее рассмотрения в
+большем масштабе, чем в исходном буфере.
+
+#+begin_src emacs-lisp :tangle yes
+(defun my/open-picture-in-same-window ()
+    (interactive)
+    (when-let* ((element (org-element-context))
+                (file-p (equal "file" (org-element-property :type element)))
+                (raw-link (org-element-property :raw-link element))
+                (file (if (string= "file" (car (split-string raw-link ":")))
+                          (substring raw-link (length "file:"))
+                          raw-link)))
+        (find-file file)))
+#+end_src
+
+Горячие клавиши.
+
+#+begin_src emacs-lisp :tangle yes
+(my/localleader-def nil 'org-mode-map
+                    "RET" '(my/open-picture-in-same-window
+                            :which-key "Open file or picture"))
 #+end_src
 
 ** Клавиши для работы с таблицами
