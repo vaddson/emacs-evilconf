@@ -284,6 +284,7 @@
   - [[#cmake][Cmake]]
   - [[#go][Go]]
   - [[#groovy][Groovy]]
+  - [[#kotlin][Kotlin]]
   - [[#java][Java]]
   - [[#java-spring-boot][Java. Spring Boot]]
   - [[#javascripttypescript][JavaScript/TypeScript]]
@@ -7372,6 +7373,10 @@ my/gptel-gigachat-access-token.
         (delete-window window)
         (my/llm-codework-switch-to-out-buffer my/llm-codework-out-buffer)))
 
+(defun my/llm-codework-open-out-buffer ()
+    (interactive)
+    (my/llm-codework-switch-to-out-buffer my/llm-codework-out-buffer))
+
 (defun my/llm-codework-switch-to-out-buffer (out-buffer)
     (let* ((created-p (get-buffer out-buffer))
            (buffer (get-buffer-create out-buffer)))
@@ -7504,10 +7509,10 @@ my/gptel-gigachat-access-token.
     (interactive)
     (let* ((lang (my/get-lang))
            (prompt "")
-           (system (format "Complete or finish the following code written in %s that starts after the =<src_code_block>= tag and ends before the =</src_code_block>= tag. Do not modify or add comments to the original code. Use only objects and variables present in the source code; do not invent new ones. If you need more context to complete the task, request additional preceding code. Include both the original and completed code in your response."
-                           lang)))
-           ;; (system (format "Дополни или заверши приведенный ниже код на %s, который начинается после тега <src_code_block> и завершается перед тегом </src_code_block>. Исходный код не исправляй и не дополняй комментариями. В ответе используй только те объекты и переменные, которые есть в исходном коде, других не придумывай. Если для выполнения задачи тебе не хватает контекста, то ответом запроси нужный тебе предшествующий код. Результат приведи вместе с исходным кодом."
-           ;;                 lang)))
+           (system (format "Complete or finish the following code written in %s that starts after the <src_code_block> tag and ends before the </src_code_block> tag. Do not modify or add comments to the original code. Use only objects and variables present in the source code; do not introduce new ones. If you need more context to complete the task, request additional preceding code. Include the result along with the original code. Replace the tags <src_code_block> and </src_code_block> with #+begin_src %s and #+end_src, respectively. Provide your answer in Russian."
+                           lang lang)))
+           ;; (system (format "Дополни или заверши приведенный ниже код на %s, который начинается после тега <src_code_block> и завершается перед тегом </src_code_block>. Исходный код не исправляй и не дополняй комментариями. В ответе используй только те объекты и переменные, которые есть в исходном коде, других не придумывай. Если для выполнения задачи тебе не хватает контекста, то ответом запроси нужный тебе предшествующий код. Результат приведи вместе с исходным кодом. Теги <src_code_block> и </src_code_block> в своем ответе замени на операторные скобки #+begin_src %s и #+end_src. Ответ дай по русски."
+           ;;                 lang lang)))
         (my/llm-codework-base (format "(%s) Completion of Code" lang)
                               system
                               prompt)))
@@ -7516,9 +7521,9 @@ my/gptel-gigachat-access-token.
     (interactive)
     (let* ((lang (my/get-lang))
            (prompt "")
-           (system (format "Complete or finish the provided code snippet below written in %s which begins after the =<src_code_block>= tag and ends before the =</src_code_block>= tag. Do not correct or comment on the existing code. In your answer, use only those objects and variables already present in the given code—do not introduce any others. Present your result along with the original code. Provide 1-5 different versions of the solution and number them accordingly."
-                           lang)))
-        ;; (system (format "Дополни или заверши приведенный ниже код на %s, который начинается после тега <src_code_block> и завершается перед тегом </src_code_block>. Исходный код не исправляй и не дополняй комментариями. В ответе используй только те объекты и переменные, которые есть в исходном коде, других не придумывай. Результат приведи вместе с исходным кодом. Сделай таким образом от одного до пяти вариантов ответа и пронумеруй их."
+           (system (format "Complete or finish the following code written in %s that starts after the <src_code_block> tag and ends before the </src_code_block> tag. Do not modify or add comments to the original code. Use only objects and variables present in the given code; do not introduce new ones. Provide your result along with the original code. Create one to five versions of the answer and number them accordingly. Include the original code in your response. Replace the tags <src_code_block> and </src_code_block> with #+begin_src %s and #+end_src, respectively. Provide your answer in Russian."
+                           lang lang)))
+        ;; (system (format "Дополни или заверши приведенный ниже код на %s, который начинается после тега <src_code_block> и завершается перед тегом </src_code_block>. Исходный код не исправляй и не дополняй комментариями. В ответе используй только те объекты и переменные, которые есть в исходном коде, других не придумывай. Результат приведи вместе с исходным кодом. Сделай таким образом от одного до пяти вариантов ответа и пронумеруй их. Результат приведи вместе с исходным кодом. Теги <src_code_block> и </src_code_block> в своем ответе замени на операторные скобки #+begin_src %s и #+end_src. Ответ дай по русски."
         ;;                 lang)))
         (my/llm-codework-base (format "(%s) Completion Variants of Code" lang)
                               system
@@ -7528,9 +7533,9 @@ my/gptel-gigachat-access-token.
     (interactive)
     (let* ((lang (my/get-lang))
            (prompt "")
-           (system (format "Optimize the following %s code, starting from the =<src_code_block>= tag and ending at the =</src_code_block>= tag. Below, provide an explanation for your optimization. If no optimization is needed, state this in your response without changing the original code. You may utilize more efficient solutions or libraries. All explanations should be in Russian."
-                           lang)))
-        ;; (system (format "Оптимизируй код на %s, приведенный ниже, который начинается после тега <src_code_block> и завершается перед тегом </src_code_block>. Ниже приведи объяснение своей оптимизации. Если оптимизации не требуется, сообщи об этом в ответе, а не меняй исходный код. Можешь использовать более эффективные решения или библиотеки. Все пояснения приведи на русском языке."
+           (system (format "Optimize the following code written in %s, which starts after <src_code_block> tag and ends before </src_code_block> tag. Below provide an explanation of your optimization. If no optimization is needed, indicate this in your response without changing the original code. You can use more efficient solutions or libraries. Replace tags <src_code_block> and </src_code_block> with block delimiters #+begin_src %s and #+end_src. Provide your answer in Russian."
+                           lang lang)))
+        ;; (system (format "Оптимизируй код на %s, приведенный ниже, который начинается после тега <src_code_block> и завершается перед тегом </src_code_block>. Ниже приведи объяснение своей оптимизации. Если оптимизации не требуется, сообщи об этом в ответе, а не меняй исходный код. Можешь использовать более эффективные решения или библиотеки.  Теги <src_code_block> и </src_code_block> в своем ответе замени на операторные скобки #+begin_src %s и #+end_src. Ответ дай по русски."
         ;;                 lang)))
         (my/llm-codework-base (format "(%s) Optimization of Code" lang)
                               system
@@ -7607,6 +7612,19 @@ my/gptel-gigachat-access-token.
         (let* ((text (my/llm-codework-get-region-code))
                (request (my/llm-codework-make-request prompt text)))
             (my/llm-codework-switch-to-out-buffer my/llm-codework-out-buffer)
+            (unless (boundp 'my/header-count)
+                (setq-local my/header-count 0))
+            (goto-char (point-max))
+            (insert (format "\n* %s. %s\n\n"
+                            (setq-local my/header-count (1+ my/header-count))
+                            (string-trim header)))
+            (insert "** Source\n\n")
+            (insert (string-trim-right text))
+            (save-excursion
+                (when (re-search-backward "^\\*\\* Source" nil t)
+                    (org-cycle)))
+            (insert "\n\n** Answer\n\n")
+            (my/llm-codework--insert-wait-text)
             (gptel-request
                 request
                 :stream nil
@@ -7634,29 +7652,39 @@ my/gptel-gigachat-access-token.
     (when (and response
                (not (string-empty-p response)))
         (my/llm-codework-switch-to-out-buffer out-buffer)
-        (unless (boundp 'my/header-count)
-            (setq-local my/header-count 0))
-        (goto-char (point-max))
-        (insert (format "\n* %s. %s\n\n"
-                        (setq-local my/header-count (1+ my/header-count))
-                        (string-trim header)))
-        (insert "** Source\n\n")
-        (insert (string-trim-right text))
-        (save-excursion
-            (when (re-search-backward "^\\*\\* Source" nil t)
-                (org-cycle)))
-        (insert "\n\n** Answer\n\n")
+        ;; (my/llm-codework--delete-wait nil)  ;; (plist-get _info :position))
+        (my/llm-codework--delete-wait (plist-get _info :position))
         (insert (gptel--convert-markdown->org response))
-        (insert "\n")))
+        (insert "\n")
+        ))
+
+(setq my/llm-codework--wait-text "Wait ...")
+
+(defun my/llm-codework--insert-wait-text ()
+    (save-excursion
+        (insert my/llm-codework--wait-text)))
+
+(defun my/llm-codework--delete-wait (wait-position)
+    (when-let* ((wait-length (length my/llm-codework--wait-text))
+                (begin (if wait-position wait-position (point)))
+                (begin (save-excursion (goto-char begin)
+                                       (min begin (line-beginning-position))))
+                (end (min (point-max) (+ begin wait-length)))
+                (wait-text (buffer-substring-no-properties begin end))
+                (wait-text-p (string= wait-text my/llm-codework--wait-text)))
+        (goto-char begin)
+        (delete-region begin end)))
 #+end_src
 
 *** Горячие клавиши
 
 #+begin_src emacs-lisp :tangle yes
 (my/leader-def nil 'override
-               "i" '(:ignore t :which-key "Code AI-changing")
+               "i" '(:ignore t :which-key "Code AI work")
+               "i i" '(my/llm-codework-open-out-buffer
+                       :which-key "Open out buffer")
                "i I" '(my/llm-codework-toggle-out-buffer
-                       :which-key "Show out buffer")
+                       :which-key "Toggle out buffer")
                "i c" '(my/llm-codework-complete
                        :which-key "Complete code region")
                "i v" '(my/llm-codework-completion-variants
@@ -9351,6 +9379,21 @@ LSP-сервер будет работать так же, как на локал
 
 #+begin_src emacs-lisp :tangle yes
 (my/--register-org-babel 'groovy)
+#+end_src
+
+** Kotlin
+
+#+begin_src emacs-lisp :tangle yes
+(use-package kotlin-mode
+    :ensure t)
+(use-package ob-kotlin
+    :ensure t)
+#+end_src
+
+Позаботимся о вычислении org-babel блоков.
+
+#+begin_src emacs-lisp :tangle yes
+(my/--register-org-babel 'kotlin)
 #+end_src
 
 ** Java
