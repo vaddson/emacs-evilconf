@@ -7381,9 +7381,13 @@ my/gptel-gigachat-access-token.
     (let* ((created-p (get-buffer out-buffer))
            (buffer (get-buffer-create out-buffer)))
         (switch-to-buffer-other-window buffer)
-        (unless created-p
-            (setq-local buffer-auto-save-file-name my/llm-codework-out-buffer-file)
-            (org-mode))))
+        (with-current-buffer buffer
+            (unless created-p
+                (setq-local buffer-auto-save-file-name my/llm-codework-out-buffer-file)
+                (org-mode)
+                (when (file-exists-p my/llm-codework-out-buffer-file)
+                    (insert-file-contents my/llm-codework-out-buffer-file)
+                    (org-cycle-global))))))
 #+end_src
 
 Подготовим буфер к дальнейшему диалогу с ИИ. Для этого в промпт
@@ -7652,7 +7656,6 @@ my/gptel-gigachat-access-token.
     (when (and response
                (not (string-empty-p response)))
         (my/llm-codework-switch-to-out-buffer out-buffer)
-        ;; (my/llm-codework--delete-wait nil)  ;; (plist-get _info :position))
         (my/llm-codework--delete-wait (plist-get _info :position))
         (insert (gptel--convert-markdown->org response))
         (insert "\n")
@@ -7688,13 +7691,13 @@ my/gptel-gigachat-access-token.
                "i c" '(my/llm-codework-complete
                        :which-key "Complete code region")
                "i v" '(my/llm-codework-completion-variants
-                       :which-key "completion variants of code region")
+                       :which-key "Completion variants of code region")
                "i o" '(my/llm-codework-optimize
-                       :which-key "optimize code region")
+                       :which-key "Optimize code region")
                "i e" '(my/llm-codework-explain
-                       :which-key "explain code region")
+                       :which-key "Explain code region")
                "i r" '(my/llm-codework-remember
-                       :which-key "remember code region")
+                       :which-key "Remember code region")
                "i f" '(my/llm-codework-inquire-further
                        :which-key "Inquire further"))
 #+end_src
