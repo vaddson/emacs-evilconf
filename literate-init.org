@@ -8014,7 +8014,8 @@ running". Простые перезагрузки LSP-сервера не пом
                "c l s" '(my/lsp-shutdown-workspace :which-key "Shutdown LSP workspace")
                "c l r" '(my/lsp-restart :which-key "Restart LSP workspace")
                "c l d" '(lsp-describe-session :which-key "Describe session")
-               "c l e" '(lsp-treemacs-errors-list :which-key "Errors list"))
+               "c l e" '(lsp-treemacs-errors-list :which-key "Errors list")
+               "c l a" '(lsp-execute-code-action :which-key "Execute code action"))
 #+end_src
 
 ** Copilot
@@ -9420,9 +9421,8 @@ gradle-проектами и тем самым убил кучу моего вр
 : mvn dependency:get -Dartifact=org.springframework.boot:spring-boot-starter-web:3.2.0
 : mvn dependency:get -Dartifact=org.springframework.boot:spring-boot-starter-test:3.2.0
 
-Сперва позаботимся о поддержке lombok. Пока у меня не прошла его
-автоматическая закачка в "m2", поэтому сохранил его в
-репозитории. Копируем lombok.jar в кеш редактора.
+Сперва позаботимся о поддержке lombok. Копируем lombok.jar в кеш
+редактора.
 
 #+begin_src emacs-lisp :tangle yes
 (setq my/java-lombok-dir (file-name-concat (expand-file-name user-emacs-directory)
@@ -9454,7 +9454,8 @@ gradle-проектами и тем самым убил кучу моего вр
 #+end_src
 
 Делаем установку. Сервер качнул [[https://www.eclipse.org/downloads/download.php?file=/jdtls/snapshots/jdt-language-server-1.49.0-202507102148.tar.gz][отсюда]], согласно [[https://github.com/eclipse-jdtls/eclipse.jdt.ls][инструкции]] (из
-[[https://github.com/eclipse-jdtls/eclipse.jdt.ls][репозитория]] не собрался).
+[[https://github.com/eclipse-jdtls/eclipse.jdt.ls][репозитория]] не собрался). Поддержку Lombok облегчаем до минимума,
+иначе он вешает редактор.
 
 #+begin_src emacs-lisp :tangle yes
 (defun my/make-run-lsp-java-command ()
@@ -9466,13 +9467,20 @@ gradle-проектами и тем самым убил кучу моего вр
                                        (project-name (project-current))))))
     (list "python"
           (file-name-concat lsp-dir "bin" "jdtls")
+          ;; Linux configuration:
           (concat "-configuration "
                   (file-name-concat lsp-dir "config_linux"))
+          ;; For Lombok:
           (concat "--jvm-arg=-javaagent:" my/java-lombok)
           "--jvm-arg=-Dlombok.disableConfig=true"
           "--jvm-arg=-Dlombok.anyConstructor.suppressConstructorProperties=false"
           "--jvm-arg=-Dlombok.addLombokGeneratedAnnotation=true"
           "--jvm-arg=-Dlombok.extern.findbugs.addSuppressFBWarnings=false"
+          ;; Increase resources for Spring Boot:
+          "--jvm-arg=-Xmx2G"
+          "--jvm-arg=-XX:+UseG1GC"
+          "--jvm-arg=-XX:+UseStringDeduplication"
+          ;; Data directory:
           (concat "-data "
                   (file-name-concat data-dir (project-name (project-current)))))))
 #+end_src
@@ -9499,6 +9507,21 @@ gradle-проектами и тем самым убил кучу моего вр
 (add-hook 'java-mode-hook 'lsp)
 (add-hook 'java-ts-mode-hook 'lsp)
 #+end_src
+
+# Последнее - подгрузим lsp-java. Это нужно для попыток лучше
+# интегрироваться со Spring Boot.
+#
+# #+begin_src emacs-lisp :tangle yes
+# (use-package lsp-java
+#     :ensure t
+#     :config
+#     (when (member 'lsp-java-boot features)
+#         (require 'lsp-java-boot)))
+#
+# (add-hook 'lsp-mode-hook 'lsp-lens-mode)
+# (add-hook 'java-mode-hook 'lsp-java-boot-lens-mode)
+# (add-hook 'java-ts-mode-hook 'lsp-java-boot-lens-mode)
+# #+end_src
 
 ** COMMENT Java
 
