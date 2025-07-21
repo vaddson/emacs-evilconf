@@ -9404,14 +9404,13 @@ LSP-сервер будет работать так же, как на локал
 ** Java (custom LSP-server)
 
 Чтобы более-менее полноценно работать с Java в Emacs, нужно собрать
-=последюю версию LSP-сервера=. Это важно!, поскольку на момент
+=последюю версию LSP-сервера=. Это важно! поскольку на момент
 составления этого параграфа функция lsp-install-server устанавливала
-версию сервера, который был неработоспособен с современными
-gradle-проектами и тем самым убил кучу моего времени при настройке.
+что-то старое, несовместимое с текущими Java и Gradle-проектами.
 
 Где качать (или собирать) версию jdtls можно прочитать на их [[https://github.com/eclipse-jdtls/eclipse.jdt.ls][странице]]
 на GitHub. Я скачал готовую сборку вот отсюда: [[https://download.eclipse.org/jdtls/snapshots/?d][Eclipse Downloads]] и
-сохранил архив в этот репозиторий. Его, соответственно, надо будет
+сохранил архив в данный репозиторий. Его, соответственно, надо будет
 обновлять по необходимости.
 
 *Примечание:* /В начале работы с Java _возможно_ придется качнуть/
@@ -9453,9 +9452,10 @@ gradle-проектами и тем самым убил кучу моего вр
             (shell-command (concat "tar -xzf " jdt-file-archive)))))
 #+end_src
 
-Делаем установку. Сервер качнул [[https://www.eclipse.org/downloads/download.php?file=/jdtls/snapshots/jdt-language-server-1.49.0-202507102148.tar.gz][отсюда]], согласно [[https://github.com/eclipse-jdtls/eclipse.jdt.ls][инструкции]] (из
-[[https://github.com/eclipse-jdtls/eclipse.jdt.ls][репозитория]] не собрался). Поддержку Lombok облегчаем до минимума,
-иначе он вешает редактор.
+Функция ниже возвращает команду запуска LSP-сервера. Сервер качнул
+[[https://www.eclipse.org/downloads/download.php?file=/jdtls/snapshots/jdt-language-server-1.49.0-202507102148.tar.gz][отсюда]], согласно [[https://github.com/eclipse-jdtls/eclipse.jdt.ls][инструкции]] (из [[https://github.com/eclipse-jdtls/eclipse.jdt.ls][репозитория]] не собрался). Поддержку
+Lombok облегчаем до минимума, иначе он вешает редактор. Для Spring
+Boot накинем ресурсов.
 
 #+begin_src emacs-lisp :tangle yes
 (defun my/make-run-lsp-java-command ()
@@ -9485,7 +9485,7 @@ gradle-проектами и тем самым убил кучу моего вр
                   (file-name-concat data-dir (project-name (project-current)))))))
 #+end_src
 
-Регистрируем созданный LSP-сервер с высшим (первым) приоритетом.
+Регистрируем LSP-клиента с высшим (единица) приоритетом.
 
 #+begin_src emacs-lisp :tangle yes
 (add-to-list 'lsp-language-id-configuration '(java-mode . "java"))
@@ -9496,9 +9496,9 @@ gradle-проектами и тем самым убил кучу моего вр
   :new-connection (lsp-stdio-connection #'my/make-run-lsp-java-command)
   :activation-fn (lsp-activate-on "java")
   :priority 1
-  :server-id 'myjdkls))
+  :server-id 'myjdtls))
 
-(add-to-list 'lsp-enabled-clients 'myjdkls)
+(add-to-list 'lsp-enabled-clients 'myjdtls)
 #+end_src
 
 Автоматический запуск LSP-сервера при открытии java-файлов.
@@ -9510,14 +9510,14 @@ gradle-проектами и тем самым убил кучу моего вр
 
 # Последнее - подгрузим lsp-java. Это нужно для попыток лучше
 # интегрироваться со Spring Boot.
-#
+
 # #+begin_src emacs-lisp :tangle yes
 # (use-package lsp-java
 #     :ensure t
 #     :config
 #     (when (member 'lsp-java-boot features)
 #         (require 'lsp-java-boot)))
-#
+
 # (add-hook 'lsp-mode-hook 'lsp-lens-mode)
 # (add-hook 'java-mode-hook 'lsp-java-boot-lens-mode)
 # (add-hook 'java-ts-mode-hook 'lsp-java-boot-lens-mode)
