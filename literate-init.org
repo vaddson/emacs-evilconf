@@ -7982,6 +7982,16 @@ Completion item kind (тип объекта в выпадашке автодоп
                "c D" '(xref-find-references :which-key "Jump to references"))
 #+end_src
 
+И еще немного полезного.
+
+#+begin_src emacs-lisp :tangle yes
+(my/leader-def nil 'override
+               "c l" '(:ignore t :which-key "LSP utils")
+               "c l d" '(lsp-describe-session :which-key "Describe session")
+               "c l e" '(lsp-treemacs-errors-list :which-key "Errors list")
+               "c l a" '(lsp-execute-code-action :which-key "Execute code action"))
+#+end_src
+
 ** Перезагрузка
 
 В работе с LSP через TRUMP столкнулся с проблемой: "LSP :: Sending to
@@ -8017,14 +8027,10 @@ running". Простые перезагрузки LSP-сервера не пом
 
 #+begin_src emacs-lisp :tangle yes
 (my/leader-def nil 'override
-               "c l" '(:ignore t :which-key "LSP utils")
                "c l l" '(lsp :which-key "Run LSP server")
                "c l L" '(my/lsp :which-key "Run LSP server, clear cache")
                "c l s" '(my/lsp-shutdown-workspace :which-key "Shutdown LSP workspace")
-               "c l r" '(my/lsp-restart :which-key "Restart LSP workspace")
-               "c l d" '(lsp-describe-session :which-key "Describe session")
-               "c l e" '(lsp-treemacs-errors-list :which-key "Errors list")
-               "c l a" '(lsp-execute-code-action :which-key "Execute code action"))
+               "c l r" '(my/lsp-restart :which-key "Restart LSP workspace"))
 #+end_src
 
 ** Copilot
@@ -9492,6 +9498,20 @@ Boot накинем ресурсов.
           ;; Data directory:
           (concat "-data "
                   (file-name-concat data-dir (project-name (project-current)))))))
+#+end_src
+
+Запущенный Emacs-демоном, jdtls требует больше ресурсов и быстро
+вешает редактор. Поэтому облегчаем работу сервера через выключение
+части функций.
+
+#+begin_src emacs-lisp :tangle yes
+(when (daemonp)
+    (setq lsp-modeline-diagnostics-enable nil  ;; Too hard for jdtls.
+          ;; lsp-java-progress-reports-enabled nil
+          ;; lsp-ui-sideline-enable nil
+          ;; lsp-modeline-code-actions-enable nil
+          ;; lsp-modeline-workspace-status-enable nil
+          ))
 #+end_src
 
 Регистрируем LSP-клиента с высшим (единица) приоритетом.
