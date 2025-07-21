@@ -47,6 +47,7 @@
   - [[#удаление-файлов-и-бэкапы][Удаление файлов и бэкапы]]
   - [[#звуковой-сигнал-типа-гудок][Звуковой сигнал (типа "гудок")]]
   - [[#сборщик-мусора-gc][Сборщик мусора (GC)]]
+  - [[#безопасность-сетевого-доступа][Безопасность сетевого доступа]]
 - [[#evil-режим-редактирования][Evil. Режим редактирования]]
   - [[#установка-и-настройка][Установка и настройка]]
   - [[#general-назначение-клавиш-на-помощь-evil][General (назначение клавиш на помощь evil)]]
@@ -532,6 +533,14 @@ email clients, file templates and snippets."
 	;; Release severe GC strategy before the user restart to working
 	(add-hook 'pre-command-hook #'gcmh-set-high-threshold)
 	(add-hook 'post-command-hook #'gcmh-register-idle-gc))
+#+end_src
+
+** Безопасность сетевого доступа
+
+Понижаем до минимального.
+
+#+begin_src emacs-lisp :tangle yes
+(setq network-security-level 'low)
 #+end_src
 
 * Evil. Режим редактирования
@@ -9477,7 +9486,7 @@ Boot накинем ресурсов.
           "--jvm-arg=-Dlombok.addLombokGeneratedAnnotation=true"
           "--jvm-arg=-Dlombok.extern.findbugs.addSuppressFBWarnings=false"
           ;; Increase resources for Spring Boot:
-          "--jvm-arg=-Xmx2G"
+          "--jvm-arg=-Xmx4G"  ;; "--jvm-arg=-Xmx2G"
           "--jvm-arg=-XX:+UseG1GC"
           "--jvm-arg=-XX:+UseStringDeduplication"
           ;; Data directory:
@@ -9497,8 +9506,6 @@ Boot накинем ресурсов.
   :activation-fn (lsp-activate-on "java")
   :priority 1
   :server-id 'myjdtls))
-
-(add-to-list 'lsp-enabled-clients 'myjdtls)
 #+end_src
 
 Автоматический запуск LSP-сервера при открытии java-файлов.
