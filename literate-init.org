@@ -9507,10 +9507,10 @@ Boot накинем ресурсов.
 #+begin_src emacs-lisp :tangle yes
 (when (daemonp)
     (setq lsp-modeline-diagnostics-enable nil  ;; Too hard for jdtls.
-          ;; lsp-java-progress-reports-enabled nil
+          lsp-modeline-code-actions-enable nil
+          lsp-modeline-workspace-status-enable nil
+          lsp-java-progress-reports-enabled nil
           ;; lsp-ui-sideline-enable nil
-          ;; lsp-modeline-code-actions-enable nil
-          ;; lsp-modeline-workspace-status-enable nil
           ))
 #+end_src
 
@@ -9535,20 +9535,14 @@ Boot накинем ресурсов.
 (add-hook 'java-ts-mode-hook 'lsp)
 #+end_src
 
-# Последнее - подгрузим lsp-java. Это нужно для попыток лучше
-# интегрироваться со Spring Boot.
+Позаботимся о выполнении org-babel блоков.
 
-# #+begin_src emacs-lisp :tangle yes
-# (use-package lsp-java
-#     :ensure t
-#     :config
-#     (when (member 'lsp-java-boot features)
-#         (require 'lsp-java-boot)))
+#+begin_src emacs-lisp :tangle yes
+(use-package lsp-java
+    :ensure t)
 
-# (add-hook 'lsp-mode-hook 'lsp-lens-mode)
-# (add-hook 'java-mode-hook 'lsp-java-boot-lens-mode)
-# (add-hook 'java-ts-mode-hook 'lsp-java-boot-lens-mode)
-# #+end_src
+(my/--register-org-babel 'java)
+#+end_src
 
 ** COMMENT Java
 
