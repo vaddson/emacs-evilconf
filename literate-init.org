@@ -9542,6 +9542,18 @@ Boot накинем ресурсов.
     (add-hook hook 'my/run-java-lsp))
 #+end_src
 
+Поддержка tree-sitter.
+
+#+begin_src emacs-lisp :tangle yes
+(my/treesit-install-language-grammar 'java
+                                     "https://github.com/tree-sitter/tree-sitter-java")
+
+(add-to-list 'auto-mode-alist '("\\.java\\'" . java-ts-mode))
+
+(use-package lsp-mode
+    :hook ((java-mode java-ts-mode) . lsp-deferred))
+#+end_src
+
 Позаботимся о выполнении org-babel блоков.
 
 #+begin_src emacs-lisp :tangle yes
