@@ -6116,6 +6116,12 @@ ssh: "Too many authentication failures".
     :ensure t)
 #+end_src
 
+Уберем перенос строк.
+
+#+begin_src emacs-lisp :tangle yes
+(add-hook 'treemacs-mode-hook 'my/--unwrap-words)
+#+end_src
+
 Горячие клавиши для вызова дерева проектов.  Добавим переход в окно
 treemacs при показе текущего файла в дереве проекта.
 
@@ -7982,6 +7988,15 @@ Completion item kind (тип объекта в выпадашке автодоп
                "c D" '(xref-find-references :which-key "Jump to references"))
 #+end_src
 
+Lsp-mode подсвечивает объекты, на которых находится курсор. Добавим
+клавиш для перемещения по ним.
+
+#+begin_src emacs-lisp :tangle yes
+(my/leader-def nil 'lsp-mode-map
+               "c p" '(lsp-ui-find-prev-reference :which-key "Find previous reference")
+               "c n" '(lsp-ui-find-next-reference :which-key "Find next reference"))
+#+end_src
+
 И еще немного полезного.
 
 #+begin_src emacs-lisp :tangle yes
@@ -7989,7 +8004,9 @@ Completion item kind (тип объекта в выпадашке автодоп
                "c l" '(:ignore t :which-key "LSP utils")
                "c l d" '(lsp-describe-session :which-key "Describe session")
                "c l e" '(lsp-treemacs-errors-list :which-key "Errors list")
-               "c l a" '(lsp-execute-code-action :which-key "Execute code action"))
+               "c l a" '(lsp-execute-code-action :which-key "Execute code action")
+               "c l w" '(lsp-workspace-folders-remove :which-key "Remove workspace")
+               "c l b" '(lsp-workspace-blocklist-remove :which-key "Blocklist remove"))
 #+end_src
 
 ** Перезагрузка
@@ -9562,6 +9579,18 @@ Boot накинем ресурсов.
 
 (my/--register-org-babel 'java)
 #+end_src
+
+Помогаем заполнять поля serialVersionUID. В коде это поле делают в
+виде отрицательного числа. Для этого просто вернем случайное число из
+L-диапазона (0 - 1000000000000000000).
+
+/Для справки привожу настоящий L-диапазон:/
+- Минимальное  значение: -9 223 372 036 854 775 808 (=Long.MIN_VALUE=)
+- Максимальное значение: +9 223 372 036 854 775 807 (=Long.MAX_VALUE=)
+
+Генерацию положим в сниппет для prog-mode:
+: Serial version
+: sver_
 
 ** COMMENT Java
 
