@@ -9445,8 +9445,9 @@ LSP-сервер будет работать так же, как на локал
 сохранил архив в данный репозиторий. Его, соответственно, надо будет
 обновлять по необходимости.
 
-*Примечание:* /В начале работы с Java _возможно_ придется качнуть/
-/некоторые пакеты через mvn. Примеры:/
+*Примечание:* /Все нужные пакеты можно было скачать через maven, но/
+/предпочел добавить их в этот репозиторий. Ниже для примера оставляю,/
+/как это можно было сделать./
 : mvn dependency:get -Dartifact=org.projectlombok:lombok:1.18.30
 : mvn dependency:get -Dartifact=org.springframework.boot:spring-boot-starter:3.2.0
 : mvn dependency:get -Dartifact=org.springframework.boot:spring-boot-starter-web:3.2.0
