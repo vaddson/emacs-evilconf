@@ -194,6 +194,7 @@
   - [[#agenda-статусы-задач][Agenda. Статусы задач]]
   - [[#journal][Journal]]
   - [[#drag-n-drop-в-dired-mode-org-download][Drag-n-drop в dired-mode (org-download)]]
+  - [[#org-transclusion-показ-цитат-из-других-источников-без-их-копирования][Org-transclusion. Показ цитат из других источников без их копирования]]
 - [[#org-roam][Org-roam]]
   - [[#установка][Установка]]
   - [[#исключение-тегов-из-наследования][Исключение тегов из наследования]]
@@ -273,6 +274,7 @@
   - [[#plantuml][PlantUML]]
   - [[#mermaid][Mermaid]]
   - [[#gnuplot][Gnuplot]]
+  - [[#typst-более-современный-аналог-latex][Typst. Более современный аналог LaTeX]]
   - [[#restclient][Restclient]]
   - [[#python][Python]]
   - [[#python-pyvenv][Python. Pyvenv]]
@@ -5116,6 +5118,67 @@ shows it in message and put the result into registers `\"' and `t'."
 (add-hook 'dired-mode-hook 'org-download-enable)
 #+end_src
 
+** Org-transclusion. Показ цитат из других источников без их копирования
+
+Пакет:
+- [[https://github.com/nobiot/org-transclusion][org-transclusion]]
+Руководство пользователя:
+- [[https://nobiot.github.io/org-transclusion][Org-transclusion User Manual]]
+
+Для памяти (если долго не буду использовать):
+- Перед ссылкой в начале строки ставим текст =#+transclude:=. Таким
+  он в тексте и останется.
+- Чтобы показать цитату, нужно поставить курсор на строку с этой
+  ссылкой и вызвать функцию =org-transcludion-add=. Появиться цитата и
+  будет она в read-only.
+- Можно показать сразу все цитаты в буфере функцией
+  =org-transcludion-add-all=.
+- Убираем показ цитат функциями =org-transclusion-remove= и
+  =org-transclusion-remove-all=.
+- Обновить цитаты можно функцией =org-transclusion-refresh=.
+
+Установка пакета.
+
+#+begin_src emacs-lisp :tangle yes
+(use-package org-transclusion
+    :ensure t)
+#+end_src
+
+По-умолчанию цитата ничем не отличается от остального текста в
+org. Ниже выделяем цитату цветом на полях.
+
+#+begin_src emacs-lisp :tangle yes
+(set-face-attribute 'org-transclusion-fringe
+                    nil
+                    :foreground "white"
+                    :background "darkgray"
+                    :weight 'bold
+                    :strike-through t
+                    :underline t)
+#+end_src
+
+Горячие клавиши.
+
+#+begin_src emacs-lisp :tangle yes
+(my/localleader-def nil 'org-mode-map
+                    "c" '(:ignore t :which-key "Transclusion")
+                    "c a" '(org-transclusion-add :which-key "Add")
+                    "c A" '(org-transclusion-add-all :which-key "Add all")
+                    "c m" '(org-transclusion-mode :which-key "Mode")
+                    "c S" '(org-transclusion-demote-subtree
+                            :which-key "Demote subtree")
+                    "c O" '(org-transclusion-move-to-source
+                            :which-key "Move to source")
+                    "c P" '(org-transclusion-promote-subtree
+                            :which-key "Promote subtree")
+                    "c d" '(org-transclusion-remove :which-key "Reomve")
+                    "c D" '(org-transclusion-remove-all :which-key "Reomve all")
+                    "c C-d" '(org-transclusion-detach :which-key "Detach")
+                    "c e" '(org-transclusion-live-sync-start :which-key "Sync start")
+                    "c g" '(org-transclusion-refresh :which-key "Refresh")
+                    "c o" '(org-transclusion-open-source :which-key "Open source"))
+#+end_src
+
 * Org-roam
 ** Установка
 
@@ -8669,6 +8732,12 @@ Gnuplot в систему. На Arch это выглядит так:
 (advice-add #'org-babel-execute:gnuplot
             :around (my/org-babel-execute gnuplot))
 #+end_src
+
+** Typst. Более современный аналог LaTeX
+
+Ссылки и пакеты:
+- typst-ts-mode
+- GitHub: [[https://github.com/remimimimimi/org-typst-preview.el][org-typst-preview]]
 
 ** Restclient
 
