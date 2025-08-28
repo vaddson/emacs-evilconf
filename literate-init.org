@@ -8069,6 +8069,13 @@ Completion item kind (тип объекта в выпадашке автодоп
                "c D" '(xref-find-references :which-key "Jump to references"))
 #+end_src
 
+И для ситуаций, когда вмешивается магия.
+
+#+begin_src emacs-lisp :tangle yes
+(my/leader-def nil 'override
+               "c d" '(lsp-find-definition :which-key "Jump to definition"))
+#+end_src
+
 Lsp-mode подсвечивает объекты, на которых находится курсор. Добавим
 клавиш для перемещения по ним.
 
@@ -9738,6 +9745,7 @@ L-диапазона (0 - 1000000000000000000).
     (add-to-list 'lsp-java-vmargs "-Dlombok.addLombokGeneratedAnnotation=true")
     (add-to-list 'lsp-java-vmargs "-Dlombok.extern.findbugs.addSuppressFBWarnings=false")
     ;; ;; Increase resources for Spring Boot:
+    (setq lsp-java-vmargs (remove "-Xmx1G" lsp-java-vmargs))
     (add-to-list 'lsp-java-vmargs "-Xmx4G")
     (add-to-list 'lsp-java-vmargs "-XX:+UseStringDeduplication")
     ;; (add-to-list 'lsp-java-vmargs "-XX:+UseG1GC")
@@ -9814,6 +9822,15 @@ L-диапазона (0 - 1000000000000000000).
 Генерацию положим в сниппет для prog-mode:
 : Serial version
 : sver_
+
+#+begin_src emacs-lisp :tangle yes
+(my/leader-def nil 'lsp-mode-map
+               "c l i" '(:ignore t :which-key "Add/Insert")
+               "c l i i" '(lsp-java-add-import :which-key "Import")
+               "c l i t" '(lsp-java-add-throws :which-key "Throws")
+               "c l i u" '(lsp-java-add-unimplemented-methods
+                           :which-key "Unimplemented methods"))
+#+end_src
 
 ** COMMENT Java. Spring Boot
 
