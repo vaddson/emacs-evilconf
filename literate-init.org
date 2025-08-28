@@ -288,7 +288,7 @@
   - [[#go][Go]]
   - [[#groovy][Groovy]]
   - [[#kotlin][Kotlin]]
-  - [[#java-custom-lsp-server][Java (custom LSP-server)]]
+  - [[#java-with-lsp-java][Java (with lsp-java)]]
   - [[#javascripttypescript][JavaScript/TypeScript]]
   - [[#scala][Scala]]
 - [[#финалочки][Финалочки]]
@@ -2778,11 +2778,17 @@ Spacemacs. Код находится в файле [[./funcs.el][funcs.el]].
         ;; Docker inspect
         ("^\\* docker inspect .*")
 
-        ;; Code completion window
+        ;; Code completion window (LLM)
         ("^\\*CodeCompletion\\*$"
          (display-buffer-reuse-window display-buffer-in-side-window)
          (side . right)
          (window-width . 0.40))
+
+        ;; Eldoc
+        ("^\\*eldoc\\*$"
+         (display-buffer-reuse-window display-buffer-in-side-window)
+         (side . right)
+         (window-width . 0.30))
 
         ;; Other buffers with name like "*Name*"
         ("^\\*.*\\*<.*>$"
@@ -8013,13 +8019,25 @@ Completion item kind (тип объекта в выпадашке автодоп
 #+begin_src emacs-lisp :tangle yes
 (defun my/eldoc ()
     (interactive)
-    (if-let (eldoc-window (get-buffer-window "*eldoc*"))
-        (delete-window eldoc-window)
-        (eldoc t)))
+    (let* ((lsp-mode-p (member 'lsp-mode minor-mode-list))
+           (doc-buffer-name (if lsp-mode-p
+                                "*lsp-help*"
+                                "*eldoc*"))
+           (current-buffer-name (buffer-name (current-buffer)))
+           (doc-func (if lsp-mode-p
+                         'lsp-describe-thing-at-point
+                         (lambda () (eldoc t))))
+           (doc-window (get-buffer-window doc-buffer-name)))
+        (if (or doc-window
+                (member current-buffer-name '("*lsp-help*" "*eldoc*")))
+            (delete-window doc-window)
+            (funcall doc-func))))
 
 (my/evil-define-key '(normal motion) 'lsp-mode-map  ;; 'prog-mode-map
-    "RET" #'lsp-ui-doc-show
-    "K" #'my/eldoc)
+                    "RET" #'lsp-ui-doc-show)
+(my/evil-define-key '(normal motion) 'override
+                    "K" #'my/eldoc
+                    "g K" #'eldoc)
 #+end_src
 
 Есть функция =lsp-inlay-hints-mode= - показывает прямо в документе
@@ -8068,8 +8086,9 @@ Lsp-mode подсвечивает объекты, на которых наход
                "c l d" '(lsp-describe-session :which-key "Describe session")
                "c l e" '(lsp-treemacs-errors-list :which-key "Errors list")
                "c l a" '(lsp-execute-code-action :which-key "Execute code action")
-               "c l w" '(lsp-workspace-folders-remove :which-key "Remove workspace")
-               "c l b" '(lsp-workspace-blocklist-remove :which-key "Blocklist remove"))
+               "c l m" '(lsp-workspace-folders-remove :which-key "Remove workspace")
+               "c l b" '(lsp-workspace-blocklist-remove :which-key "Blocklist remove")
+               "c l w" '(lsp-workspace-restart :which-key "Restart workspace"))
 #+end_src
 
 ** Перезагрузка
@@ -8110,7 +8129,7 @@ running". Простые перезагрузки LSP-сервера не пом
                "c l l" '(lsp :which-key "Run LSP server")
                "c l L" '(my/lsp :which-key "Run LSP server, clear cache")
                "c l s" '(my/lsp-shutdown-workspace :which-key "Shutdown LSP workspace")
-               "c l r" '(my/lsp-restart :which-key "Restart LSP workspace"))
+               "c l r" '(my/lsp-restart :which-key "Restart LSP"))
 #+end_src
 
 ** Copilot
@@ -8736,8 +8755,12 @@ Gnuplot в систему. На Arch это выглядит так:
 ** Typst. Более современный аналог LaTeX
 
 Ссылки и пакеты:
-- typst-ts-mode
-- GitHub: [[https://github.com/remimimimimi/org-typst-preview.el][org-typst-preview]]
+- О самом typst: [[https://github.com/typst/typst][Typst]]
+  + Документация: [[https://typst.app/docs/][Typst. Documentation]]
+- Пакет: [[https://codeberg.org/meow_king/typst-ts-mode][typst-ts-mode]]
+- Org preview: [[https://github.com/remimimimimi/org-typst-preview.el][org-typst-preview]]
+- LSP server: [[https://myriad-dreamin.github.io/tinymist/frontend/emacs.html][Tinymist. Install for Emacs]]
+  + Альтернатива от Anaconda: [[https://anaconda.org/conda-forge/typst-lsp][typst-lsp]]
 
 ** Restclient
 
@@ -9502,7 +9525,10 @@ LSP-сервер будет работать так же, как на локал
 (my/--register-org-babel 'kotlin)
 #+end_src
 
-** Java (custom LSP-server)
+** COMMENT Java (custom LSP-server)
+
+/Здесь полностью рабочий вариант. Чего не смог от него добиться - это/
+/перехода на код определений из сторонних библиотек./
 
 Чтобы более-менее полноценно работать с Java в Emacs, нужно собрать
 =последюю версию LSP-сервера=. Это важно! поскольку на момент
@@ -9561,32 +9587,32 @@ Boot накинем ресурсов.
 
 #+begin_src emacs-lisp :tangle yes
 (defun my/make-run-lsp-java-command ()
-    (let ((lsp-dir my/jdt-language-server-dir)
-          (data-dir (expand-file-name
-                     (file-name-concat user-emacs-directory
-                                       ".cache"
-                                       "lsp-data"
-                                       (project-name (project-current))))))
-    (list "python"
-          (file-name-concat lsp-dir "bin" "jdtls")
-          ;; Linux configuration:
-          (concat "-configuration "
-                  (file-name-concat lsp-dir "config_linux"))
-          ;; For Lombok:
-          (concat "--jvm-arg=-javaagent:" my/java-lombok)
-          "--jvm-arg=-Dlombok.disableConfig=true"
-          "--jvm-arg=-Dlombok.anyConstructor.suppressConstructorProperties=false"
-          "--jvm-arg=-Dlombok.addLombokGeneratedAnnotation=true"
-          "--jvm-arg=-Dlombok.extern.findbugs.addSuppressFBWarnings=false"
-          ;; Increase resources for Spring Boot:
-          "--jvm-arg=-Xmx4G"  ;; "--jvm-arg=-Xmx2G"
-          ;; "--jvm-arg=-Xms1G"
-          "--jvm-arg=-XX:+UseG1GC"
-          "--jvm-arg=-XX:+UseStringDeduplication"
-          ;; "--jvm-arg=-XX:GCTimeRatio=4"
-          ;; Data directory:
-          (concat "-data "
-                  (file-name-concat data-dir (project-name (project-current)))))))
+    (let* ((lsp-dir my/jdt-language-server-dir)
+           (data-dir (expand-file-name
+                      (file-name-concat (project-root (project-current))
+                                        "lsp-data")))
+           (config-dir (file-name-concat lsp-dir
+                                         "config_linux")))
+        (list "python"
+              (file-name-concat lsp-dir "bin" "jdtls")
+              ;; Linux configuration:
+              "-configuration" (file-name-concat lsp-dir "config_linux")
+              ;; For Lombok:
+              (concat "--jvm-arg=-javaagent:" my/java-lombok)
+              ;; "--jvm-arg=-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=1044"
+              "--jvm-arg=-Dlombok.disableConfig=true"
+              "--jvm-arg=-Dlombok.anyConstructor.suppressConstructorProperties=false"
+              "--jvm-arg=-Dlombok.addLombokGeneratedAnnotation=true"
+              "--jvm-arg=-Dlombok.extern.findbugs.addSuppressFBWarnings=false"
+              ;; Increase resources for Spring Boot:
+              "--jvm-arg=-Xmx4G"  ;; "--jvm-arg=-Xmx2G"
+              ;; "--jvm-arg=-Xms1G"
+              "--jvm-arg=-XX:+UseG1GC"
+              "--jvm-arg=-XX:+UseStringDeduplication"
+              ;; "--jvm-arg=-XX:GCTimeRatio=4"
+              ;; Data directory:
+              ;; "-data" data-dir  ;; Too strange work.
+              )))
 #+end_src
 
 Регистрируем LSP-клиента с высшим (единица) приоритетом.
@@ -9605,9 +9631,8 @@ Boot накинем ресурсов.
 
 Автоматический запуск LSP-сервера при открытии java-файлов.
 
-Запущенный Emacs-демоном, jdtls требует больше ресурсов и быстро
-вешает редактор. Поэтому облегчаем работу сервера через выключение
-части функций.
+JDTLS требует много ресурсов и быстро вешает редактор. Поэтому
+облегчаем работу сервера через выключение части функций.
 
 Однако, этого ничего не нужно, если работаем не с Java'ой. Поэтому
 снизим нагрузку на jdtls в буфере перед его запуском.
@@ -9617,12 +9642,11 @@ Boot накинем ресурсов.
                       java-ts-mode-hook))
 
 (defun my/run-java-lsp ()
-    (when (daemonp)
-        (setq-local lsp-modeline-diagnostics-enable nil  ;; Too hard for jdtls.
-                    lsp-modeline-code-actions-enable nil
-                    lsp-modeline-workspace-status-enable nil
-                    lsp-java-progress-reports-enabled nil
-                    lsp-ui-sideline-enable nil))
+    (setq-local lsp-modeline-diagnostics-enable nil  ;; Too hard for jdtls.
+                lsp-modeline-code-actions-enable nil
+                lsp-modeline-workspace-status-enable nil
+                lsp-java-progress-reports-enabled nil
+                lsp-ui-sideline-enable nil)
     (lsp))
 
 (dolist (hook my/java-hooks)
@@ -9638,15 +9662,27 @@ Boot накинем ресурсов.
 (add-to-list 'auto-mode-alist '("\\.java\\'" . java-ts-mode))
 
 (use-package lsp-mode
-    :hook ((java-mode java-ts-mode) . lsp-deferred))
+    :hook (((java-mode java-ts-mode) . lsp-deferred)
+           ;; (lsp-mode-hook . lsp-lens-mode)
+           ;; ((java-mode java-ts-mode) . lsp-java-boot-lens-mode)
+           ))
+#+end_src
+
+Подгрузка источников сторонних библиотек в проекте.
+
+#+begin_src emacs-lisp :tangle yes
+(use-package lsp-java
+    :ensure t
+    :config
+    (setq lsp-java-maven-download-sources t
+          lsp-java-eclipse-download-sources t)
+    (setq lsp-java-content-provider-preferred "fernflower")
+    )
 #+end_src
 
 Позаботимся о выполнении org-babel блоков.
 
 #+begin_src emacs-lisp :tangle yes
-(use-package lsp-java
-    :ensure t)
-
 (my/--register-org-babel 'java)
 #+end_src
 
@@ -9662,74 +9698,76 @@ L-диапазона (0 - 1000000000000000000).
 : Serial version
 : sver_
 
-** COMMENT Java
+** Java (with lsp-java)
 
-/Этот раздел закомментирован, поскольку предыдущий ему замена./
+/Остановился на этом варианте. JDTLS нужно прогрузить вручную/
+/(lsp-install-server), а в логах встречаются выбросы исключений. Но/
+/зато работает все и есть переходы на код определений из сторонних/
+/библиотек./
 
-Инструкцию по установке смотрим тут:
-- [[https://github.com/emacs-lsp/lsp-java][lsp-java]].
-На этой же странице есть ссылка на руководство:
-- [[https://xpressrazor.wordpress.com/2020/11/04/java-programming-in-emacs/][Java Programming in Emacs]],
-тут же есть поддержка spring: "Spring boot support (Experimental)".
-
-Сперва позаботимся о поддержке lombok. Пока у меня не прошла его
-автоматическая закачка в "m2", поэтому сохранил его в
-репозитории. Копируем lombok.jar в кеш редактора.
+Сперва позаботимся о поддержке lombok. Копируем lombok.jar в кеш
+редактора.
 
 #+begin_src emacs-lisp :tangle yes
 (setq my/java-lombok-dir (file-name-concat (expand-file-name user-emacs-directory)
-                                           "/.cache/java"))
-(setq my/java-lombok (file-name-concat my/java-lombok-dir "/lombok.jar"))
+                                           ".cache/java"))
+(setq my/java-lombok (file-name-concat my/java-lombok-dir "lombok.jar"))
 
 (unless (file-exists-p my/java-lombok)
-    (let ((lombok-src (file-name-concat my/config-dir "/lsp-saves/lombok.jar")))
+    (let ((lombok-src (file-name-concat my/config-dir "lsp-saves" "lombok.jar")))
         (make-directory my/java-lombok-dir t)
         (copy-file lombok-src my/java-lombok)))
 #+end_src
 
-Делаем установку.
+Делаем установку. В переменной =lsp-java-jdt-download-url=
+*ОБЯЗАТЕЛЬНО!* надо указать последнюю версию JDTLS.
 
 #+begin_src emacs-lisp :tangle yes
-(setq my/java-agent (concat "-javaagent:" my/java-lombok))
-
 (use-package lsp-java
     :ensure t
-    :hook ((java-mode java-ts-mode) . lsp)
+    :init
+    (setq lsp-java-jdt-download-url
+          "https://www.eclipse.org/downloads/download.php?file=/jdtls/milestones/1.49.0/jdt-language-server-1.49.0-202507311558.tar.gz")
     :config
     (when (member 'lsp-java-boot features)
         (require 'lsp-java-boot))
-    (add-to-list 'lsp-java-vmargs my/java-agent)
-    (add-to-list 'lsp-java-vmargs "-Djdt.ls.lombokSupport.enabled=true")
-    ;; (add-to-list 'lsp-java-vmargs "-Declipse.application=org.eclipse.jdt.ls.core.id1")
-    ;; (add-to-list 'lsp-java-vmargs "-Dosgi.bundles.defaultStartLevel=4")
-    ;; (add-to-list 'lsp-java-vmargs "-Declipse.product=org.eclipse.jdt.ls.core.product")
-    ;; (add-to-list 'lsp-java-vmargs "-Dlog.level=ALL")
-    ;; (add-to-list 'lsp-java-vmargs "--add-modules=ALL-SYSTEM")
-    ;; (add-to-list 'lsp-java-vmargs "--add-opens=java.base/java.util=ALL-UNNAMED")
-    ;; (add-to-list 'lsp-java-vmargs "--add-opens=java.base/java.lang=ALL-UNNAMED")
-    ;; :init
-    ;; (setq lsp-java-java-path "/usr/lib/jvm/java-21-openjdk/bin/java"
-    ;;       lsp-java-import-gradle-java-home "/usr/lib/jvm/java-21-openjdk/bin/java"
-    ;;       lsp-java-configuration-runtimes '[(:name "JavaSE-21"
-    ;;                                          :path "/usr/lib/jvm/java-21-openjdk"
-    ;;                                          :default t)]
-    ;;       lsp-java-vmargs (list "-noverify"
-    ;;                             "--enable-preview"))
+    ;; For Lombok:
+    (add-to-list 'lsp-java-vmargs (concat "-javaagent:" my/java-lombok))
+    (add-to-list 'lsp-java-vmargs "-Dlombok.disableConfig=true")
+    (add-to-list 'lsp-java-vmargs "-Dlombok.anyConstructor.suppressConstructorProperties=false")
+    (add-to-list 'lsp-java-vmargs "-Dlombok.addLombokGeneratedAnnotation=true")
+    (add-to-list 'lsp-java-vmargs "-Dlombok.extern.findbugs.addSuppressFBWarnings=false")
+    ;; ;; Increase resources for Spring Boot:
+    (add-to-list 'lsp-java-vmargs "-Xmx4G")
+    (add-to-list 'lsp-java-vmargs "-XX:+UseStringDeduplication")
+    ;; (add-to-list 'lsp-java-vmargs "-XX:+UseG1GC")
+    ;; (add-to-list 'lsp-java-vmargs "-Xms1G")
+    ;; (add-to-list 'lsp-java-vmargs "-XX:GCTimeRatio=4")
     )
 #+end_src
 
-Если скрипт ниже не сработает, при запуске LSP-сервера Emacs спросит
-установить =jdtls=. Соглашаемся.
+Автоматический запуск LSP-сервера при открытии java-файлов.
 
-# #+begin_src emacs-lisp :tangle yes
-# (lsp-ensure-server 'jdtls)
-# #+end_src
+JDTLS требует много ресурсов и быстро вешает редактор. Поэтому
+облегчаем работу сервера через выключение части функций.
 
-Еще нужна работа с gradle-файлами.
+Однако, этого ничего не нужно, если работаем не с Java'ой. Поэтому
+снизим нагрузку на jdtls в буфере перед его запуском.
 
 #+begin_src emacs-lisp :tangle yes
-(use-package gradle-mode
-    :ensure t)
+(setq my/java-hooks '(java-mode-hook
+                      java-ts-mode-hook))
+
+(defun my/run-java-lsp ()
+    (setq-local lsp-modeline-diagnostics-enable nil  ;; Too hard for jdtls.
+                lsp-modeline-code-actions-enable nil
+                lsp-modeline-workspace-status-enable nil
+                lsp-java-progress-reports-enabled nil
+                lsp-ui-sideline-enable nil)
+    (lsp))
+
+(dolist (hook my/java-hooks)
+    (add-hook hook 'my/run-java-lsp))
 #+end_src
 
 Поддержка tree-sitter.
@@ -9741,15 +9779,41 @@ L-диапазона (0 - 1000000000000000000).
 (add-to-list 'auto-mode-alist '("\\.java\\'" . java-ts-mode))
 
 (use-package lsp-mode
-    :hook ((java-mode java-ts-mode) . lsp-deferred)
+    :hook (((java-mode java-ts-mode) . lsp-deferred)
+           ;; (lsp-mode-hook . lsp-lens-mode)
+           ;; ((java-mode java-ts-mode) . lsp-java-boot-lens-mode)
+           ))
+#+end_src
+
+Подгрузка источников сторонних библиотек в проекте.
+
+#+begin_src emacs-lisp :tangle yes
+(use-package lsp-java
+    :ensure t
+    :config
+    (setq lsp-java-maven-download-sources t
+          lsp-java-eclipse-download-sources t)
+    (setq lsp-java-content-provider-preferred "fernflower")
     )
 #+end_src
 
-Позаботимся о вычислении org-babel блоков.
+Позаботимся о выполнении org-babel блоков.
 
 #+begin_src emacs-lisp :tangle yes
 (my/--register-org-babel 'java)
 #+end_src
+
+Помогаем заполнять поля serialVersionUID. В коде это поле делают в
+виде отрицательного числа. Для этого просто вернем случайное число из
+L-диапазона (0 - 1000000000000000000).
+
+/Для справки привожу настоящий L-диапазон:/
+- Минимальное  значение: -9 223 372 036 854 775 808 (=Long.MIN_VALUE=)
+- Максимальное значение: +9 223 372 036 854 775 807 (=Long.MAX_VALUE=)
+
+Генерацию положим в сниппет для prog-mode:
+: Serial version
+: sver_
 
 ** COMMENT Java. Spring Boot
 
