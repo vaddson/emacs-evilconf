@@ -288,6 +288,7 @@
   - [[#go][Go]]
   - [[#groovy][Groovy]]
   - [[#kotlin][Kotlin]]
+  - [[#lua][Lua]]
   - [[#java-with-lsp-java][Java (with lsp-java)]]
   - [[#javascripttypescript][JavaScript/TypeScript]]
   - [[#scala][Scala]]
@@ -9532,6 +9533,15 @@ LSP-сервер будет работать так же, как на локал
 (my/--register-org-babel 'kotlin)
 #+end_src
 
+** Lua
+
+#+begin_src emacs-lisp :tangle yes
+(use-package lua-mode
+    :ensure t)
+(use-package lua-ts-mode
+    :ensure t)
+#+end_src
+
 ** COMMENT Java (custom LSP-server)
 
 /Здесь полностью рабочий вариант. Чего не смог от него добиться - это/
@@ -9821,7 +9831,7 @@ L-диапазона (0 - 1000000000000000000).
 
 Генерацию положим в сниппет для prog-mode:
 : Serial version
-: sver_
+: _sver
 
 #+begin_src emacs-lisp :tangle yes
 (my/leader-def nil 'lsp-mode-map
