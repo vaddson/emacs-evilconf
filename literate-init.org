@@ -289,7 +289,11 @@
   - [[#groovy][Groovy]]
   - [[#kotlin][Kotlin]]
   - [[#lua][Lua]]
-  - [[#java-with-lsp-java][Java (with lsp-java)]]
+  - [[#java][Java]]
+    - [[#поддержка-lombok][Поддержка Lombok]]
+    - [[#используем-нативный-lsp-java][Используем нативный lsp-java]]
+    - [[#остальные-настройки][Остальные настройки]]
+    - [[#информация-на-память][Информация на память]]
   - [[#javascripttypescript][JavaScript/TypeScript]]
   - [[#scala][Scala]]
 - [[#финалочки][Финалочки]]
@@ -9542,28 +9546,9 @@ LSP-сервер будет работать так же, как на локал
     :ensure t)
 #+end_src
 
-** COMMENT Java (custom LSP-server)
+** Java
 
-/Здесь полностью рабочий вариант. Чего не смог от него добиться - это/
-/перехода на код определений из сторонних библиотек./
-
-Чтобы более-менее полноценно работать с Java в Emacs, нужно собрать
-=последюю версию LSP-сервера=. Это важно! поскольку на момент
-составления этого параграфа функция lsp-install-server устанавливала
-что-то старое, несовместимое с текущими Java и Gradle-проектами.
-
-Где качать (или собирать) версию jdtls можно прочитать на их [[https://github.com/eclipse-jdtls/eclipse.jdt.ls][странице]]
-на GitHub. Я скачал готовую сборку вот отсюда: [[https://download.eclipse.org/jdtls/snapshots/?d][Eclipse Downloads]] и
-сохранил архив в данный репозиторий. Его, соответственно, надо будет
-обновлять по необходимости.
-
-*Примечание:* /Все нужные пакеты можно было скачать через maven, но/
-/предпочел добавить их в этот репозиторий. Ниже для примера оставляю,/
-/как это можно было сделать./
-: mvn dependency:get -Dartifact=org.projectlombok:lombok:1.18.30
-: mvn dependency:get -Dartifact=org.springframework.boot:spring-boot-starter:3.2.0
-: mvn dependency:get -Dartifact=org.springframework.boot:spring-boot-starter-web:3.2.0
-: mvn dependency:get -Dartifact=org.springframework.boot:spring-boot-starter-test:3.2.0
+*** Поддержка Lombok
 
 Сперва позаботимся о поддержке lombok. Копируем lombok.jar в кеш
 редактора.
@@ -9579,162 +9564,12 @@ LSP-сервер будет работать так же, как на локал
         (copy-file lombok-src my/java-lombok)))
 #+end_src
 
-Аналогично сохраняем сборку LSP-сервера [[https://www.eclipse.org/downloads/download.php?file=/jdtls/snapshots/jdt-language-server-1.49.0-202507102148.tar.gz][отсюда]]:
-
-#+begin_src emacs-lisp :tangle yes
-(setq my/jdt-language-server-dir (expand-file-name
-                                  (file-name-concat user-emacs-directory
-                                                    ".cache"
-                                                    "lsp"
-                                                    "jdt-language-server")))
-
-(unless (file-exists-p my/jdt-language-server-dir)
-    (let ((jdt-file-archive (file-name-concat my/config-dir
-                                              "lsp-saves"
-                                              "jdt-language-server-1.49.0.tar.gz")))
-        (make-directory my/jdt-language-server-dir t)
-        (let ((default-directory my/jdt-language-server-dir))
-            (shell-command (concat "tar -xzf " jdt-file-archive)))))
-#+end_src
-
-Функция ниже возвращает команду запуска LSP-сервера. Сервер качнул
-[[https://www.eclipse.org/downloads/download.php?file=/jdtls/snapshots/jdt-language-server-1.49.0-202507102148.tar.gz][отсюда]], согласно [[https://github.com/eclipse-jdtls/eclipse.jdt.ls][инструкции]] (из [[https://github.com/eclipse-jdtls/eclipse.jdt.ls][репозитория]] не собрался). Поддержку
-Lombok облегчаем до минимума, иначе он вешает редактор. Для Spring
-Boot накинем ресурсов.
-
-#+begin_src emacs-lisp :tangle yes
-(defun my/make-run-lsp-java-command ()
-    (let* ((lsp-dir my/jdt-language-server-dir)
-           (data-dir (expand-file-name
-                      (file-name-concat (project-root (project-current))
-                                        "lsp-data")))
-           (config-dir (file-name-concat lsp-dir
-                                         "config_linux")))
-        (list "python"
-              (file-name-concat lsp-dir "bin" "jdtls")
-              ;; Linux configuration:
-              "-configuration" (file-name-concat lsp-dir "config_linux")
-              ;; For Lombok:
-              (concat "--jvm-arg=-javaagent:" my/java-lombok)
-              ;; "--jvm-arg=-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=1044"
-              "--jvm-arg=-Dlombok.disableConfig=true"
-              "--jvm-arg=-Dlombok.anyConstructor.suppressConstructorProperties=false"
-              "--jvm-arg=-Dlombok.addLombokGeneratedAnnotation=true"
-              "--jvm-arg=-Dlombok.extern.findbugs.addSuppressFBWarnings=false"
-              ;; Increase resources for Spring Boot:
-              "--jvm-arg=-Xmx4G"  ;; "--jvm-arg=-Xmx2G"
-              ;; "--jvm-arg=-Xms1G"
-              "--jvm-arg=-XX:+UseG1GC"
-              "--jvm-arg=-XX:+UseStringDeduplication"
-              ;; "--jvm-arg=-XX:GCTimeRatio=4"
-              ;; Data directory:
-              ;; "-data" data-dir  ;; Too strange work.
-              )))
-#+end_src
-
-Регистрируем LSP-клиента с высшим (единица) приоритетом.
-
-#+begin_src emacs-lisp :tangle yes
-(add-to-list 'lsp-language-id-configuration '(java-mode . "java"))
-(add-to-list 'lsp-language-id-configuration '(java-ts-mode . "java"))
-
-(lsp-register-client
- (make-lsp-client
-  :new-connection (lsp-stdio-connection #'my/make-run-lsp-java-command)
-  :activation-fn (lsp-activate-on "java")
-  :priority 1
-  :server-id 'myjdtls))
-#+end_src
-
-Автоматический запуск LSP-сервера при открытии java-файлов.
-
-JDTLS требует много ресурсов и быстро вешает редактор. Поэтому
-облегчаем работу сервера через выключение части функций.
-
-Однако, этого ничего не нужно, если работаем не с Java'ой. Поэтому
-снизим нагрузку на jdtls в буфере перед его запуском.
-
-#+begin_src emacs-lisp :tangle yes
-(setq my/java-hooks '(java-mode-hook
-                      java-ts-mode-hook))
-
-(defun my/run-java-lsp ()
-    (setq-local lsp-modeline-diagnostics-enable nil  ;; Too hard for jdtls.
-                lsp-modeline-code-actions-enable nil
-                lsp-modeline-workspace-status-enable nil
-                lsp-java-progress-reports-enabled nil
-                lsp-ui-sideline-enable nil)
-    (lsp))
-
-(dolist (hook my/java-hooks)
-    (add-hook hook 'my/run-java-lsp))
-#+end_src
-
-Поддержка tree-sitter.
-
-#+begin_src emacs-lisp :tangle yes
-(my/treesit-install-language-grammar 'java
-                                     "https://github.com/tree-sitter/tree-sitter-java")
-
-(add-to-list 'auto-mode-alist '("\\.java\\'" . java-ts-mode))
-
-(use-package lsp-mode
-    :hook (((java-mode java-ts-mode) . lsp-deferred)
-           ;; (lsp-mode-hook . lsp-lens-mode)
-           ;; ((java-mode java-ts-mode) . lsp-java-boot-lens-mode)
-           ))
-#+end_src
-
-Подгрузка источников сторонних библиотек в проекте.
-
-#+begin_src emacs-lisp :tangle yes
-(use-package lsp-java
-    :ensure t
-    :config
-    (setq lsp-java-maven-download-sources t
-          lsp-java-eclipse-download-sources t)
-    (setq lsp-java-content-provider-preferred "fernflower")
-    )
-#+end_src
-
-Позаботимся о выполнении org-babel блоков.
-
-#+begin_src emacs-lisp :tangle yes
-(my/--register-org-babel 'java)
-#+end_src
-
-Помогаем заполнять поля serialVersionUID. В коде это поле делают в
-виде отрицательного числа. Для этого просто вернем случайное число из
-L-диапазона (0 - 1000000000000000000).
-
-/Для справки привожу настоящий L-диапазон:/
-- Минимальное  значение: -9 223 372 036 854 775 808 (=Long.MIN_VALUE=)
-- Максимальное значение: +9 223 372 036 854 775 807 (=Long.MAX_VALUE=)
-
-Генерацию положим в сниппет для prog-mode:
-: Serial version
-: sver_
-
-** Java (with lsp-java)
+*** Используем нативный lsp-java
 
 /Остановился на этом варианте. JDTLS нужно прогрузить вручную/
 /(lsp-install-server), а в логах встречаются выбросы исключений. Но/
 /зато работает все и есть переходы на код определений из сторонних/
 /библиотек./
-
-Сперва позаботимся о поддержке lombok. Копируем lombok.jar в кеш
-редактора.
-
-#+begin_src emacs-lisp :tangle yes
-(setq my/java-lombok-dir (file-name-concat (expand-file-name user-emacs-directory)
-                                           ".cache/java"))
-(setq my/java-lombok (file-name-concat my/java-lombok-dir "lombok.jar"))
-
-(unless (file-exists-p my/java-lombok)
-    (let ((lombok-src (file-name-concat my/config-dir "lsp-saves" "lombok.jar")))
-        (make-directory my/java-lombok-dir t)
-        (copy-file lombok-src my/java-lombok)))
-#+end_src
 
 Делаем установку. В переменной =lsp-java-jdt-download-url=
 *ОБЯЗАТЕЛЬНО!* надо указать последнюю версию JDTLS.
@@ -9763,6 +9598,88 @@ L-диапазона (0 - 1000000000000000000).
     ;; (add-to-list 'lsp-java-vmargs "-XX:GCTimeRatio=4")
     )
 #+end_src
+
+*** COMMENT Регистрируем новый LSP-сервер
+
+/Здесь полностью рабочий вариант. Чего не смог от него добиться - это/
+/перехода на код определений из сторонних библиотек./
+
+Где качать (или собирать) версию JDTLS можно прочитать на их [[https://github.com/eclipse-jdtls/eclipse.jdt.ls][странице]]
+на GitHub. Я скачал готовую сборку вот отсюда: [[https://download.eclipse.org/jdtls/snapshots/?d][Eclipse Downloads]] и
+сохранил архив в данный репозиторий. Его, соответственно, надо будет
+обновлять по необходимости.
+
+Сохраняем сборку LSP-сервера [[https://www.eclipse.org/downloads/download.php?file=/jdtls/snapshots/jdt-language-server-1.49.0-202507102148.tar.gz][отсюда]]:
+
+#+begin_src emacs-lisp :tangle yes
+(setq my/jdt-language-server-dir (expand-file-name
+                                  (file-name-concat user-emacs-directory
+                                                    ".cache"
+                                                    "lsp"
+                                                    "jdt-language-server")))
+
+(unless (file-exists-p my/jdt-language-server-dir)
+    (let ((jdt-file-archive (file-name-concat my/config-dir
+                                              "lsp-saves"
+                                              "jdt-language-server-1.49.0.tar.gz")))
+        (make-directory my/jdt-language-server-dir t)
+        (let ((default-directory my/jdt-language-server-dir))
+            (shell-command (concat "tar -xzf " jdt-file-archive)))))
+#+end_src
+
+Функция ниже возвращает команду запуска LSP-сервера. Сервер качнул
+[[https://www.eclipse.org/downloads/download.php?file=/jdtls/snapshots/jdt-language-server-1.49.0-202507102148.tar.gz][отсюда]], согласно [[https://github.com/eclipse-jdtls/eclipse.jdt.ls][инструкции]] (из [[https://github.com/eclipse-jdtls/eclipse.jdt.ls][репозитория]] не собрался). Поддержку
+Lombok облегчаем до минимума, иначе он вешает редактор. Для Spring
+Boot накинем ресурсов.
+
+#+begin_src emacs-lisp :tangle yes
+(defun my/make-run-lsp-java-command ()
+    (let* ((lsp-dir my/jdt-language-server-dir)
+           (data-dir (expand-file-name
+                      (file-name-concat user-emacs-directory
+                                        "workspace")))
+           ;; (data-dir (expand-file-name
+           ;;            (file-name-concat (project-root (project-current))
+           ;;                              "lsp-data")))
+           (config-dir (file-name-concat lsp-dir
+                                         "config_linux")))
+        (list "python"
+              (file-name-concat lsp-dir "bin" "jdtls")
+              ;; Linux configuration:
+              "-configuration" (file-name-concat lsp-dir "config_linux")
+              ;; For Lombok:
+              (concat "--jvm-arg=-javaagent:" my/java-lombok)
+              ;; "--jvm-arg=-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=1044"
+              "--jvm-arg=-Dlombok.disableConfig=true"
+              "--jvm-arg=-Dlombok.anyConstructor.suppressConstructorProperties=false"
+              "--jvm-arg=-Dlombok.addLombokGeneratedAnnotation=true"
+              "--jvm-arg=-Dlombok.extern.findbugs.addSuppressFBWarnings=false"
+              ;; Increase resources for Spring Boot:
+              "--jvm-arg=-Xmx4G"  ;; "--jvm-arg=-Xmx2G"
+              ;; "--jvm-arg=-Xms1G"
+              "--jvm-arg=-XX:+UseG1GC"
+              "--jvm-arg=-XX:+UseStringDeduplication"
+              ;; "--jvm-arg=-XX:GCTimeRatio=4"
+              ;; Data directory:
+              "-data" data-dir
+              )))
+#+end_src
+
+Регистрируем LSP-клиента с высшим (единица) приоритетом.
+
+#+begin_src emacs-lisp :tangle yes
+(add-to-list 'lsp-language-id-configuration '(java-mode . "java"))
+(add-to-list 'lsp-language-id-configuration '(java-ts-mode . "java"))
+
+(lsp-register-client
+ (make-lsp-client
+  :new-connection (lsp-stdio-connection #'my/make-run-lsp-java-command)
+  :activation-fn (lsp-activate-on "java")
+  :priority 1
+  :server-id 'myjdtls))
+#+end_src
+
+*** Остальные настройки
 
 Автоматический запуск LSP-сервера при открытии java-файлов.
 
@@ -9841,6 +9758,14 @@ L-диапазона (0 - 1000000000000000000).
                "c l i u" '(lsp-java-add-unimplemented-methods
                            :which-key "Unimplemented methods"))
 #+end_src
+
+*** Информация на память
+
+Примеры закачки пакетов через maven:
+: mvn dependency:get -Dartifact=org.projectlombok:lombok:1.18.30
+: mvn dependency:get -Dartifact=org.springframework.boot:spring-boot-starter:3.2.0
+: mvn dependency:get -Dartifact=org.springframework.boot:spring-boot-starter-web:3.2.0
+: mvn dependency:get -Dartifact=org.springframework.boot:spring-boot-starter-test:3.2.0
 
 ** COMMENT Java. Spring Boot
 
