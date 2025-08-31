@@ -253,6 +253,7 @@
   - [[#перезагрузка][Перезагрузка]]
   - [[#copilot][Copilot]]
   - [[#semgrep][Semgrep]]
+  - [[#отладка-dap-mode][Отладка (dap-mode)]]
 - [[#tree-sitter-treesit][Tree sitter (treesit)]]
   - [[#treesit-установка-и-общие-настройки][Treesit. Установка и общие настройки]]
   - [[#combobulate---редактирование-с-treesit][Combobulate - редактирование с treesit]]
@@ -293,6 +294,8 @@
     - [[#поддержка-lombok][Поддержка Lombok]]
     - [[#используем-нативный-lsp-java][Используем нативный lsp-java]]
     - [[#остальные-настройки][Остальные настройки]]
+    - [[#отладка-dap-java][Отладка (dap-java)]]
+    - [[#горячие-клавиши-1][Горячие клавиши]]
     - [[#информация-на-память][Информация на память]]
   - [[#javascripttypescript][JavaScript/TypeScript]]
   - [[#scala][Scala]]
@@ -8169,6 +8172,33 @@ running". Простые перезагрузки LSP-сервера не пом
 (delete 'lsp-semgrep lsp-client-packages)
 #+end_src
 
+** Отладка (dap-mode)
+
+Отладчик. Давно перестал этим пользоваться, но вдруг пригодится.
+
+#+begin_src emacs-lisp :tangle yes
+(use-package dap-mode
+    :after lsp-mode
+    :ensure t
+    :config
+    (dap-auto-configure-mode)
+    (setq dap-auto-configure-features '(sessions
+                                        locals
+                                        breakpoints
+                                        expressions
+                                        controls
+                                        tooltip))
+    :hook (dap-stopped . (lambda (arg) (call-interactively #'dap-hydra))))
+#+end_src
+
+Удобные управляющие клавиши для отладки есть в dap-hydra. Повесим ее
+вызов на горячие клавиши.
+
+#+begin_src emacs-lisp :tangle yes
+(my/leader-def nil 'override
+               "c y" 'dap-hydra)
+#+end_src
+
 * Tree sitter (treesit)
 
 ** Treesit. Установка и общие настройки
@@ -9843,13 +9873,42 @@ L-диапазона (0 - 1000000000000000000).
 : Serial version
 : _sver
 
+*** Отладка (dap-java)
+
+Для Java надо затребовать модуль dap-java. Остальное настроено в
+dap-mode.
+
+#+begin_src emacs-lisp :tangle yes
+(use-package dap-java
+    :ensure nil)
+#+end_src
+
+*** Горячие клавиши
+
+Одна из важных вещей - это подтянуть импорт для какой-либо сущности в
+коде. Повесим это действие (=lsp-java-add-import=) на клавиши. Заодно
+и приплюсуем еще пару похожих функций.
+
 #+begin_src emacs-lisp :tangle yes
 (my/leader-def nil 'lsp-mode-map
-               "c l i" '(:ignore t :which-key "Add/Insert")
-               "c l i i" '(lsp-java-add-import :which-key "Import")
-               "c l i t" '(lsp-java-add-throws :which-key "Throws")
-               "c l i u" '(lsp-java-add-unimplemented-methods
+               "c j" '(:ignore t :which-key "java")
+               "c j i" '(:ignore t :which-key "add/insert")
+               "c j i i" '(lsp-java-add-import :which-key "Import")
+               "c j i t" '(lsp-java-add-throws :which-key "Throws")
+               "c j i u" '(lsp-java-add-unimplemented-methods
                            :which-key "Unimplemented methods"))
+#+end_src
+
+Запуск отладчика.
+
+#+begin_src emacs-lisp :tangle yes
+(my/leader-def nil 'override
+               "c j d" '(:ignore t :which-key "debug")
+               "c j d d" '(dap-java-debug :which-key "Debug")
+               "c j d t" '(dap-java-debug-test-class
+                           :which-key "Debug test class")
+               "c j d m" '(dap-java-debug-test-method
+                           :which-key "Debug test method"))
 #+end_src
 
 *** Информация на память
