@@ -2798,6 +2798,11 @@ Spacemacs. Код находится в файле [[./funcs.el][funcs.el]].
          (side . right)
          (window-width . 0.30))
 
+        ;; Debug log buffer (DAP):
+        (".* log\\*$"
+         (display-buffer-reuse-window display-buffer-at-bottom)
+         (window-height . 0.25))
+
         ;; Other buffers with name like "*Name*"
         ("^\\*.*\\*<.*>$"
          (display-buffer-reuse-window display-buffer-at-bottom)
@@ -9905,7 +9910,7 @@ dap-mode.
 (my/leader-def nil 'override
                "c j d" '(:ignore t :which-key "debug")
                "c j d d" '(dap-java-debug :which-key "Debug")
-               "c j d t" '(dap-java-debug-test-class
+               "c j d c" '(dap-java-debug-test-class
                            :which-key "Debug test class")
                "c j d m" '(dap-java-debug-test-method
                            :which-key "Debug test method"))
