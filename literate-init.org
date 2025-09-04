@@ -2727,7 +2727,7 @@ Spacemacs. Код находится в файле [[./funcs.el][funcs.el]].
         ("^\\*Ilist\\*$"
          (display-buffer-reuse-window display-buffer-in-side-window)
          (side . right)
-         (window-width . 0.30))
+         (window-width . 0.33))
 
         ;; Org Src edit
         ("^\\*Org Src .*\\*$")
@@ -2790,13 +2790,13 @@ Spacemacs. Код находится в файле [[./funcs.el][funcs.el]].
         ("^\\*CodeCompletion\\*$"
          (display-buffer-reuse-window display-buffer-in-side-window)
          (side . right)
-         (window-width . 0.40))
+         (window-width . 0.33))
 
         ;; Eldoc
         ("^\\*eldoc\\*$"
          (display-buffer-reuse-window display-buffer-in-side-window)
          (side . right)
-         (window-width . 0.30))
+         (window-width . 0.33))
 
         ;; Debug log buffer (DAP):
         (".* log\\*$"
@@ -9027,8 +9027,9 @@ Pyright может не скачаться с серверов, поэтому �
 
 #+begin_src emacs-lisp :tangle yes
 (my/leader-def nil 'override
-               "c a" #'my/pyvenv-activate
-               "c i" #'my/pyvenv-select-path)
+               "c v" '(:ignore t :which-key "python venv")
+               "c v a" '(my/pyvenv-activate :which-key "Activate venv")
+               "c v i" '(my/pyvenv-select-path :which-key "Select venv"))
 #+end_src
 
 ** Emacs IPython Notebook (ein)
