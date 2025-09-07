@@ -3650,6 +3650,13 @@ emacs-клиента.
           hooks))
 #+end_src
 
+Исключаем системные директории для взора projectile.
+
+#+begin_src emacs-lisp :tangle yes
+(dolist (dir '("/bin" "/boot" "/dev" "/etc" "/opt" "/proc" "/sys" "/usr" "/var"))
+    (add-to-list 'projectile-globally-ignored-directories dir))
+#+end_src
+
 ** Совместная работа проектов и рабочих пространств
 
 Для работы с проектом в отдельном Emacs-клиенте мне нужны следующие действия:
