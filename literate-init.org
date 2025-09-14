@@ -393,7 +393,8 @@ email clients, file templates and snippets."
 #+begin_src emacs-lisp :tangle yes
 (require 'package)
 
-(add-to-list 'package-archives '("melpa" . "http://melpa.org/packages/") t)
+;; (add-to-list 'package-archives '("melpa" . "http://melpa.org/packages/") t)
+(add-to-list 'package-archives '("melpa" . "http://www.mirrorservice.org/sites/melpa.org/packages/") t)
 (add-to-list 'package-archives '("melpa-stable" . "https://stable.melpa.org/packages/") t)
 
 ;; (add-to-list 'package-archives '("gnu" . "https://elpa.gnu.org/packages/") t)
@@ -477,11 +478,26 @@ email clients, file templates and snippets."
     ;; (load-theme 'doom-gruvbox t)
     ;; (load-theme 'doom-molokai t)
     )
-(use-package modus-themes
+(use-package alect-themes
     :ensure t)
 (use-package ef-themes
     :ensure t)
+(use-package eziam-themes
+    :ensure t
+    :config
+    (setq eziam-scale-headings nil
+          eziam-scale-other nil))
+(use-package farmhouse-themes
+    :ensure t)
+(use-package humanoid-themes
+    :ensure t)
+(use-package kaolin-themes
+    :ensure t)
+(use-package rg-themes
+    :ensure t)
 #+end_src
+
+#+RESULTS:
 
 * Полезные пакеты, вытащенные из сторонних проектов
 
