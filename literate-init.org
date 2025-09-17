@@ -479,7 +479,11 @@ email clients, file templates and snippets."
     ;; (load-theme 'doom-molokai t)
     )
 (use-package alect-themes
-    :ensure t)
+    :ensure t
+    :config
+    (setq alect-single-title-height 1.0
+          alect-header-height 1.0
+          alect-multiple-titles-height 1.0))
 (use-package ef-themes
     :ensure t)
 (use-package eziam-themes
@@ -490,7 +494,9 @@ email clients, file templates and snippets."
 (use-package farmhouse-themes
     :ensure t)
 (use-package humanoid-themes
-    :ensure t)
+    :ensure t
+    :config
+    (setq humanoid-themes-org-height nil))
 (use-package kaolin-themes
     :ensure t)
 (use-package rg-themes
@@ -8670,6 +8676,8 @@ sudo apt install retext
 (my/treesit-install-language-grammar
  'json
  "https://github.com/tree-sitter/tree-sitter-json")
+
+(setq json-ts-mode-indent-offset 4)
 #+end_src
 
 ** Make
