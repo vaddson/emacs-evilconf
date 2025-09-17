@@ -7698,11 +7698,16 @@ my/gptel-gigachat-access-token.
                (prompts (my/llm-codework-out-buffer--make-theme-prompts)))
             (my/llm-codework-out-buffer--goto-end-of-theme)
             (insert "\n\n\n")
-            (goto-line (- (line-number-at-pos) 2))
+            (goto-line (- (line-number-at-pos) 1))
+            (my/llm-codework--insert-wait-text)
             (gptel-request
                 prompts
                 :stream nil
-                :system system))))
+                :system system
+                :callback (apply-partially 'my/llm-codework-callback
+                                           nil
+                                           nil
+                                           my/llm-codework-out-buffer)))))
 #+end_src
 
 Помимо функций выше может потребоваться просто поместить выделенный
@@ -7729,6 +7734,23 @@ my/gptel-gigachat-access-token.
                 (when (re-search-backward "^\\*\\* Source" nil t)
                     (org-cycle)))
             (insert "\n\n** "))))
+#+end_src
+
+И самый простое - начать новую тему без вопроса.
+
+#+begin_src emacs-lisp :tangle yes
+(defun my/llm-codework-new-theme ()
+    (interactive)
+    (let* ((lang (my/get-lang))
+           (prompt (format "Remember codes in %s (if exists). Codes starts with the <src_code_block> tag and ends with the </src_code_block> tag. All explanations give in russian." lang)))
+        (my/llm-codework-switch-to-out-buffer my/llm-codework-out-buffer)
+        (goto-char (point-max))
+        (unless (boundp 'my/header-count)
+            (setq-local my/header-count 0))
+        (insert (format "\n* %s. (%s) New theme\n\n"
+                        (setq-local my/header-count (1+ my/header-count))
+                        lang))
+        (insert "** ")))
 #+end_src
 
 Далее идут вспомогательные функции к функциям выше. Одна из них делает
@@ -7823,6 +7845,8 @@ my/gptel-gigachat-access-token.
                        :which-key "Explain code region")
                "i r" '(my/llm-codework-remember
                        :which-key "Remember code region")
+               "i n" '(my/llm-codework-new-theme
+                       :which-key "New thwmw")
                "i f" '(my/llm-codework-inquire-further
                        :which-key "Inquire further"))
 #+end_src
