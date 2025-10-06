@@ -222,6 +222,7 @@
   - [[#docker][Docker]]
   - [[#календарь-как-его-представление][Календарь, как его представление]]
   - [[#tldr-примеры-запуска-утилит-из-командной-строки][Tldr. Примеры запуска утилит из командной строки]]
+  - [[#web-server][Web server]]
 - [[#инструменты-свои][Инструменты свои]]
   - [[#словарик-под-stardict][Словарик под StarDict]]
   - [[#калькулятор-на-python][Калькулятор на Python]]
@@ -243,6 +244,7 @@
     - [[#материалы-только-информация-и-ссылки][Материалы (только информация и ссылки)]]
     - [[#получение-access-token][Получение access token]]
     - [[#настройки][Настройки]]
+    - [[#proxy-в-api-gigachat][Proxy в API Gigachat]]
   - [[#работа-с-кодом-автодополнение-оптимизация-и-прочее][Работа с кодом (автодополнение, оптимизация и прочее)]]
     - [[#буфер-для-результатов-работы-с-кодом][Буфер для результатов работы с кодом]]
     - [[#функции-работы-с-кодом][Функции работы с кодом]]
@@ -503,8 +505,6 @@ email clients, file templates and snippets."
 (use-package rg-themes
     :ensure t)
 #+end_src
-
-#+RESULTS:
 
 * Полезные пакеты, вытащенные из сторонних проектов
 
@@ -1740,8 +1740,8 @@ prog-mode, поэтому делаем свою функцию проверки 
 #+begin_src emacs-lisp :tangle yes
 (use-package indent-bars
     :ensure t
-    :hook ((json-mode
-            ) . indent-bars-mode))
+    :hook ((json-mode json-ts-mode)
+           . indent-bars-mode))
 #+end_src
 
 ** Проверка орфографии
@@ -2829,6 +2829,9 @@ Spacemacs. Код находится в файле [[./funcs.el][funcs.el]].
         (".* log\\*$"
          (display-buffer-reuse-window display-buffer-at-bottom)
          (window-height . 0.25))
+
+        ;; Json pretty show
+        ("^\\*json-pretty-show\\*$")
 
         ;; Other buffers with name like "*Name*"
         ("^\\*.*\\*<.*>$"
@@ -5198,6 +5201,15 @@ shows it in message and put the result into registers `\"' and `t'."
   =org-transclusion-remove-all=.
 - Обновить цитаты можно функцией =org-transclusion-refresh=.
 
+Примеры из документации:
+: #+transclude: [[file:path/to/file.org::*Headline]] :level 2
+: #+transclude: [[file:path/to/file.org]] :only-contents
+: #+transclude: [[file:path/to/file.org]] :exclude-elements "drawer keyword"
+: #+transclude: [[file:../../test/python-3.py]]  :src python :rest ":session :results value"
+: #+transclude: [[file:../../test/python-1.py::id-1234]] :lines 2- :src python :end "id-1234 end here"
+: #+transclude: [[./things-at-point-dir/story.txt::Once upon a time][story]]  :thing-at-point paragraph
+: #+transclude: [[./things-at-point-dir/story.txt::Once upon a time][story]]  :thingatpt sentence
+
 Установка пакета.
 
 #+begin_src emacs-lisp :tangle yes
@@ -6613,6 +6625,185 @@ man-страниц.
     :ensure t)
 #+end_src
 
+** Web server
+
+Установка.
+
+#+begin_src emacs-lisp :tangle yes
+(use-package web-server
+    :ensure t)
+#+end_src
+
+Получаем у операционной системы свободный порт.
+
+#+begin_src emacs-lisp :tangle yes
+(defun my/get-free-port ()
+    (when-let ((process (make-network-process :name "temp-free-port"
+                                              :server t
+                                              :host "127.0.0.1"
+                                              :service t)))
+        (let* ((result (process-contact process :local))
+               (port (aref result (1- (length result)))))
+            (delete-process process)
+            port)))
+#+end_src
+
+Чтобы сделать из ws-server proxy-сервер, мне не хватает некоторых
+ws-методов. Сделаем их.
+
+Подготовим вспомогательные функции для работы с aslit.
+
+#+begin_src emacs-lisp :tangle yes
+(defun my/member-assoc (key alist)
+    "Like member but for alists. Return tail."
+    (my/member-assoc-predicate (lambda (x)
+                                   (eq x key))
+                               alist))
+
+(defun my/member-assoc-predicate (key-predicate alist)
+    (when alist
+        (if (funcall key-predicate (caar alist))
+            alist
+            (my/member-assoc-predicate key-predicate (cdr alist)))))
+
+(defun my/take-before-key (key alist)
+    "Take elements from alist before element (key . x)."
+    (my/take-before (lambda (x-key)
+                        (eq x-key key))
+                    alist))
+
+(defun my/take-before (key-predicate alist)
+    (when alist
+        (let ((x (car alist))
+              (xs (cdr alist)))
+            (if (funcall key-predicate (car x))
+                nil
+                (cons x (my/take-before key-predicate xs))))))
+
+(defun my/remove (key alist)
+    (when alist
+        (cl-remove-if (lambda (pair)
+                          (equal key (car pair)))
+                      alist)))
+
+(defun my/insert-or-update (key val alist)
+    (when alist
+        (cons (cons key val)
+              (my/remove key alist))))
+#+end_src
+
+Первая партия для перхода с ws-server на url-retrieve.
+
+#+begin_src emacs-lisp :tangle yes
+(defun my/ws-method-str (request)
+    "Return method like \"GET\", \"POST\", ..."
+    (when-let* ((method (my/ws-method request)))
+        (string-remove-prefix ":" (symbol-name method))))
+
+(defun my/ws-method (request)
+    "Return method like :GET, :POST, ..."
+    (when-let* ((headers (ws-headers request))
+                (method (cadr headers)))
+        (car method)))
+
+(defun my/ws-uri (request)
+    "Return URI line '/api/v1'."
+    (when-let* ((headers (ws-headers request))
+                (method (cadr headers)))
+        (cdr method)))
+
+(defun my/ws-url-params-str (request)
+    (when-let* ((prarms (my/ws-url-params request)))
+        (string-join (mapcar (lambda (pair)
+                                 (concat (car pair)
+                                         "="
+                                         (url-encode-url (cdr pair))))
+                             (my/ws-url-params request))
+                     "&")))
+
+(defun my/ws-url-params (request)
+    (when-let* ((headers (ws-headers request)))
+        (my/take-before (lambda (x)
+                            (not (stringp x)))
+                        (cddr headers))))
+
+(defun my/ws-headers-only-strs (request)
+    "Return headers like ((\"Content-Type\" . \"text/application\") ...)."
+    (let ((headers-only (my/ws-headers-only request)))
+        (mapcar (lambda (header)
+                    (cons (my/key-to-header (car header))
+                          (cdr header)))
+                headers-only)))
+
+(defun my/ws-headers-only (request)
+    "Return headers like ((:CONTENT-TYPE . \"text/application\") ...)."
+    (when-let* ((headers (ws-headers request))
+                (host-member (my/member-assoc-predicate 'symbolp
+                                                        (cddr headers)))
+                (key-p (lambda (key)
+                           (not (keywordp key)))))
+        (my/take-before key-p
+                        (my/remove :HOST host-member))))
+
+(defun my/key-to-header (header-key)
+    "Convert keyword like :CONTENT-TYPE to string like \"Contet-type\"."
+    (when (keywordp header-key)
+        (string-join
+         (mapcar 'capitalize
+                 (string-split (string-remove-prefix ":"
+                                                     (symbol-name header-key))
+                               "-"))
+         "-")))
+#+end_src
+
+Вторая партия для перехода с url-retrieve на ws-server.
+
+#+begin_src emacs-lisp :tangle yes
+(defun my/url-code ()
+    (save-excursion
+        (goto-char (point-min))
+        (when-let* ((line (buffer-substring (point) (line-end-position)))
+                    (parts (string-split line))
+                    (success (> (length parts) 1))
+                    (code (string-to-number (cadr parts)))
+                    (success (> code 0)))
+            code)))
+
+(defun my/url-headers ()
+    (save-excursion
+        (goto-char (point-min))
+        (forward-line 1)
+        (when-let* ((headers-begin (point))
+                    (headers-end (my/url-goto-body))
+                    (headers-text (buffer-substring-no-properties headers-begin
+                                                                  headers-end))
+                    (headers-strings (string-split
+                                      (string-replace "\r\n" "\n" headers-text)
+                                      "\n"))
+                    (headers (mapcar 'my/header-line-to-pair headers-strings)))
+            (cl-remove-if (lambda (pair)
+                              (or (string-empty-p (car pair))
+                                  (string-empty-p (cdr pair))))
+                          headers))))
+
+(defun my/url-body ()
+    (save-excursion
+        (goto-char (point-min))
+        (my/url-goto-body)
+        (buffer-substring-no-properties (point) (point-max))))
+
+(defun my/url-goto-body ()
+    (goto-char (if-let ((pos (search-forward "\n\n" nil t)))
+                   pos
+                   (point-max))))
+
+(defun my/header-line-to-pair (line)
+    (let* ((parts (string-split line ":"))
+           (header-key (capitalize (string-trim (car parts))))
+           (header-val (string-trim (string-join (cdr parts) ":"))))
+        (cons header-key header-val)))
+#+end_src
+
 * Инструменты свои
 
 ** Словарик под StarDict
@@ -7499,6 +7690,109 @@ my/gptel-gigachat-access-token.
 (add-hook 'gptel-mode-hook 'my/gptel-set-curl-mode)
 #+end_src
 
+*** Proxy в API Gigachat
+
+Будем хранить URL к Гиге и фальшивый ключ в этих переменных.
+
+#+begin_src emacs-lisp :tangle yes
+(defvar my/giga--url-base nil
+  "URL base for GigaChat API proxy.")
+
+(defvar my/giga--proxy-key nil
+  "False key for GigaChat API proxy.")
+#+end_src
+
+Функция запуска GigaChat proxy-сервера.
+
+#+begin_src emacs-lisp :tangle yes
+(defun my/giga-start-proxy-server ()
+    "Start proxy server on a random port.
+Save URL base and the server key in variables:
+    `my/giga--url-base'
+    `my/giga--proxy-key'"
+    (when-let ((port (my/giga--start-proxy-server))
+               (key (base64-encode-string (encode-coding-string (org-id-uuid)
+                                                                'utf-8))))
+        (setq my/giga--url-base (format "http://localhost:%d" port)
+              my/giga--proxy-key key)
+        (message (format "GigaChat API proxy server start: %s"
+                         my/giga--url-base))))
+#+end_src
+
+Web-server не умеет справляться с заголовком авторизации с "Bearer":
+: Authorization: Bearer <my_key>
+Сделаем костыль на функцию ws-parse наложим костыль.
+
+#+begin_src emacs-lisp :tangle yes
+(advice-add #'ws-parse :around
+            (lambda (func proc str &rest args)
+                (let ((new-str (if (stringp str)
+                                   (string-replace "Authorization: Bearer "
+                                                   "Authorization: "
+                                                   str)
+                                   str)))
+                    (apply func proc new-str args))))
+#+end_src
+
+Строим proxy-сервер. Функция =my/giga--start-proxy-server= будет
+запускать его на случайном порту.
+
+#+begin_src emacs-lisp :tangle yes
+(defun my/giga--start-proxy-server ()
+    "Start proxy server on a random port. Return the port."
+    (let* ((port (my/get-free-port)))
+        (my/log (format "Gigachat proxy port = %d" port))
+        (ws-start 'my/giga--proxy-handler
+                  port)
+        port))
+
+(defun my/giga--proxy-handler (request)
+    (if-let* ((process (ws-process request))
+              (headers-in (my/ws-headers-only-strs request))
+              (proxy-key (my/giga--extract-proxy-key headers-in))
+              (is-authorized (equal proxy-key my/giga--proxy-key)))
+        (let* ((url-request-data (ws-body request))
+               (url-request-method (my/ws-method-str request))
+               (url-request-extra-headers (my/giga--insert-key-to-headers
+                                           (my/giga--correct-contet-length
+                                            url-request-data
+                                            headers-in)))
+               (response-buffer (url-retrieve-synchronously
+                                 (my/giga--make-url request))))
+            (with-current-buffer response-buffer
+                (let* ((headers-out (my/remove "Transfer-Encoding"
+                                               (my/url-headers))))
+                    (apply 'ws-response-header
+                           process
+                           (my/url-code)
+                           headers-out))
+                (process-send-string process (my/url-body))
+                (kill-buffer response-buffer)))
+        (progn (message "Unauthorized")
+               (ws-response-header process 401))))
+
+(defun my/giga--extract-proxy-key (headers-alist)
+    (when-let* ((key-header (assoc "Authorization" headers-alist 'equal))
+                (key-part (string-trim (cdr key-header))))
+        (string-remove-prefix "Bearer " key-part)))
+
+(defun my/giga--make-url (request)
+    (string-join (cl-remove-if 'not
+                               (list (concat "https://gigachat.devices.sberbank.ru"
+                                             (my/ws-uri request))
+                                     (my/ws-url-params-str request)))
+                 "?"))
+
+(defun my/giga--insert-key-to-headers (headers-alist)
+    (my/insert-or-update "Authorization"
+                         (concat "Bearer " (my/gptel-gigachat-access-token))
+                         headers-alist))
+
+(defun my/giga--correct-contet-length (body headers-alist)
+    (my/remove "Content-Length"
+               headers-alist))
+#+end_src
+
 ** Работа с кодом (автодополнение, оптимизация и прочее)
 
 Это попытка поставить на службу LLM в качестве работы с кодом. Не
@@ -7681,9 +7975,9 @@ my/gptel-gigachat-access-token.
     (interactive)
     (let* ((lang (my/get-lang))
            (prompt "")
-           (system (format "Complete or finish the following code written in %s that starts after the <src_code_block> tag and ends before the </src_code_block> tag. Do not modify or add comments to the original code. Use only objects and variables present in the given code; do not introduce new ones. Provide your result along with the original code. Create one to five versions of the answer and number them accordingly. Include the original code in your response. Replace the tags <src_code_block> and </src_code_block> with #+begin_src %s and #+end_src, respectively. Provide your answer in Russian."
+           (system (format "Complete or finish the following code written in %s that starts after the <src_code_block> tag and ends before the </src_code_block> tag. Do not modify or add comments to the original code. Use only objects and variables present in the given code; do not introduce new ones. Provide your result along with the original code. Create 1 to 5 versions of the answer and number them accordingly. Include the original code in your response. Replace the tags <src_code_block> and </src_code_block> with #+begin_src %s and #+end_src, respectively. Provide your answer in Russian."
                            lang lang)))
-        ;; (system (format "Дополни или заверши приведенный ниже код на %s, который начинается после тега <src_code_block> и завершается перед тегом </src_code_block>. Исходный код не исправляй и не дополняй комментариями. В ответе используй только те объекты и переменные, которые есть в исходном коде, других не придумывай. Результат приведи вместе с исходным кодом. Сделай таким образом от одного до пяти вариантов ответа и пронумеруй их. Результат приведи вместе с исходным кодом. Теги <src_code_block> и </src_code_block> в своем ответе замени на операторные скобки #+begin_src %s и #+end_src. Ответ дай по русски."
+        ;; (system (format "Дополни или заверши приведенный ниже код на %s, который начинается после тега <src_code_block> и завершается перед тегом </src_code_block>. Исходный код не исправляй и не дополняй комментариями. В ответе используй только те объекты и переменные, которые есть в исходном коде, других не придумывай. Результат приведи вместе с исходным кодом. Сделай таким образом от 1 до 5 вариантов ответа и пронумеруй их. Результат приведи вместе с исходным кодом. Теги <src_code_block> и </src_code_block> в своем ответе замени на операторные скобки #+begin_src %s и #+end_src. Ответ дай по русски."
         ;;                 lang)))
         (my/llm-codework-base (format "(%s) Completion Variants of Code" lang)
                               system
@@ -8733,6 +9027,62 @@ sudo apt install retext
  "https://github.com/tree-sitter/tree-sitter-json")
 
 (setq json-ts-mode-indent-offset 4)
+#+end_src
+
+Позаботимся о просмотре json в отформатированном виде. Для этого
+запилим форматирующую функцию.
+
+#+begin_src emacs-lisp :tangle yes
+(defun my/json-pretty-format (body)
+    (with-temp-buffer
+        (insert body)
+        (let ((json-encoding-pretty-print t)
+              (json-encoding-default-indentation "    "))  ;; 4 spaces
+            (json-pretty-print-buffer)
+            (buffer-string))))
+#+end_src
+
+Вычисление org-babel json-блоков, результат которых будет
+отформатированный json.
+
+#+begin_src emacs-lisp :tangle yes
+(defun org-babel-execute:json (body params)
+  "Format JSON string in BODY according to PARAMS.
+If BODY is a valid JSON string, it is pretty-printed with 4-space indentation.
+If BODY is a Elisp object, it is converted to JSON and then pretty-printed."
+  (condition-case nil
+      (my/json-pretty-format body)
+      (error (error "Invalid JSON in source block"))))
+#+end_src
+
+Сделаем еще одну вещь - отформатированный вывод выделенного json'а в
+отдельном окне.
+
+#+begin_src emacs-lisp :tangle yes
+(defun my/json-region-pretty-show ()
+    (interactive)
+    (if (use-region-p)
+        (let* ((json-pretty-buffer-name "*json-pretty-show*")
+               (begin (use-region-beginning))
+               (end (use-region-end))
+               (body (buffer-substring-no-properties begin end))
+               (json-pretty (my/json-pretty-format body))
+               (buffer-created-p (get-buffer json-pretty-buffer-name))
+               (buffer (get-buffer-create json-pretty-buffer-name)))
+            (with-current-buffer buffer
+                (erase-buffer)
+                (unless buffer-created-p
+                    (json-ts-mode))
+                (insert json-pretty))
+            (switch-to-buffer-other-window buffer))
+        (message "Please, select regin with json.")))
+#+end_src
+
+Горячие клавиши.
+
+#+begin_src emacs-lisp :tangle yes
+(my/leader-def nil 'override
+               "c f j" '(my/json-region-pretty-show :which-key "Json pretty show"))
 #+end_src
 
 ** Make
