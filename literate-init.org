@@ -1725,6 +1725,7 @@ prog-mode, поэтому делаем свою функцию проверки 
 
 (defun my/--highlight-indent-guides-mode (&optional arg)
     (unless (member major-mode '(json-mode
+                                 json-ts-mode
                                  org-mode-hook
                                  markdown-mode-hook))
         (highlight-indent-guides-mode arg)))
@@ -7721,7 +7722,7 @@ Save URL base and the server key in variables:
 
 Web-server не умеет справляться с заголовком авторизации с "Bearer":
 : Authorization: Bearer <my_key>
-Сделаем костыль на функцию ws-parse наложим костыль.
+Сделаем костыль на функцию ws-parse.
 
 #+begin_src emacs-lisp :tangle yes
 (advice-add #'ws-parse :around
