@@ -7848,7 +7848,7 @@ Web-server не умеет справляться с заголовком авт
 считаться одним вопросом.
 
 Содержимое промпта оформим в виде диалога user-assistant. Функция ниже
-возвращает такой диалог для дальнейшей передачи в =gptel-requiest=.
+возвращает такой диалог для дальнейшей передачи в =gptel-request=.
 
 #+begin_src emacs-lisp :tangle yes
 (defun my/llm-codework-out-buffer--make-theme-prompts ()
@@ -8172,7 +8172,7 @@ Web-server не умеет справляться с заголовком авт
                "i r" '(my/llm-codework-remember
                        :which-key "Remember code region")
                "i n" '(my/llm-codework-new-theme
-                       :which-key "New thwmw")
+                       :which-key "New theme")
                "i f" '(my/llm-codework-inquire-further
                        :which-key "Inquire further"))
 #+end_src
@@ -10052,7 +10052,7 @@ LSP-сервер будет работать так же, как на локал
     :ensure t
     :init
     (setq lsp-java-jdt-download-url
-          "https://www.eclipse.org/downloads/download.php?file=/jdtls/milestones/1.49.0/jdt-language-server-1.49.0-202507311558.tar.gz")
+          "https://www.eclipse.org/downloads/download.php?file=/jdtls/milestones/1.51.0/jdt-language-server-1.51.0-202510022025.tar.gz")
     :config
     (when (member 'lsp-java-boot features)
         (require 'lsp-java-boot))
