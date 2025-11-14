@@ -1012,8 +1012,6 @@ email clients, file templates and snippets."
     (my/alignment-org-headers-fonts))
 
 (my/leader-def nil 'override
-               "e" '(:ignore t :which-key "env/edit"))
-(my/leader-def nil 'override
                "e d" #'my/correct-font-in-current-frame)
 #+end_src
 
@@ -1345,9 +1343,20 @@ Find application name in my/application-name variable."
 
 ** Общие клавиши для редактирования текста
 
+Редакция или среда.
+
 #+begin_src emacs-lisp :tangle yes
 (my/leader-def nil 'override
+               "e" '(:ignore t :which-key "env/edit")
                "e a" 'align-regexp)
+#+end_src
+
+Вставка (символа).
+
+#+begin_src emacs-lisp :tangle yes
+(my/leader-def nil 'override
+               "I" '(:ignore t :which-key "insert")
+               "I c" 'insert-char)
 #+end_src
 
 ** Follow-mode - просматриваем непрерывный текст в нескольких буферах
@@ -1824,8 +1833,6 @@ prog-mode, поэтому делаем свою функцию проверки 
 Горячие клавиши для выбора сниппета по его названию.
 
 #+begin_src emacs-lisp :tangle yes
-(my/leader-def nil 'override
-               "I" '(:ignore t :which-key "insert"))
 (my/leader-def nil 'override
                "I s" #'yas-insert-snippet)
 #+end_src
@@ -6398,8 +6405,8 @@ Alt. Отменим их, а заодно освободим клавиши дв
     (mapc (lambda (key)
               (define-key mode-map (kbd key) nil))
           '("0" "1" "2" "3" "4" "5" "6" "7" "8" "9"
-            "$"
-            "h" "j" "k" "l")))
+            "^" "$"
+            "h" "j" "k" "l" "H" "M" "L" "z")))
 
 (when my/evil
     (mapc 'my/magit--restore-evil-keys
@@ -7742,7 +7749,6 @@ Web-server не умеет справляться с заголовком авт
 (defun my/giga--start-proxy-server ()
     "Start proxy server on a random port. Return the port."
     (let* ((port (my/get-free-port)))
-        (my/log (format "Gigachat proxy port = %d" port))
         (ws-start 'my/giga--proxy-handler
                   port)
         port))
@@ -9339,8 +9345,8 @@ Pyright может не скачаться с серверов, поэтому �
 (unless (file-exists-p (file-name-concat user-emacs-directory
                                          "/.cache/lsp/npm/pyright"))
     (shell-command (concat "tar -xzf "
-                           (file-name-concat (my/config-dir
-                                              "/lsp-saves/pyright_vanilla.tar.gz"))
+                           (file-name-concat my/config-dir
+                                              "/lsp-saves/pyright_vanilla.tar.gz")
                            " -C " user-emacs-directory)))
 #+end_src
 
