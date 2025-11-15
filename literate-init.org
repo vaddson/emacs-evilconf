@@ -6544,22 +6544,24 @@ Alt. Отменим их, а заодно освободим клавиши дв
 
 ** Календарь, как его представление
 
-Включение модуля "calendar" позволяет смотреть свои дела из Agenda в виде календаря.
+/В пакете были изменения и клавиши под них пока не настроены./
+
+Включение модуля "calendar" позволяет смотреть свои дела из Agenda в
+виде календаря.
 
 #+begin_src emacs-lisp :tangle yes
 (use-package calfw
 	:ensure t
 	:config
-	(setq cfw:face-item-separator-color nil
-		  cfw:render-line-breaker 'cfw:render-line-breaker-none
-		  cfw:fchar-junction ?╋
-		  cfw:fchar-vertical-line ?┃
-		  cfw:fchar-horizontal-line ?━
-		  cfw:fchar-left-junction ?┣
-		  cfw:fchar-right-junction ?┫
-		  cfw:fchar-top-junction ?┯
-		  cfw:fchar-top-left-corner ?┏
-		  cfw:fchar-top-right-corner ?┓))
+    (setq calfw-render-line-breaker 'calfw-render-line-breaker-simple
+          calfw-fchar-junction ?╋
+          calfw-fchar-vertical-line ?┃
+          calfw-fchar-horizontal-line ?━
+          calfw-fchar-left-junction ?┣
+          calfw-fchar-right-junction ?┫
+          calfw-fchar-top-junction ?┯
+          calfw-fchar-top-left-corner ?┏
+          calfw-fchar-top-right-corner ?┓))
 
 (use-package calfw-org
 	:ensure t)
@@ -6578,7 +6580,7 @@ Alt. Отменим их, а заодно освободим клавиши дв
 Отключим показ ненужных праздников:
 
 #+begin_src emacs-lisp :tangle yes
-(setq cfw:display-calendar-holidays nil)
+(setq calfw-display-calendar-holidays nil)
 #+end_src
 
 Ниже запилим сочетания клавиш.
@@ -6587,26 +6589,26 @@ Alt. Отменим их, а заодно освободим клавиши дв
 
 #+begin_src emacs-lisp :tangle yes
 (my/leader-def nil 'override
-    "o a c" #'cfw:open-org-calendar)
+    "o a c" #'calfw-org-open-calendar)
 #+end_src
 
 Вызов Agenda для выбранного дня:
 
 #+begin_src emacs-lisp :tangle yes
-(define-key cfw:calendar-mode-map "d" #'cfw:org-open-agenda-day)
+(define-key calfw-calendar-mode-map "d" #'calfw-org-open-agenda-day)
 #+end_src
 
 Как и для агенды, отдельно сделаем календарь на задачи в открытом
 файле.
 
 #+begin_src emacs-lisp :tangle yes
-(defun my/cfw:open-org-calendar-current-file ()
+(defun my/calfw-open-org-calendar-current-file ()
     (interactive)
     (let ((org-agenda-files (list (buffer-file-name))))
-        (cfw:open-org-calendar)))
+        (calfw-org-open-calendar)))
 
 (my/leader-def nil 'override
-               "o a C" '(my/cfw:open-org-calendar-current-file :which-key "Calendar for current file"))
+               "o a C" '(my/calfw-open-org-calendar-current-file :which-key "Calendar for current file"))
 #+end_src
 
 ** COMMENT Litable
