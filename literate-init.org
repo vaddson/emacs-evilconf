@@ -3517,6 +3517,7 @@ Return history hash-map."
 
 (use-package persp-mode
     :ensure t
+    :pin "melpa-stable"
     :init
     (setq persp-nil-name "main")
     :config)
