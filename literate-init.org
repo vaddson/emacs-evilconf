@@ -398,7 +398,8 @@ email clients, file templates and snippets."
 
 ;; (add-to-list 'package-archives '("melpa" . "http://melpa.org/packages/") t)
 (add-to-list 'package-archives '("melpa" . "http://www.mirrorservice.org/sites/melpa.org/packages/") t)
-(add-to-list 'package-archives '("melpa-stable" . "https://stable.melpa.org/packages/") t)
+;; (add-to-list 'package-archives '("melpa-stable" . "https://stable.melpa.org/packages/") t)
+(add-to-list 'package-archives '("melpa-stable" . "http://www.mirrorservice.org/sites/stable.melpa.org/packages/") t)
 
 ;; (add-to-list 'package-archives '("gnu" . "https://elpa.gnu.org/packages/") t)
 ;; (add-to-list 'package-archives '("melpa" . "https://melpa.org/packages/") t)
