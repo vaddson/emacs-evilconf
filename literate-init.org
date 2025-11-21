@@ -3749,11 +3749,19 @@ emacs-клиента.
 Определим горячие клавиши для работы с проектами.
 
 #+begin_src emacs-lisp :tangle yes
+(defun my/projectile-switch-project (&optional arg)
+    (interactive "P")
+    (let ((projectile-switch-project-action 'projectile-find-file))
+        (projectile-switch-project arg)))
+#+end_src
+
+#+begin_src emacs-lisp :tangle yes
 (my/leader-def nil 'override
     "p" '(:ignore t :which-key "projects")
     "P" '(:ignore t :which-key "projects-ws")
-    "p p" '(projectile-switch-project :which-key "Simple switch project")
+    "p p" '(my/projectile-switch-project :which-key "Simple switch project")
     "p P" '(my/switch-project-with-workspace-safe-title :which-key "Light switch proj+ws")
+    "P p" '(projectile-switch-project :which-key "Simple switch project")
     "P P" '(my/switch-project-with-workspace :which-key "Switch project+workspace")
     "p f" '(counsel-projectile-find-file :which-key "Open file in project")
     "p i" '(projectile-invalidate-cache :which-key "Invalidate cahce")
@@ -8807,8 +8815,14 @@ Must be a list of pairs (begin . end).")
 
 #+begin_src emacs-lisp :tangle yes
 (my/leader-def nil 'override
-    "e p" '(my/jump-previous-error :which-key "Jump to previous error")
-    "e n" '(my/jump-next-error :which-key "Jump to next error"))
+               "c e" '(:ignore t :which-key "errors")
+               "c e p" '(my/jump-previous-error :which-key "Jump to previous error")
+               "c e n" '(my/jump-next-error :which-key "Jump to next error")
+               "c e a" '(flycheck-list-errors :which-key "List errors (flycheck)"))
+
+(my/leader-def nil 'override
+               "e p" '(my/jump-previous-error :which-key "Jump to previous error")
+               "e n" '(my/jump-next-error :which-key "Jump to next error"))
 
 (defun my/jump-previous-error ()
     (interactive)
