@@ -3666,29 +3666,33 @@ emacs-клиента.
     :ensure t)
 #+end_src
 
-Сам Projectile запоминать ранее открытые проекты не будет. Сделаем это за него.
-Сперва определим функцию для запоминания текущего проекта.
+Сам Projectile запоминать ранее открытые проекты не будет. Сделаем это
+за него. Определим функцию для запоминания текущего проекта. Будем
+вызывать ее по горячим клавишам, не автоматически, чтобы не тормозило
+работу с удаленными каталогами.
 
 #+begin_src emacs-lisp :tangle yes
-(defun my/projectile-save-current-project (dir)
-    (when (projectile-discover-projects-in-directory dir)
-        (projectile-save-known-projects)))
+(defun my/projectile-discover-and-save-project (&optional dir)
+    (interactive)
+    (let ((dir (if dir dir default-directory)))
+        (when (projectile-discover-projects-in-directory dir)
+            (projectile-save-known-projects))))
 #+end_src
 
-Теперь перехватим соответствующие hook'и, где проверим наличие проекта в текущей
-директории (живет в переменой default-directory).
-
-#+begin_src emacs-lisp :tangle yes
-(let ((hooks (list 'find-file-hook
-                   'dired-mode-hook
-                   'projectile-find-file-hook
-                   'projectile-find-dir-hook)))
-    (mapc (lambda (hook)
-              (add-hook hook
-                        (lambda ()
-                            (my/projectile-save-current-project default-directory))))
-          hooks))
-#+end_src
+# Теперь перехватим соответствующие hook'и, где проверим наличие проекта в текущей
+# директории (живет в переменой default-directory).
+#
+# #+begin_src emacs-lisp :tangle yes
+# (let ((hooks (list 'find-file-hook
+#                    'dired-mode-hook
+#                    'projectile-find-file-hook
+#                    'projectile-find-dir-hook)))
+#     (mapc (lambda (hook)
+#               (add-hook hook
+#                         (lambda ()
+#                             (my/projectile-discover-and-save-project default-directory))))
+#           hooks))
+# #+end_src
 
 Исключаем системные директории для взора projectile.
 
@@ -3759,6 +3763,7 @@ emacs-клиента.
 (my/leader-def nil 'override
     "p" '(:ignore t :which-key "projects")
     "P" '(:ignore t :which-key "projects-ws")
+    "p d" '(my/projectile-discover-and-save-project :which-key "Remember project")
     "p p" '(my/projectile-switch-project :which-key "Simple switch project")
     "p P" '(my/switch-project-with-workspace-safe-title :which-key "Light switch proj+ws")
     "P p" '(projectile-switch-project :which-key "Simple switch project")
@@ -9352,23 +9357,29 @@ Gnuplot в систему. На Arch это выглядит так:
 Настройка LSP сервера. Ориентируемся на Pyright, он более устойчивый и
 легковесный, чем Mspyls.
 
-Pyright может не скачаться с серверов, поэтому при удачной попытке его
-лучше сохранить. Лежит сервер в директории
-: ~/.emacs.d/.cache/lsp/npm/pyright
+Pyright лучше установить в системе через npm (не полагаясь на lsp-install-server).
+1. Установить сам npm:
+   : sudo pacman -S npm
+2. Установить Pyright
+   : sudo npm install -g pyright
 
-Устанавливаем pyright из архива в репозитории (ибо пакет =lsp-pyright=
-уже не тянется).
+# Pyright может не скачаться с серверов, поэтому при удачной попытке его
+# лучше сохранить. Лежит сервер в директории
+# : ~/.emacs.d/.cache/lsp/npm/pyright
+#
+# Устанавливаем pyright из архива в репозитории (ибо пакет =lsp-pyright=
+# уже не тянется).
+#
+# #+begin_src emacs-lisp :tangle yes
+# (unless (file-exists-p (file-name-concat user-emacs-directory
+#                                          "/.cache/lsp/npm/pyright"))
+#     (shell-command (concat "tar -xzf "
+#                            (file-name-concat my/config-dir
+#                                               "/lsp-saves/pyright_vanilla.tar.gz")
+#                            " -C " user-emacs-directory)))
+# #+end_src
 
-#+begin_src emacs-lisp :tangle yes
-(unless (file-exists-p (file-name-concat user-emacs-directory
-                                         "/.cache/lsp/npm/pyright"))
-    (shell-command (concat "tar -xzf "
-                           (file-name-concat my/config-dir
-                                              "/lsp-saves/pyright_vanilla.tar.gz")
-                           " -C " user-emacs-directory)))
-#+end_src
-
-Теперь устанавливаем сам сервер.
+Устанавливаем поддержку Pyright.
 
 #+begin_src emacs-lisp :tangle yes
 (use-package lsp-pyright
