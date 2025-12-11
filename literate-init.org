@@ -296,7 +296,7 @@
   - [[#java][Java]]
     - [[#поддержка-lombok][Поддержка Lombok]]
     - [[#используем-нативный-lsp-java][Используем нативный lsp-java]]
-    - [[#остальные-настройки][Остальные настройки]]
+    - [[#остальные-настройки-под-lsp-java][Остальные настройки под lsp-java]]
     - [[#отладка-dap-java][Отладка (dap-java)]]
     - [[#горячие-клавиши-1][Горячие клавиши]]
     - [[#информация-на-память][Информация на память]]
@@ -10087,7 +10087,7 @@ LSP-сервер будет работать так же, как на локал
     :ensure t
     :init
     (setq lsp-java-jdt-download-url
-          "https://www.eclipse.org/downloads/download.php?file=/jdtls/milestones/1.51.0/jdt-language-server-1.51.0-202510022025.tar.gz")
+          "https://www.eclipse.org/downloads/download.php?file=/jdtls/milestones/1.53.0/jdt-language-server-1.53.0-202511192211.tar.gz")
     :config
     (when (member 'lsp-java-boot features)
         (require 'lsp-java-boot))
@@ -10280,15 +10280,214 @@ Boot накинем ресурсов.
   :server-id 'myjdtls))
 #+end_src
 
-*** Остальные настройки
+*** COMMENT Eglot попытка (java launch)
+
+Готовимся аналогично настроить eglot.
+
+/Здесь полностью рабочий вариант. Чего не смог от него добиться - это/
+/перехода на код определений из сторонних библиотек./
+
+/JDTLS запускаем напрямую через Java./
+
+Где качать (или собирать) версию JDTLS можно прочитать на их [[https://github.com/eclipse-jdtls/eclipse.jdt.ls][странице]]
+на GitHub. Я скачал готовую сборку вот отсюда: [[https://download.eclipse.org/jdtls/snapshots/?d][Eclipse Downloads]] и
+сохранил архив в данный репозиторий. Его, соответственно, надо будет
+обновлять по необходимости.
+
+Аналогично сохраняем сборку LSP-сервера [[https://www.eclipse.org/downloads/download.php?file=/jdtls/snapshots/jdt-language-server-1.49.0-202507102148.tar.gz][отсюда]]:
+
+#+begin_src emacs-lisp :tangle yes
+(setq my/jdt-language-server-dir (expand-file-name
+                                  (file-name-concat user-emacs-directory
+                                                    ".cache"
+                                                    "lsp"
+                                                    "jdt-language-server")))
+
+(unless (file-exists-p my/jdt-language-server-dir)
+    (let ((jdt-file-archive (file-name-concat my/config-dir
+                                              "lsp-saves"
+                                              "jdt-language-server-1.49.0.tar.gz")))
+        (make-directory my/jdt-language-server-dir t)
+        (let ((default-directory my/jdt-language-server-dir))
+            (shell-command (concat "tar -xzf " jdt-file-archive)))))
+#+end_src
+
+Сделаем генерацию путей к директориям data, workspace и cache.
+
+#+begin_src emacs-lisp :tangle yes
+(defun my/java-lsp--get-workspace-dir ()
+    (expand-file-name
+     (file-name-concat user-emacs-directory
+                       "workspace"))
+    ;; (my/java-lsp--get-data-dir)
+    )
+
+(defun my/java-lsp--get-cache-dir ()
+    (expand-file-name
+     (file-name-concat (my/java-lsp--get-workspace-dir)
+                       ".cache")))
+
+(defun my/java-lsp--get-data-dir ()
+    (expand-file-name
+     (file-name-concat user-emacs-directory
+                       "workspace"
+                       "lsp-data"
+                       (concat (project-name (project-current))
+                               "-"
+                               (md5 (project-root (project-current))))))
+    )
+
+#+end_src
+
+Функция ниже возвращает команду запуска LSP-сервера. Сервер качнул
+[[https://www.eclipse.org/downloads/download.php?file=/jdtls/snapshots/jdt-language-server-1.49.0-202507102148.tar.gz][отсюда]], согласно [[https://github.com/eclipse-jdtls/eclipse.jdt.ls][инструкции]] (из [[https://github.com/eclipse-jdtls/eclipse.jdt.ls][репозитория]] не собрался). Поддержку
+Lombok облегчаем до минимума, иначе он вешает редактор. Для Spring
+Boot накинем ресурсов.
+
+#+begin_src emacs-lisp :tangle yes
+(defun my/make-run-lsp-java-command ()
+    (let* ((lsp-dir my/jdt-language-server-dir)
+           (lsp-jar (expand-file-name
+                     (file-name-concat lsp-dir
+                                       "plugins"
+                                       "org.eclipse.equinox.launcher_1.7.0.v20250519-0528.jar")))
+           (java-library-dir (expand-file-name
+                              (file-name-concat (my/java-lsp--get-workspace-dir)
+                                                ".javalibs")))
+           (workspace-dir (my/java-lsp--get-workspace-dir))
+           (cache-dir (my/java-lsp--get-cache-dir))
+           (data-dir (my/java-lsp--get-data-dir))
+           (config-dir (file-name-concat lsp-dir
+                                         "config_linux"))
+           )
+        (mapc (lambda (dir)
+                  (unless (file-directory-p dir)
+                      (make-directory dir t)))
+              (list workspace-dir
+                    cache-dir
+                    data-dir))
+        (list "java"
+              "-Declipse.application=org.eclipse.jdt.ls.core.id1"
+              "-Dosgi.bundles.defaultStartLevel=4"
+              ;; "-Declipse.product=org.eclipse.jdt.ls.core.product"
+              ;; "-Dosgi.checkConfiguration=true"
+              (concat "-Dosgi.sharedConfiguration.area=" config-dir)
+              ;; "-Dosgi.sharedConfiguration.area.readOnly=true"
+              ;; "-Dosgi.configuration.cascaded=true"
+              ;; "-Djava.import.generatesMetadataFilesAtProjectRoot=false"
+              ;; "-Djava.import.gradle.enabled=true"
+              ;; "-Djava.import.maven.enabled=true"
+              ;; "-Djava.import.gradle.offline.enabled=false"
+              ;; "-Djava.import.gradle.wrapper.enabled=true"
+              ;; "-Djava.import.gradle.version=current"
+
+              ;; "-Djava.import.downloadSources=true"
+              ;; "-Djava.import.autoAttachSources=true"
+              ;; "-Djava.import.downloadJavadoc=true"
+              ;; "-Dmaven.downloadSources=true"
+
+              ;; "-Dorg.eclipse.core.resources.compatibility=true"
+              ;; "-Dorg.eclipse.core.runtime.compatibility.override=false"
+              ;; "-Dorg.eclipse.core.internal.resources.Compatibility.ignorePreviousSession=true"
+
+              ;; "-Dorg.eclipse.core.resources.compatibility=true"
+              ;; "-Dorg.eclipse.core.internal.resources.Compatibility.ignorePreviousSession=true"
+
+              "-Xms1G"
+              "-Xmx4G"
+              "-XX:+UseG1GC"
+              "-XX:+UseStringDeduplication"
+              (concat "-javaagent:" my/java-lombok)
+              "-Dlombok.disableConfig=true"
+              "-Dlombok.anyConstructor.suppressConstructorProperties=false"
+              "-Dlombok.addLombokGeneratedAnnotation=true"
+              "-Dlombok.extern.findbugs.addSuppressFBWarnings=false"
+              "-jar" lsp-jar
+              ;; (concat "-Djava.import.common.workspace=" workspace-dir)
+              ;; (concat "-Djava.import.common.workspace.cache=" cache-dir)
+              "-configuration" config-dir
+              "-data" data-dir
+              "--add-modules=ALL-SYSTEM"
+              "--add-opens" "java.base/java.util=ALL-UNNAMED"
+              "--add-opens" "java.base/java.lang=ALL-UNNAMED"
+              )
+        ))
+#+end_src
+
+Настраиваем Eglot.
+
+#+begin_src emacs-lisp :tangle yes
+(require 'eglot)
+#+end_src
+
+#+begin_src emacs-lisp :tangle yes
+(add-to-list 'eglot-server-programs
+      '((java-ts-mode java-mode) . my/eglot-java--run))
+
+(defun my/eglot-java--run (is-interactive)
+    (interactive)
+    (append (my/make-run-lsp-java-command)
+            '(:initializationOptions (:extendedClientCapabilities
+                                      (:classFileContentsSupport t
+                                       :classFileContentsSupport t
+                                       :overrideMethodsPromptSupport t
+                                       :hashCodeEqualsPromptSupport t
+                                       :advancedOrganizeImportsSupport t
+                                       :generateConstructorsPromptSupport t
+                                       :generateToStringPromptSupport t
+                                       :advancedGenerateAccessorsSupport t
+                                       :advancedExtractRefactoringSupport t
+                                       :moveRefactoringSupport t
+                                       :resolveAdditionalTextEditsSupport t
+                                       )))))
+#+end_src
+
+#+begin_src emacs-lisp :tangle yes
+(use-package lsp-java
+    :ensure t)
+#+end_src
+
+*** Остальные настройки под lsp-java
 
 Автоматический запуск LSP-сервера при открытии java-файлов.
+
+При запуске JDTLS через jsp-java нужно помнить:
+- По-умолчанию lsp-mode + lsp-java будут сваливать все проекты в одну
+  директорию workspace, где они легко могут начать конфликтовать.
+- В сыром запуске JDTLS предусмотрен параметр =-data=, в котором
+  задается директория под файлы проекта. В lsp-java путь к этой
+  директории лежит в переменной =lsp-java-workspace-dir=. Вот эту
+  переменную и надо сделать уникальной для каждого из проектов.
+- В аналогичной переменно =lsp-java-workspace-cache-dir= модуль
+  jsp-java научился складывать исходники сторонних библиотек, что
+  очень важно при работе с java. Ведет себя этот механизм очень
+  капризно, поэтому эту переменную никак не трогаем.
+- И еще важно для каждого java-проекта запускать свой инстанс JDTLS. В
+  lsp-mode этого можно добиться через вызов функции =lsp= с
+  параметром =t=.
+Все это делается ниже. Подготовим сперва функцию создания пути к
+директории workspace под каждый проект.
+
+#+begin_src emacs-lisp :tangle yes
+(defun my/java-lsp--get-data-dir ()
+    (expand-file-name
+     (file-name-concat "~"
+                       ".cache"
+                       "lsp"
+                       "workspaces"
+                       (concat (project-name (project-current))
+                               "-"
+                               (md5 (project-root (project-current))))))
+    )
+#+end_src
 
 JDTLS требует много ресурсов и быстро вешает редактор. Поэтому
 облегчаем работу сервера через выключение части функций.
 
 Однако, этого ничего не нужно, если работаем не с Java'ой. Поэтому
 снизим нагрузку на jdtls в буфере перед его запуском.
+
+Все это упаковываем в локальные переменные java-буферов.
 
 #+begin_src emacs-lisp :tangle yes
 (setq my/java-hooks '(java-mode-hook
@@ -10299,8 +10498,10 @@ JDTLS требует много ресурсов и быстро вешает р
                 lsp-modeline-code-actions-enable nil
                 lsp-modeline-workspace-status-enable nil
                 lsp-java-progress-reports-enabled nil
-                lsp-ui-sideline-enable nil)
-    (lsp))
+                lsp-ui-sideline-enable nil
+                lsp-java-workspace-dir (my/java-lsp--get-data-dir)  ;; Unique data.
+                )
+    (lsp t))  ;; Different instance for each project.
 
 (dolist (hook my/java-hooks)
     (add-hook hook 'my/run-java-lsp))
