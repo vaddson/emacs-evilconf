@@ -8540,16 +8540,21 @@ running". Простые перезагрузки LSP-сервера не пом
 
 (defun my/lsp ()
     (interactive)
+    (lsp t))  ;; Different instance for each project.
+
+(defun my/lsp-with-reset-cache ()
+    (interactive)
     (my/--lsp-reset-session-cache)
-    (lsp))
+    (my/lsp))
 #+end_src
 
 И горячие клавиши для работ
 
 #+begin_src emacs-lisp :tangle yes
 (my/leader-def nil 'override
-               "c l l" '(lsp :which-key "Run LSP server")
-               "c l L" '(my/lsp :which-key "Run LSP server, clear cache")
+               "c l l" '(my/lsp :which-key "Run LSP server")
+               "c l L" '(my/lsp-with-reset-cache
+                         :which-key "Run LSP server, clear cache")
                "c l s" '(my/lsp-shutdown-workspace :which-key "Shutdown LSP workspace")
                "c l r" '(my/lsp-restart :which-key "Restart LSP"))
 #+end_src
