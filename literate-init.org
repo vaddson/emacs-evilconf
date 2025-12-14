@@ -8522,12 +8522,16 @@ running". Простые перезагрузки LSP-сервера не пом
 это решение.
 
 #+begin_src emacs-lisp :tangle yes
+(defun my/lsp ()
+    (interactive)
+    (lsp t))  ;; Different instance for each project.
+
 (defun my/lsp-restart ()
     (interactive)
     (my/--lsp-reset-session-cache)
     ;; (call-interactively 'lsp-workspace-restart)
     (lsp-shutdown-workspace)
-    (lsp))
+    (my/lsp))
 
 (defun my/lsp-shutdown-workspace ()
     (interactive)
@@ -8537,10 +8541,6 @@ running". Простые перезагрузки LSP-сервера не пом
 (defun my/--lsp-reset-session-cache ()
     (when (boundp 'lsp--session)
         (setq lsp--session nil)))
-
-(defun my/lsp ()
-    (interactive)
-    (lsp t))  ;; Different instance for each project.
 
 (defun my/lsp-with-reset-cache ()
     (interactive)
