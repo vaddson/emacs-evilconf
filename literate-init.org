@@ -251,6 +251,7 @@
     - [[#горячие-клавиши][Горячие клавиши]]
 - [[#lsp-сервер-vs-eglot][LSP сервер (vs Eglot)]]
   - [[#установка-1][Установка]]
+  - [[#всегда-параметр-запуска-отдельным-инстансом][Всегда параметр запуска отдельным инстансом]]
   - [[#общие-настройки][Общие настройки]]
   - [[#клавиши-для-работы][Клавиши для работы]]
   - [[#перезагрузка][Перезагрузка]]
@@ -8260,6 +8261,16 @@ Web-server не умеет справляться с заголовком авт
               (flycheck-mode -1)))
 #+end_src
 
+** Всегда параметр запуска отдельным инстансом
+
+Сделаем передачу параметра для отдельного инстанса сервера постоянным.
+
+#+begin_src emacs-lisp :tangle yes
+(advice-add #'lsp :around
+            (lambda (func &optional is-new)
+                (funcall func t)))
+#+end_src
+
 ** Общие настройки
 
 Важный параметр для ускорения LSP для Haskell, начиная с
@@ -8524,7 +8535,8 @@ running". Простые перезагрузки LSP-сервера не пом
 #+begin_src emacs-lisp :tangle yes
 (defun my/lsp ()
     (interactive)
-    (lsp t))  ;; Different instance for each project.
+    (lsp)
+    )
 
 (defun my/lsp-restart ()
     (interactive)
@@ -9298,17 +9310,16 @@ Gnuplot в систему. На Arch это выглядит так:
 
 ** Python
 
-Установим основные пакеты. Какие-то будут впрок.
-
-/Шпаргалка:/
-:   - if doom-module:+pyright
-:     - doom-package:lsp-pyright
+Установим основные пакеты. К сожалению, режим =py-shell-mode= после
+обновлений вышел из-под контроля и мешается везде. Из-за этого
+исключим =python-mode= из установки - его заменит =python-ts-mode= из
+treesit.
 
 #+begin_src emacs-lisp :tangle yes
 (use-package python
     :ensure t)
-(use-package python-mode
-    :ensure t)
+;; (use-package python-mode
+;;     :ensure t)
 (use-package pipenv
     :ensure t)
 (use-package pip-requirements
@@ -10037,16 +10048,68 @@ LSP-сервер будет работать так же, как на локал
 
 ** Kotlin
 
+Устанавливаем режим.
+
 #+begin_src emacs-lisp :tangle yes
 (use-package kotlin-mode
     :ensure t)
-(use-package ob-kotlin
-    :ensure t)
+#+end_src
+
+Устанавливаем LSP-сервер.
+
+Официальный LSP-сервер для Kotlin находится тут:
+- https://github.com/Kotlin/kotlin-lsp/tree/main
+Проект проще собрать в системе. Например в Arch через AUR пакет:
+: yay -S kotlin-lsp-bin
+Сервер будет доступен по команде
+: kotlin-lsp
+Это на самом деле ссылка на bash-скрипт по адресу:
+: /usr/share/kotlin/kotlin-lsp/kotlin-lsp.sh
+
+Помощь в настройке Emacs находится в том же репозитории:
+- https://github.com/Kotlin/kotlin-lsp/blob/main/scripts/lsp-kotlin-emacs-eglot.el
+По ней написана конфигурация ниже.
+
+#+begin_src emacs-lisp :tangle yes
+(defun kotlin-lsp-server-start-fun (port)
+    (list "kotlin-lsp" "--socket" (number-to-string port)))
+
+(with-eval-after-load 'lsp-mode
+    (add-to-list 'lsp-language-id-configuration
+                 '(kotlin-mode . "kotlin"))
+    (lsp-register-client
+     (make-lsp-client
+      :new-connection (lsp-tcp-connection 'kotlin-lsp-server-start-fun)
+      :activation-fn (lsp-activate-on "kotlin")
+      :major-modes '(kotlin-mode)
+      :priority -1
+      :server-id 'kotlin-jb-lsp)))
+#+end_src
+
+Как для Java разделяем технические файлы проектов по собственным
+директориям. Параметры для облегчения работы lsp-ui стоит
+раскомментировать, если понадобится.
+
+#+begin_src emacs-lisp :tangle yes
+(defun my/run-kotlin-lsp ()
+    (setq-local ;; lsp-modeline-diagnostics-enable nil  ;; Too hard for jdtls.
+                ;; lsp-modeline-code-actions-enable nil
+                ;; lsp-modeline-workspace-status-enable nil
+                ;; lsp-java-progress-reports-enabled nil
+                ;; lsp-ui-sideline-enable nil
+                lsp-kotlin-workspace-dir (my/java-lsp--get-data-dir)  ;; Unique data.
+                )
+    (lsp t))  ;; Different instance for each project.
+
+(add-hook 'kotlin-mode-hook 'my/run-kotlin-lsp)
 #+end_src
 
 Позаботимся о вычислении org-babel блоков.
 
 #+begin_src emacs-lisp :tangle yes
+(use-package ob-kotlin
+    :ensure t)
+
 (my/--register-org-babel 'kotlin)
 #+end_src
 
