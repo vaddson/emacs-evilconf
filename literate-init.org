@@ -10082,8 +10082,15 @@ LSP-сервер будет работать так же, как на локал
       :new-connection (lsp-tcp-connection 'kotlin-lsp-server-start-fun)
       :activation-fn (lsp-activate-on "kotlin")
       :major-modes '(kotlin-mode)
-      :priority -1
+      :priority 1
       :server-id 'kotlin-jb-lsp)))
+#+end_src
+
+Местный kotlin-ls, работающий по-умолчанию с пакетом lsp-mode,
+мешается и может вызываться невпопад. Исключим его.
+
+#+begin_src emacs-lisp :tangle yes
+(delete 'kotlin-ls lsp-client-packages)
 #+end_src
 
 Как для Java разделяем технические файлы проектов по собственным
