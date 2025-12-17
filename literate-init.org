@@ -8261,6 +8261,15 @@ Web-server не умеет справляться с заголовком авт
               (flycheck-mode -1)))
 #+end_src
 
+Расширение и сужение колонок в tablist-mode.
+
+#+begin_src emacs-lisp :tangle yes
+(my/evil-define-key nil 'flycheck-error-list-mode-map
+                    ">" 'tablist-enlarge-column
+                    "<" 'tablist-shrink-column)
+#+end_src
+
+
 ** Всегда параметр запуска отдельным инстансом
 
 Сделаем передачу параметра для отдельного инстанса сервера постоянным.
@@ -10120,6 +10129,15 @@ LSP-сервер будет работать так же, как на локал
 (my/--register-org-babel 'kotlin)
 #+end_src
 
+Обработка ошибок при редактировании.
+
+#+begin_src emacs-lisp :tangle yes
+(use-package flycheck-kotlin
+    :ensure t
+    :custom
+    (flycheck-kotlin-setup))
+#+end_src
+
 ** Lua
 
 #+begin_src emacs-lisp :tangle yes
@@ -10545,15 +10563,18 @@ Boot накинем ресурсов.
 
 #+begin_src emacs-lisp :tangle yes
 (defun my/java-lsp--get-data-dir ()
-    (expand-file-name
-     (file-name-concat "~"
-                       ".cache"
-                       "lsp"
-                       "workspaces"
-                       (concat (project-name (project-current))
-                               "-"
-                               (md5 (project-root (project-current))))))
-    )
+    (if-let ((project (project-current)))
+        (expand-file-name
+         (file-name-concat "~"
+                           ".cache"
+                           "lsp"
+                           "workspaces"
+                           (concat (project-name project)
+                                   "-"
+                                   (md5 (project-root project)))))
+        (expand-file-name
+         (file-name-concat user-emacs-directory
+                           "workspace"))))
 #+end_src
 
 JDTLS требует много ресурсов и быстро вешает редактор. Поэтому
