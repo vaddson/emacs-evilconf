@@ -2724,7 +2724,9 @@ Spacemacs. Код находится в файле [[./funcs.el][funcs.el]].
                ;; "b B" '(counsel-switch-buffer :which-key "Switch buffer")
                "b d" '(kill-current-buffer :which-key "Kill buffer")
                "b r" '(rename-buffer :which-key "Rename buffer")
-               "b v" '(my/revert-buffer :which-key "Revert buffer"))
+               "b v" '(my/revert-buffer :which-key "Revert buffer")
+               "b p" '(previous-buffer :which-key "Previous buffer")
+               "b n" '(next-buffer :which-key "Next buffer"))
 
 (defun my/revert-buffer ()
     "Revert a buffer with ignore auto and without confirm."
@@ -3550,7 +3552,9 @@ Return history hash-map."
                "TAB r" '(persp-rename :which-key "Rename workspace")
                "TAB d" '(persp-kill :which-key "Delete workspace")
                "," '(persp-switch-to-buffer :which-key "Switch buffer in workspace")
-               "TAB k" '(persp-remove-buffer :which-key "Remove buffer from workspace"))
+               "TAB k" '(persp-remove-buffer :which-key "Remove buffer from workspace")
+               "TAB p" '(persp-prev :which-key "Previous workspace")
+               "TAB n" '(persp-next :which-key "Next workspace"))
 #+end_src
 
 Отдельно сделаем показ имени активной перспективы.
