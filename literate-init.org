@@ -1372,6 +1372,27 @@ Find application name in my/application-name variable."
 (my/leader-def nil 'override "e f" 'follow-mode)
 #+end_src
 
+Отдельно сделаем вертикальное деление буфера на две и три части с
+follow-mode. Это удобно, когда буфер появляется в нижней части фрейма
+и имеет маленький вертикальный размер.
+
+#+begin_src emacs-lisp :tangle yes
+(my/leader-def nil 'override
+               "w f" '(my/follow-mode-vsplit-2 :which-key "Split 2 follow")
+               "w F" '(my/follow-mode-vsplit-3 :which-key "Split 3 follow"))
+
+(defun my/follow-mode-vsplit-2 ()
+    (interactive)
+    (evil-window-vsplit)
+    (follow-mode 1))
+
+(defun my/follow-mode-vsplit-3 ()
+    (interactive)
+    (evil-window-vsplit)
+    (evil-window-vsplit)
+    (follow-mode 1))
+#+end_src
+
 ** Отмена изменений на основе дерева (undo-tree)
 
 Очень удобное окошко с деревом изменений по буферу.
@@ -3552,9 +3573,7 @@ Return history hash-map."
                "TAB r" '(persp-rename :which-key "Rename workspace")
                "TAB d" '(persp-kill :which-key "Delete workspace")
                "," '(persp-switch-to-buffer :which-key "Switch buffer in workspace")
-               "TAB k" '(persp-remove-buffer :which-key "Remove buffer from workspace")
-               "TAB p" '(persp-prev :which-key "Previous workspace")
-               "TAB n" '(persp-next :which-key "Next workspace"))
+               "TAB k" '(persp-remove-buffer :which-key "Remove buffer from workspace"))
 #+end_src
 
 Отдельно сделаем показ имени активной перспективы.
@@ -3571,6 +3590,24 @@ Return history hash-map."
     (if (bound-and-true-p persp-mode)
         (safe-persp-name (get-current-persp))
         "main"))
+#+end_src
+
+Переключение перспектив на соседние.
+
+#+begin_src emacs-lisp :tangle yes
+(my/leader-def nil 'override
+               "TAB p" '(my/persp-prev :which-key "Previous workspace")
+               "TAB n" '(my/persp-next :which-key "Next workspace"))
+
+(defun my/persp-prev ()
+    (interactive)
+    (persp-prev)
+    (my/show-perspective-name))
+
+(defun my/persp-next ()
+    (interactive)
+    (persp-next)
+    (my/show-perspective-name))
 #+end_src
 
 ** Открытие новых рабочих пространств в новых фреймах
