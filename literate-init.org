@@ -245,6 +245,7 @@
     - [[#получение-access-token][Получение access token]]
     - [[#настройки][Настройки]]
     - [[#proxy-в-api-gigachat][Proxy в API Gigachat]]
+    - [[#aider-в-связке-с-gigachatом-только-информация][Aider в связке с GigaChat'ом (только информация)]]
   - [[#работа-с-кодом-автодополнение-оптимизация-и-прочее][Работа с кодом (автодополнение, оптимизация и прочее)]]
     - [[#буфер-для-результатов-работы-с-кодом][Буфер для результатов работы с кодом]]
     - [[#функции-работы-с-кодом][Функции работы с кодом]]
@@ -2739,8 +2740,6 @@ Spacemacs. Код находится в файле [[./funcs.el][funcs.el]].
                "b" '(:ignore t :which-key "buffers")
                "b b" '(counsel-projectile-switch-to-buffer
                        :which-key "Switch buffer in project")
-               "SPC" '(counsel-projectile-switch-to-buffer
-                       :which-key "Switch buffer in project")
                "b B" '(ivy-switch-buffer :which-key "Switch buffer")
                ;; "b B" '(counsel-switch-buffer :which-key "Switch buffer")
                "b d" '(kill-current-buffer :which-key "Kill buffer")
@@ -3042,7 +3041,7 @@ stays on current"
 
 #+begin_src emacs-lisp :tangle yes
 (defun my/scratch-buffer-create (name id)
-    (let* ((buffer-name (format "*scratch:%s*" name))
+    (let* ((buffer-name (my/scratch-buffer-name name))
            (file-name (expand-file-name
                        (file-name-concat my/scratch-dir
                                          (concat (md5 (format "%s" id)) ".txt"))))
@@ -3055,6 +3054,15 @@ stays on current"
         (with-current-buffer buffer
             (setq-local buffer-auto-save-file-name file-name))
         buffer))
+#+end_src
+
+#+begin_src emacs-lisp :tangle yes
+(defun my/scratch-buffer-name (name)
+    (format "*scratch:%s*" name))
+
+(defun my/scratch-buffer-name-perspective ()
+    (let* ((name (my/--make-buffer-suffix)))
+        (my/scratch-buffer-name name)))
 #+end_src
 
 Теперь сделаем создание конкретных scratch-буферов.  Начнем с общего
@@ -3872,9 +3880,9 @@ Magit", можно по имени текущего буфера - =" *server*"=
 
 Мне удобно для работы запускать несколько демонов Emacs.
 Визуально их различаю цветовыми темами. Например:
-- демон "notes" - теплая тема,
-- демон "dev"   - холодная тема,
-- демон "rest"  - холодная тема с прозрачностью.
+- демон "notes" - "теплая" тема,
+- демон "dev"   - "холодная" тема,
+- демон "rest"  - тема с "прозрачностью".
 Так сложнее визуально перепутать клиентские фреймы для каждого из
 демонов.
 
@@ -3883,7 +3891,7 @@ Magit", можно по имени текущего буфера - =" *server*"=
 #+begin_src emacs-lisp :tangle yes
 (pcase (daemonp)
     ("notes"
-     (load-theme 'doom-molokai t))
+     (load-theme 'ef-winter t))
 
     ("dev"
      (load-theme 'doom-one t))
@@ -6154,6 +6162,13 @@ node.
 #+begin_src emacs-lisp :tangle yes
 (defun my/popup-eshell-toggle ()
     (interactive)
+    (my/eshell-toggle 'pop-to-buffer))
+
+(defun my/eshell-replace-toggle ()
+    (interactive)
+    (my/eshell-toggle 'switch-to-buffer))
+
+(defun my/eshell-toggle (switch-func)
     (let* ((buffer-name (format "*eshell-popup:%s*"
                                 (my/--make-buffer-suffix)))
            (buffer (get-buffer buffer-name))
@@ -6164,7 +6179,11 @@ node.
                 (eshell-mode)))
         (if-let ((window (get-buffer-window buffer)))
             (delete-window window)
-            (pop-to-buffer buffer))))
+            (funcall switch-func buffer))))
+
+(defun my/scratch-buffer-name-eshell ()
+    (format "*eshell-popup:%s*"
+            (my/--make-buffer-suffix)))
 #+end_src
 
 Запилим горячие клавиши на вызов окошка eshell.
@@ -6172,7 +6191,7 @@ node.
 #+begin_src emacs-lisp :tangle yes
 (my/leader-def nil 'override
     "o e" #'my/popup-eshell-toggle
-    "o E" #'eshell)
+    "o E" #'my/eshell-replace-toggle)
 #+end_src
 
 ** shell
@@ -6187,16 +6206,25 @@ node.
 #+begin_src emacs-lisp :tangle yes
 (defun my/popup-shell-toggle ()
     (interactive)
-    (let* ((buffer-name (format "*shell-popup:%s*"
-                                (my/--make-buffer-suffix)))
+    (my/shell-toggle 'pop-to-buffer))
+
+(defun my/shell-replace-toggle ()
+    (interactive)
+    (my/shell-toggle 'switch-to-buffer))
+
+(defun my/shell-toggle (switch-func)
+    (let* ((buffer-name (my/scratch-buffer-name-shell))
            (buffer (get-buffer buffer-name)))
         (if buffer
-            (pop-to-buffer buffer)
-            (setq buffer (get-buffer-create buffer-name))
-            (with-current-buffer buffer
+            (funcall switch-func buffer)
+            (let ((buffer (get-buffer-create buffer-name)))
+                (funcall switch-func buffer)
                 (shell-mode)
-                (shell)
-                (pop-to-buffer buffer)))))
+                (shell)))))
+
+(defun my/scratch-buffer-name-shell ()
+    (format "*shell-popup:%s*"
+            (my/--make-buffer-suffix)))
 #+end_src
 
 Запилим горячие клавиши на вызов окошка shell.
@@ -6204,7 +6232,7 @@ node.
 #+begin_src emacs-lisp :tangle yes
 (my/leader-def nil 'override
     "o s" #'my/popup-shell-toggle
-    "o S" #'shell)
+    "o S" #'my/shell-replace-toggle)
 #+end_src
 
 ** vterm
@@ -6813,7 +6841,7 @@ ws-методов. Сделаем их.
                         (my/remove :HOST host-member))))
 
 (defun my/key-to-header (header-key)
-    "Convert keyword like :CONTENT-TYPE to string like \"Contet-type\"."
+    "Convert keyword like :CONTENT-TYPE to string like \"Content-Type\"."
     (when (keywordp header-key)
         (string-join
          (mapcar 'capitalize
@@ -6913,6 +6941,26 @@ ws-методов. Сделаем их.
 (my/leader-def nil 'override
     "s g" '(sdcv-search-input :which-key "Dictionary search word by input")
     "s w" '(sdcv-search-pointer :which-key "Dictionary search at point"))
+#+end_src
+
+Пространство со словариком и окошком черновика для слов.
+
+#+begin_src emacs-lisp :tangle yes
+(defun my/switch-to-scratch-perspective ()
+    (interactive)
+    (if-let* ((buffer-name-perspective (my/scratch-buffer-name-perspective))
+              (buffer (get-buffer buffer-name-perspective))
+              (window (get-buffer-window buffer)))
+        (select-window window)
+        (my/make-scratch-perspective))
+    (evil-goto-first-line)
+    (evil-open-above 1))
+#+end_src
+
+#+begin_src emacs-lisp :tangle yes
+(my/leader-def nil 'sdcv-mode-map
+               "SPC" '(my/switch-to-scratch-perspective
+                       :which-key "Open scratch buffer"))
 #+end_src
 
 ** Калькулятор на Python
@@ -7582,7 +7630,9 @@ Emacs это удобно - можно хранить идентификатор
 #+begin_src emacs-lisp :tangle yes
 (defun my/gptel--session-id ()
     (unless (boundp 'chat-session-id)
-        (setq-local chat-session-id (org-id-uuid)))
+        (setq-local chat-session-id my/giga-session-id)
+        ;; (setq-local chat-session-id (org-id-uuid))
+        )
     chat-session-id)
 #+end_src
 
@@ -7767,11 +7817,33 @@ my/gptel-gigachat-access-token.
 
 (defvar my/giga--proxy-key nil
   "False key for GigaChat API proxy.")
+
+(defvar my/giga-model-best "GigaChat-2-Max"
+  "GigaChat best model.")
+
+(defvar my/giga-session-id "f2b72500-f1ee-42c6-b743-a16766bc130f"
+  "Value for X-Session-ID header.")
 #+end_src
 
 Функция запуска GigaChat proxy-сервера.
 
 #+begin_src emacs-lisp :tangle yes
+(defun my/giga-start-proxy-server-env (&optional force)
+    "Start proxy server on a random port.
+Save URL base and the server key in variables:
+    `my/giga--url-base'
+    `my/giga--proxy-key'
+The function save the params to environment variables:
+    `GIGACHAT_URL_BASE'
+    `GIGACHAT_PROXY_KEY'"
+    (interactive)
+    (when (or force
+              (not (and my/giga--url-base
+                        my/giga--proxy-key)))
+        (my/giga-start-proxy-server))
+    (setenv "GIGACHAT_URL_BASE" my/giga--url-base)
+    (setenv "GIGACHAT_PROXY_KEY" my/giga--proxy-key))
+
 (defun my/giga-start-proxy-server ()
     "Start proxy server on a random port.
 Save URL base and the server key in variables:
@@ -7791,14 +7863,35 @@ Web-server не умеет справляться с заголовком авт
 Сделаем костыль на функцию ws-parse.
 
 #+begin_src emacs-lisp :tangle yes
-(advice-add #'ws-parse :around
-            (lambda (func proc str &rest args)
-                (let ((new-str (if (stringp str)
-                                   (string-replace "Authorization: Bearer "
-                                                   "Authorization: "
-                                                   str)
-                                   str)))
-                    (apply func proc new-str args))))
+(advice-add #'ws-parse :around 'my/giga--remove-bearer)
+
+(defun my/giga--remove-bearer (func proc str &rest args)
+    (let ((new-str (if (stringp str)
+                       (string-replace "Authorization: Bearer "
+                                       "Authorization: "
+                                       str)
+                       str)))
+        (apply func proc new-str args)))
+#+end_src
+
+Еще один костыль. Исправляет ошибку в ws-parse-request. Здесь случай,
+когда запрос от aider приходит несколькими чанками.
+
+#+begin_src emacs-lisp :tangle yes
+(advice-add #'ws-parse-request :around 'my/ws-parse-request-fixed)
+
+(defun my/ws-parse-request-fixed (func request)
+  "Wrapper around ws-parse-request that checks if complete body is received."
+  (when (funcall func request)
+      (let* ((headers (my/ws-headers-only-strs request))
+             (content-length (alist-get "Content-Length" headers nil nil 'string=))
+             (content-length (if (stringp content-length) (string-to-number content-length) 0))
+             (body (ws-body request))
+             (body-length (string-bytes body))
+             (result (<= content-length body-length)))
+          (unless result
+              (setf (ws-active request) nil))
+          result)))
 #+end_src
 
 Строим proxy-сервер. Функция =my/giga--start-proxy-server= будет
@@ -7817,14 +7910,24 @@ Web-server не умеет справляться с заголовком авт
               (headers-in (my/ws-headers-only-strs request))
               (proxy-key (my/giga--extract-proxy-key headers-in))
               (is-authorized (equal proxy-key my/giga--proxy-key)))
-        (let* ((url-request-data (ws-body request))
+        (let* ((url-request-data (my/giga--request-data request))
                (url-request-method (my/ws-method-str request))
-               (url-request-extra-headers (my/giga--insert-key-to-headers
-                                           (my/giga--correct-contet-length
-                                            url-request-data
-                                            headers-in)))
+               (url-request-extra-headers (my/giga--insert-session-id-to
+                                           (my/giga--insert-key-to-headers
+                                            (my/giga--correct-contet-length
+                                             url-request-data
+                                             headers-in))))
+               (url (my/giga--make-url request))
+
+               ;; ;; !!!
+               ;; (lala (my/log (my/giga--debug-request-to-string url-request-method
+               ;;                                                 url
+               ;;                                                 url-request-extra-headers
+               ;;                                                 url-request-data)))
+               ;; (lala (my/log "\n"))
+
                (response-buffer (url-retrieve-synchronously
-                                 (my/giga--make-url request))))
+                                 url)))
             (with-current-buffer response-buffer
                 (let* ((headers-out (my/remove "Transfer-Encoding"
                                                (my/url-headers))))
@@ -7844,10 +7947,15 @@ Web-server не умеет справляться с заголовком авт
 
 (defun my/giga--make-url (request)
     (string-join (cl-remove-if 'not
-                               (list (concat "https://gigachat.devices.sberbank.ru"
+                               (list (concat "https://gigachat.devices.sberbank.ru/api/v1"
                                              (my/ws-uri request))
                                      (my/ws-url-params-str request)))
                  "?"))
+
+(defun my/giga--insert-session-id-to (headers-alist)
+    (my/insert-or-update "X-Session-ID"
+                         my/giga-session-id
+                         headers-alist))
 
 (defun my/giga--insert-key-to-headers (headers-alist)
     (my/insert-or-update "Authorization"
@@ -7857,7 +7965,118 @@ Web-server не умеет справляться с заголовком авт
 (defun my/giga--correct-contet-length (body headers-alist)
     (my/remove "Content-Length"
                headers-alist))
+
+(defun my/giga--request-data (request)
+    (let* ((request-json (ws-body request)))
+        (my/giga--correct-request-data request-json)))
+
+(defun my/giga--correct-request-data (request-json)
+    (let* ((request-json (if (or (not request-json)
+                                 (string-empty-p request-json))
+                             (my/giga--make-empty-request)
+                             request-json))
+           (data (json-read-from-string request-json))
+           (data (my/giga--correct-model-name data))
+           ;; (data (my/giga--correct-stream-type data))
+           (data (my/giga--correct-system-pormpt-place data)))
+        (json-encode data)))
+
+(defun my/giga--make-empty-request ()
+    (concat "{\"model\":\"" my/giga-model-best "\""
+            ",\"messages\":[{\"role\":\"user\"}]"
+            ",\"stream\":true"
+            ",\"temperature\":0"
+            "}"))
+
+(defun my/giga--correct-model-name (data)
+    (let* ((model-name (alist-get 'model data))
+           (model-name (if (and model-name
+                                (string-search "GigaChat" model-name))
+                           model-name
+                           my/giga-model-best))
+           (data-remove-model (my/remove 'model data))
+           (data-add-gigachat-model (cons `(model . ,model-name)
+                                         data-remove-model)))
+        data-add-gigachat-model))
+
+(defun my/giga--correct-stream-type (data)
+    (let* ((data-remove-stream-mode (my/remove 'stream data))
+           (data-add-stream-mode (cons '(stream . :json-false)
+                                       data-remove-stream-mode)))
+        data-add-stream-mode))
+
+(defun my/giga--correct-system-pormpt-place (data)
+    (if-let* ((system-p (lambda (el) (and (string= "system"
+                                                   (alist-get 'role el)))))
+              (messages (alist-get 'messages data))
+              (systems (seq-filter system-p messages))
+              (last-system (car (last systems)))
+              (messages (seq-remove system-p messages))
+              (messages (cons last-system messages))
+              (messages (apply 'vector messages)))
+        (my/insert-or-update 'messages messages data)
+        data))
+
+(defun my/giga--debug-request-to-string (method url headers data)
+    (let ((method-str (if (symbolp method) (symbol-name method) method)))
+        (concat method-str " " url
+                "\n" (my/giga--debug-headers-to-string headers)
+                "\n\n" data
+                "\n")))
+
+(defun my/giga--debug-headers-to-string (headers)
+    (string-join (mapcar (lambda (pair)
+                             (format "%s: %s"
+                                     (car pair)
+                                     (cdr pair)))
+                         headers)
+                 "\n"))
 #+end_src
+
+#+RESULTS:
+: my/giga--debug-headers-to-string
+
+*** Aider в связке с GigaChat'ом (только информация)
+
+- Подготовка ::
+
+  1. Установить aider.
+
+  2. Положить настройки для GigaChat в файл:
+     : ~/.aider.model.metadata.json
+     Настройки следующие (показаны только для одной модели):
+     #+begin_src json :eval no
+{
+    "openai/GigaChat-2-Max": {
+        "max_tokens": 16384,
+        "max_input_tokens": 128000,
+        "max_output_tokens": 16384,
+        "input_cost_per_token": 0.000023,
+        "output_cost_per_token": 0.000023,
+        "litellm_provider": "openai",
+        "mode": "chat"
+    }
+}
+     #+end_src
+
+- Как пользоваться ::
+
+  1. Запускаем proxy-сервер:
+     : M-x my/giga-start-proxy-server-env
+     После запуска URL и ключ появятся в переменных среды редактора.
+
+  2. Открываем консоль в Emacs:
+     : M-x shell
+     или
+     : M-x eshell
+
+  3. Запускаем из консоли aider:
+     #+begin_src shell :eval no
+aider --model openai/GigaChat-2-Max \
+      --model-metadata-file ~/.aider.model.metadata.json \
+      --openai-api-base $GIGACHAT_URL_BASE \
+      --openai-api-key $GIGACHAT_PROXY_KEY
+     #+end_src
 
 ** Работа с кодом (автодополнение, оптимизация и прочее)
 
