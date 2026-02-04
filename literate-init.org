@@ -7918,14 +7918,6 @@ Web-server не умеет справляться с заголовком авт
                                              url-request-data
                                              headers-in))))
                (url (my/giga--make-url request))
-
-               ;; ;; !!!
-               ;; (lala (my/log (my/giga--debug-request-to-string url-request-method
-               ;;                                                 url
-               ;;                                                 url-request-extra-headers
-               ;;                                                 url-request-data)))
-               ;; (lala (my/log "\n"))
-
                (response-buffer (url-retrieve-synchronously
                                  url)))
             (with-current-buffer response-buffer
@@ -8032,9 +8024,6 @@ Web-server не умеет справляться с заголовком авт
                          headers)
                  "\n"))
 #+end_src
-
-#+RESULTS:
-: my/giga--debug-headers-to-string
 
 *** Aider в связке с GigaChat'ом (только информация)
 
@@ -10282,8 +10271,6 @@ LSP-сервер будет работать так же, как на локал
 (use-package cmake-mode
     :ensure t)
 #+end_src
-
-#+RESULTS:
 
 ** Go
 
