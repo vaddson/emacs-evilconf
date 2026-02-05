@@ -245,11 +245,13 @@
     - [[#получение-access-token][Получение access token]]
     - [[#настройки][Настройки]]
     - [[#proxy-в-api-gigachat][Proxy в API Gigachat]]
-    - [[#aider-в-связке-с-gigachatом-только-информация][Aider в связке с GigaChat'ом (только информация)]]
   - [[#работа-с-кодом-автодополнение-оптимизация-и-прочее][Работа с кодом (автодополнение, оптимизация и прочее)]]
     - [[#буфер-для-результатов-работы-с-кодом][Буфер для результатов работы с кодом]]
     - [[#функции-работы-с-кодом][Функции работы с кодом]]
     - [[#горячие-клавиши][Горячие клавиши]]
+  - [[#aider-как-запускать][Aider. Как запускать]]
+    - [[#aider-в-связке-с-ollama-qwen-code][Aider в связке с Ollama (qwen-code)]]
+    - [[#aider-в-связке-с-gigachatом][Aider в связке с GigaChat'ом]]
 - [[#lsp-сервер-vs-eglot][LSP сервер (vs Eglot)]]
   - [[#установка-1][Установка]]
   - [[#всегда-параметр-запуска-отдельным-инстансом][Всегда параметр запуска отдельным инстансом]]
@@ -6241,57 +6243,44 @@ node.
 
 #+begin_src emacs-lisp :tangle yes
 (use-package vterm
-    :ensure t)
+    :ensure t
+    :config
+    (setq vterm-max-scrollback 100000))
 #+end_src
 
 Вызов терминала vterm. Терминал создается по возможности свой для
 каждого рабочего пространства. Если буфер с таким терминалом уже
-создан, то он показывается в окне или окно с таким терминалом
-скрывается.
+создан, то он показывается в окне.
 
 #+begin_src emacs-lisp :tangle yes
 (defun my/popup-vterm-toggle ()
     (interactive)
-    (let* ((buffer (my/--get-vterm-buffer-create)))
-        (if-let ((window (get-buffer-window buffer)))
-            (delete-window window)
-            (pop-to-buffer buffer))))
+    (my/vterm-toggle 'pop-to-buffer))
 
-(defun my/--get-vterm-buffer-create ()
-    (let* ((buffer-name (format "*vterm-popup:%s*"
-                                (my/--make-buffer-suffix)))
-           (buffer (get-buffer buffer-name))
-           (window))
-        (unless buffer
-            (setq buffer (get-buffer-create buffer-name))
-            (with-current-buffer buffer
-                (vterm-mode)))
-        buffer))
-#+end_src
-
-Чтобы удобнее было работать с проектами, создадим новую вкладку с именем "term", в которую поместим буфер с терминалом vterm.
-
-#+begin_src emacs-lisp :tangle yes
-(defun my/open-term-in-new-tab ()
+(defun my/vterm-replace-toggle ()
     (interactive)
-    (let ((persp-name (my/--get-current-persp-name))
-          (buffer (my/--get-vterm-buffer-create)))
-        (tab-bar-new-tab)
-        (tab-bar-rename-tab (format "vterm:%s" persp-name))
-        (tab-bar-mode -1)
-        (switch-to-buffer buffer)
-        (when my/evil
-            (evil-normal-state)
-            (evil-emacs-state))))
+    (my/vterm-toggle 'switch-to-buffer))
+
+(defun my/vterm-toggle (switch-func)
+    (let* ((buffer-name (my/scratch-buffer-name-vterm))
+           (buffer (get-buffer buffer-name)))
+        (if buffer
+            (funcall switch-func buffer)
+            (let ((buffer (get-buffer-create buffer-name)))
+                (funcall switch-func buffer)
+                (vterm-mode)))))
+
+(defun my/scratch-buffer-name-vterm ()
+    (format "*vterm-popup:%s*"
+            (my/--make-buffer-suffix)))
 #+end_src
 
-Привычные горячие клавиши.
+Запилим горячие клавиши на вызов окошка vterm.
 
 #+begin_src emacs-lisp :tangle yes
 (my/leader-def nil 'override
     "o t" #'my/popup-vterm-toggle
-    "o T" #'vterm
-    "o v" #'my/open-term-in-new-tab)
+    "o T" #'my/vterm-replace-toggle)
 #+end_src
 
 ** Асинхронный вызов системных команд (async-shell-command)
@@ -8025,48 +8014,6 @@ Web-server не умеет справляться с заголовком авт
                  "\n"))
 #+end_src
 
-*** Aider в связке с GigaChat'ом (только информация)
-
-- Подготовка ::
-
-  1. Установить aider.
-
-  2. Положить настройки для GigaChat в файл:
-     : ~/.aider.model.metadata.json
-     Настройки следующие (показаны только для одной модели):
-     #+begin_src json :eval no
-{
-    "openai/GigaChat-2-Max": {
-        "max_tokens": 16384,
-        "max_input_tokens": 128000,
-        "max_output_tokens": 16384,
-        "input_cost_per_token": 0.000023,
-        "output_cost_per_token": 0.000023,
-        "litellm_provider": "openai",
-        "mode": "chat"
-    }
-}
-     #+end_src
-
-- Как пользоваться ::
-
-  1. Запускаем proxy-сервер:
-     : M-x my/giga-start-proxy-server-env
-     После запуска URL и ключ появятся в переменных среды редактора.
-
-  2. Открываем консоль в Emacs:
-     : M-x shell
-     или
-     : M-x eshell
-
-  3. Запускаем из консоли aider:
-     #+begin_src shell :eval no
-aider --model openai/GigaChat-2-Max \
-      --model-metadata-file ~/.aider.model.metadata.json \
-      --openai-api-base $GIGACHAT_URL_BASE \
-      --openai-api-key $GIGACHAT_PROXY_KEY
-     #+end_src
-
 ** Работа с кодом (автодополнение, оптимизация и прочее)
 
 Это попытка поставить на службу LLM в качестве работы с кодом. Не
@@ -8449,6 +8396,64 @@ aider --model openai/GigaChat-2-Max \
                "i f" '(my/llm-codework-inquire-further
                        :which-key "Inquire further"))
 #+end_src
+
+** Aider. Как запускать
+
+*** Aider в связке с Ollama (qwen-code)
+
+    Будем пользоваться моделью =qwen2.5-coder=.
+
+    Запускаем следующей командой
+    #+begin_src shell :eval no
+OLLAMA_API_BASE=http://127.0.0.1:11434 aider \
+                                       --model ollama_chat/qwen2.5-coder \
+                                       --watch-files
+    #+end_src
+    Для удобства это можно положить в скрипт запуска:
+    - [[~/.local/bin/aider-ollama-qwencode.sh]]
+
+*** Aider в связке с GigaChat'ом
+
+- Подготовка ::
+
+  1. Положить настройки для GigaChat в файл:
+     : ~/.aider.model.metadata.json
+     Настройки следующие (показаны только для одной модели):
+     #+begin_src json :eval no
+{
+    "openai/GigaChat-2-Max": {
+        "max_tokens": 16384,
+        "max_input_tokens": 128000,
+        "max_output_tokens": 16384,
+        "input_cost_per_token": 0.000023,
+        "output_cost_per_token": 0.000023,
+        "litellm_provider": "openai",
+        "mode": "chat"
+    }
+}
+     #+end_src
+
+- Как пользоваться ::
+
+  1. Запускаем proxy-сервер:
+     : M-x my/giga-start-proxy-server-env
+     После запуска URL и ключ появятся в переменных среды редактора.
+
+  2. Открываем консоль в Emacs:
+     : M-x vterm
+     Можно воспользоваться и shell с eshell, но будет некрасиво, а
+     главное - не будет работать режим --watch-files.
+
+  3. Запускаем из консоли aider:
+     #+begin_src shell :eval no
+aider --model openai/GigaChat-2-Max \
+      --model-metadata-file ~/.aider.model.metadata.json \
+      --openai-api-base $GIGACHAT_URL_BASE \
+      --openai-api-key $GIGACHAT_PROXY_KEY \
+      --watch-files
+     #+end_src
+     Для удобства это можно положить в скрипт запуска:
+     - [[~/.local/bin/aider-gigachat-emacs.sh]]
 
 * LSP сервер (vs Eglot)
 
