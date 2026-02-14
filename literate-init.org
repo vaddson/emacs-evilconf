@@ -48,6 +48,7 @@
   - [[#звуковой-сигнал-типа-гудок][Звуковой сигнал (типа "гудок")]]
   - [[#сборщик-мусора-gc][Сборщик мусора (GC)]]
   - [[#безопасность-сетевого-доступа][Безопасность сетевого доступа]]
+  - [[#подтверждение-удаления-процессов-при-закрытии-редактора][Подтверждение удаления процессов при закрытии редактора]]
 - [[#evil-режим-редактирования][Evil. Режим редактирования]]
   - [[#установка-и-настройка][Установка и настройка]]
   - [[#general-назначение-клавиш-на-помощь-evil][General (назначение клавиш на помощь evil)]]
@@ -245,11 +246,13 @@
     - [[#получение-access-token][Получение access token]]
     - [[#настройки][Настройки]]
     - [[#proxy-в-api-gigachat][Proxy в API Gigachat]]
-    - [[#aider-в-связке-с-gigachatом-только-информация][Aider в связке с GigaChat'ом (только информация)]]
   - [[#работа-с-кодом-автодополнение-оптимизация-и-прочее][Работа с кодом (автодополнение, оптимизация и прочее)]]
     - [[#буфер-для-результатов-работы-с-кодом][Буфер для результатов работы с кодом]]
     - [[#функции-работы-с-кодом][Функции работы с кодом]]
     - [[#горячие-клавиши][Горячие клавиши]]
+  - [[#aider-как-запускать][Aider. Как запускать]]
+    - [[#aider-в-связке-с-ollama-qwen-code][Aider в связке с Ollama (qwen-code)]]
+    - [[#aider-в-связке-с-gigachatом][Aider в связке с GigaChat'ом]]
 - [[#lsp-сервер-vs-eglot][LSP сервер (vs Eglot)]]
   - [[#установка-1][Установка]]
   - [[#всегда-параметр-запуска-отдельным-инстансом][Всегда параметр запуска отдельным инстансом]]
@@ -577,6 +580,17 @@ email clients, file templates and snippets."
 
 #+begin_src emacs-lisp :tangle yes
 (setq network-security-level 'low)
+#+end_src
+
+** Подтверждение удаления процессов при закрытии редактора
+
+По завершении работы Emacs спрашивает разрешения на закрытие
+запущенных процессов. Т.к. один из процессов (ws-server - proxy
+GigaChat) запущен постоянно, то выключим запрос на подтверждение
+остановки процесса, чтобы не вылетало при каждом закрытии редактора.
+
+#+begin_src emacs-lisp :tangle yes
+(setq confirm-kill-processes nil)
 #+end_src
 
 * Evil. Режим редактирования
@@ -6241,57 +6255,44 @@ node.
 
 #+begin_src emacs-lisp :tangle yes
 (use-package vterm
-    :ensure t)
+    :ensure t
+    :config
+    (setq vterm-max-scrollback 100000))
 #+end_src
 
 Вызов терминала vterm. Терминал создается по возможности свой для
 каждого рабочего пространства. Если буфер с таким терминалом уже
-создан, то он показывается в окне или окно с таким терминалом
-скрывается.
+создан, то он показывается в окне.
 
 #+begin_src emacs-lisp :tangle yes
 (defun my/popup-vterm-toggle ()
     (interactive)
-    (let* ((buffer (my/--get-vterm-buffer-create)))
-        (if-let ((window (get-buffer-window buffer)))
-            (delete-window window)
-            (pop-to-buffer buffer))))
+    (my/vterm-toggle 'pop-to-buffer))
 
-(defun my/--get-vterm-buffer-create ()
-    (let* ((buffer-name (format "*vterm-popup:%s*"
-                                (my/--make-buffer-suffix)))
-           (buffer (get-buffer buffer-name))
-           (window))
-        (unless buffer
-            (setq buffer (get-buffer-create buffer-name))
-            (with-current-buffer buffer
-                (vterm-mode)))
-        buffer))
-#+end_src
-
-Чтобы удобнее было работать с проектами, создадим новую вкладку с именем "term", в которую поместим буфер с терминалом vterm.
-
-#+begin_src emacs-lisp :tangle yes
-(defun my/open-term-in-new-tab ()
+(defun my/vterm-replace-toggle ()
     (interactive)
-    (let ((persp-name (my/--get-current-persp-name))
-          (buffer (my/--get-vterm-buffer-create)))
-        (tab-bar-new-tab)
-        (tab-bar-rename-tab (format "vterm:%s" persp-name))
-        (tab-bar-mode -1)
-        (switch-to-buffer buffer)
-        (when my/evil
-            (evil-normal-state)
-            (evil-emacs-state))))
+    (my/vterm-toggle 'switch-to-buffer))
+
+(defun my/vterm-toggle (switch-func)
+    (let* ((buffer-name (my/scratch-buffer-name-vterm))
+           (buffer (get-buffer buffer-name)))
+        (if buffer
+            (funcall switch-func buffer)
+            (let ((buffer (get-buffer-create buffer-name)))
+                (funcall switch-func buffer)
+                (vterm-mode)))))
+
+(defun my/scratch-buffer-name-vterm ()
+    (format "*vterm-popup:%s*"
+            (my/--make-buffer-suffix)))
 #+end_src
 
-Привычные горячие клавиши.
+Запилим горячие клавиши на вызов окошка vterm.
 
 #+begin_src emacs-lisp :tangle yes
 (my/leader-def nil 'override
     "o t" #'my/popup-vterm-toggle
-    "o T" #'vterm
-    "o v" #'my/open-term-in-new-tab)
+    "o T" #'my/vterm-replace-toggle)
 #+end_src
 
 ** Асинхронный вызов системных команд (async-shell-command)
@@ -6491,7 +6492,7 @@ Alt. Отменим их, а заодно освободим клавиши дв
               (define-key mode-map (kbd key) nil))
           '("0" "1" "2" "3" "4" "5" "6" "7" "8" "9"
             "^" "$"
-            "h" "j" "k" "l" "H" "M" "L" "z")))
+            "h" "j" "k" "l" "H" "M" "L" "z" "w" "W" "v" "V")))
 
 (when my/evil
     (mapc 'my/magit--restore-evil-keys
@@ -7918,14 +7919,6 @@ Web-server не умеет справляться с заголовком авт
                                              url-request-data
                                              headers-in))))
                (url (my/giga--make-url request))
-
-               ;; ;; !!!
-               ;; (lala (my/log (my/giga--debug-request-to-string url-request-method
-               ;;                                                 url
-               ;;                                                 url-request-extra-headers
-               ;;                                                 url-request-data)))
-               ;; (lala (my/log "\n"))
-
                (response-buffer (url-retrieve-synchronously
                                  url)))
             (with-current-buffer response-buffer
@@ -8033,50 +8026,11 @@ Web-server не умеет справляться с заголовком авт
                  "\n"))
 #+end_src
 
-#+RESULTS:
-: my/giga--debug-headers-to-string
+Сервер будем *стартовать* при запуске редактора.
 
-*** Aider в связке с GigaChat'ом (только информация)
-
-- Подготовка ::
-
-  1. Установить aider.
-
-  2. Положить настройки для GigaChat в файл:
-     : ~/.aider.model.metadata.json
-     Настройки следующие (показаны только для одной модели):
-     #+begin_src json :eval no
-{
-    "openai/GigaChat-2-Max": {
-        "max_tokens": 16384,
-        "max_input_tokens": 128000,
-        "max_output_tokens": 16384,
-        "input_cost_per_token": 0.000023,
-        "output_cost_per_token": 0.000023,
-        "litellm_provider": "openai",
-        "mode": "chat"
-    }
-}
-     #+end_src
-
-- Как пользоваться ::
-
-  1. Запускаем proxy-сервер:
-     : M-x my/giga-start-proxy-server-env
-     После запуска URL и ключ появятся в переменных среды редактора.
-
-  2. Открываем консоль в Emacs:
-     : M-x shell
-     или
-     : M-x eshell
-
-  3. Запускаем из консоли aider:
-     #+begin_src shell :eval no
-aider --model openai/GigaChat-2-Max \
-      --model-metadata-file ~/.aider.model.metadata.json \
-      --openai-api-base $GIGACHAT_URL_BASE \
-      --openai-api-key $GIGACHAT_PROXY_KEY
-     #+end_src
+#+begin_src emacs-lisp :tangle yes
+(my/giga-start-proxy-server-env)
+#+end_src
 
 ** Работа с кодом (автодополнение, оптимизация и прочее)
 
@@ -8460,6 +8414,68 @@ aider --model openai/GigaChat-2-Max \
                "i f" '(my/llm-codework-inquire-further
                        :which-key "Inquire further"))
 #+end_src
+
+** Aider. Как запускать
+
+*** Aider в связке с Ollama (qwen-code)
+
+    Будем пользоваться моделью =qwen2.5-coder=.
+
+    Запускаем следующей командой
+    #+begin_src shell :eval no
+OLLAMA_API_BASE=http://127.0.0.1:11434 aider \
+                                       --model ollama_chat/qwen2.5-coder \
+                                       --watch-files \
+                                       --dark-mode \
+                                       $@
+    #+end_src
+    Для удобства это можно положить в скрипт запуска:
+    - [[~/.local/bin/aider-ollama-qwencode.sh]]
+
+*** Aider в связке с GigaChat'ом
+
+- Подготовка ::
+
+  1. Положить настройки для GigaChat в файл:
+     : ~/.aider.model.metadata.json
+     Настройки следующие (показаны только для одной модели):
+     #+begin_src json :eval no
+{
+    "openai/GigaChat-2-Max": {
+        "max_tokens": 16384,
+        "max_input_tokens": 128000,
+        "max_output_tokens": 16384,
+        "input_cost_per_token": 0.000023,
+        "output_cost_per_token": 0.000023,
+        "litellm_provider": "openai",
+        "mode": "chat"
+    }
+}
+     #+end_src
+
+- Как пользоваться ::
+
+  1. Запускаем proxy-сервер:
+     : M-x my/giga-start-proxy-server-env
+     После запуска URL и ключ появятся в переменных среды редактора.
+
+  2. Открываем консоль в Emacs:
+     : M-x vterm
+     Можно воспользоваться и shell с eshell, но будет некрасиво, а
+     главное - не будет работать режим --watch-files.
+
+  3. Запускаем из консоли aider:
+     #+begin_src shell :eval no
+aider --model openai/GigaChat-2-Max \
+      --model-metadata-file ~/.aider.model.metadata.json \
+      --openai-api-base $GIGACHAT_URL_BASE \
+      --openai-api-key $GIGACHAT_PROXY_KEY \
+      --watch-files \
+      --dark-mode \
+      $@
+     #+end_src
+     Для удобства это можно положить в скрипт запуска:
+     - [[~/.local/bin/aider-gigachat-emacs.sh]]
 
 * LSP сервер (vs Eglot)
 
@@ -9908,6 +9924,8 @@ Pyright лучше установить в системе через npm (не �
 Для org-mode удобно раз и навсегда включить полезные расширения языка.
 
 #+begin_src emacs-lisp :tangle yes
+(unless (boundp 'haskell-process-args-ghci)
+    (setopt haskell-process-args-ghci nil))
 (add-to-list 'haskell-process-args-ghci "-XDuplicateRecordFields")
 (add-to-list 'haskell-process-args-ghci "-XOverloadedStrings")
 (add-to-list 'haskell-process-args-ghci "-XDeriveGeneric")
@@ -10283,8 +10301,6 @@ LSP-сервер будет работать так же, как на локал
     :ensure t)
 #+end_src
 
-#+RESULTS:
-
 ** Go
 
 На минималках.
@@ -10440,7 +10456,7 @@ LSP-сервер будет работать так же, как на локал
     :ensure t
     :init
     (setq lsp-java-jdt-download-url
-          "https://www.eclipse.org/downloads/download.php?file=/jdtls/milestones/1.53.0/jdt-language-server-1.53.0-202511192211.tar.gz")
+          "https://www.eclipse.org/downloads/download.php?file=/jdtls/milestones/1.56.0/jdt-language-server-1.56.0-202601291528.tar.gz")
     :config
     (when (member 'lsp-java-boot features)
         (require 'lsp-java-boot))
