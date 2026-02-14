@@ -8427,6 +8427,7 @@ OLLAMA_API_BASE=http://127.0.0.1:11434 aider \
                                        --model ollama_chat/qwen2.5-coder \
                                        --watch-files \
                                        --dark-mode \
+                                       --watch-files \
                                        $@
     #+end_src
     Для удобства это можно положить в скрипт запуска:
@@ -8472,6 +8473,7 @@ aider --model openai/GigaChat-2-Max \
       --openai-api-key $GIGACHAT_PROXY_KEY \
       --watch-files \
       --dark-mode \
+      --watch-files \
       $@
      #+end_src
      Для удобства это можно положить в скрипт запуска:
