@@ -1461,22 +1461,32 @@ follow-mode. Это удобно, когда буфер появляется в 
 Прокрутка курсором по одной строке.
 
 #+begin_src emacs-lisp :tangle yes
-(if (>= emacs-major-version 30)
-    (setq scroll-step 1
-          scroll-preserve-screen-position t  ;; nil
-          scroll-margin 1  ;; 0
-          scroll-conservatively 10000  ;; 0
-          maximum-scroll-margin 0.1  ;; 0.25
-          scroll-up-aggressively 0.0   ;; nil
-          scroll-down-aggressively 0.0)  ;; nil
-    (setq scroll-step 1
-          scroll-preserve-screen-position t  ;; nil
-          scroll-margin 0  ;; 0
-          scroll-conservatively 10000  ;; 0
-          maximum-scroll-margin 0.0  ;; 0.25
-          scroll-up-aggressively 0.0   ;; nil
-          scroll-down-aggressively 0.0))  ;; nil
+(setq scroll-step 1
+      scroll-preserve-screen-position t  ;; nil
+      scroll-margin 0  ;; 0
+      scroll-conservatively 10000  ;; 0
+      maximum-scroll-margin 0.0  ;; 0.25
+      scroll-up-aggressively 0.0   ;; nil
+      scroll-down-aggressively 0.0)  ;; nil
 #+end_src
+
+# #+begin_src emacs-lisp :tangle yes
+# (if (>= emacs-major-version 30)
+#     (setq scroll-step 1
+#           scroll-preserve-screen-position t  ;; nil
+#           scroll-margin 1  ;; 0
+#           scroll-conservatively 10000  ;; 0
+#           maximum-scroll-margin 0.1  ;; 0.25
+#           scroll-up-aggressively 0.0   ;; nil
+#           scroll-down-aggressively 0.0)  ;; nil
+#     (setq scroll-step 1
+#           scroll-preserve-screen-position t  ;; nil
+#           scroll-margin 0  ;; 0
+#           scroll-conservatively 10000  ;; 0
+#           maximum-scroll-margin 0.0  ;; 0.25
+#           scroll-up-aggressively 0.0   ;; nil
+#           scroll-down-aggressively 0.0))  ;; nil
+# #+end_src
 
 Начиная с Emacs 29, имеем плавную прокрутку по пикселям. Наконец-то
 картинки при прокрутке не скачут на весь размер (ну, почти).
@@ -3995,6 +4005,15 @@ Keywords=Text;Editor;
                                  (setq org-adapt-indentation t)))
     (setq org-confirm-babel-evaluate nil)
     (setq org-confirm-elisp-link-function nil))
+#+end_src
+
+Начиная с какого-то обновления, =flycheck= теперь гоняет =org-lint= на
+каждый введенный символ, чем сильно тормозит редактор и сыпет ошибками
+(возможны даже зависания). Отключим flycheck для режима org-mode.
+
+#+begin_src emacs-lisp :tangle yes
+(add-hook 'org-mode-hook (lambda ()
+                             (flycheck-mode -1)))
 #+end_src
 
 Подгрузим поддержку evil для org-mode, включая Агенду.
@@ -8427,7 +8446,6 @@ OLLAMA_API_BASE=http://127.0.0.1:11434 aider \
                                        --model ollama_chat/qwen2.5-coder \
                                        --watch-files \
                                        --dark-mode \
-                                       --watch-files \
                                        $@
     #+end_src
     Для удобства это можно положить в скрипт запуска:
@@ -8473,7 +8491,6 @@ aider --model openai/GigaChat-2-Max \
       --openai-api-key $GIGACHAT_PROXY_KEY \
       --watch-files \
       --dark-mode \
-      --watch-files \
       $@
      #+end_src
      Для удобства это можно положить в скрипт запуска:
