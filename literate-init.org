@@ -4479,7 +4479,7 @@ text-mode, то он отменит перенос строк. :)
 Эти аргументы можно применять в сочетании с командами выше (=nohideblocks=, =hideblocks=).
 
 #+begin_src emacs-lisp :tangle yes
-(defun my/individual-visibility-source-blocks ()
+(defun my/individual-visibility-source-blocks (&optional start end)
     "Fold blocks with argument :hidden in the current buffer."
     (interactive)
     (let ((block-types '(center-block comment-block dynamic-block example-block
@@ -4492,13 +4492,29 @@ text-mode, то он отменит перенос строк. :)
                          (cond ((cl-assoc ':hidden arguments)
                                 (org-hide-block-toggle t nil element))
                                ((cl-assoc ':visible arguments)
-                                (org-hide-block-toggle 'off nil element))))))))))
+                                (org-hide-block-toggle 'off nil element)))))))
+         start end)))
 #+end_src
 
 Обработчик, представленный выше, будет срабатывать при открытии org-документа.
 
 #+begin_src emacs-lisp :tangle yes
 (add-hook 'org-mode-hook #'my/individual-visibility-source-blocks)
+#+end_src
+
+С 30-й версии Emacs схлопывание выше перестало работать на
+org-mode-hook. Повесим это счастье на =org-cycle-hook=.
+
+#+begin_src emacs-lisp :tangle yes
+(add-hook 'org-cycle-hook 'my/fold-blocks-on-org-cycle)
+
+(defun my/fold-blocks-on-org-cycle (state)
+    (if-let* ((local-p (not (eq 'all state)))
+              (element (org-element-at-point))
+              (begin (org-element-property :contents-begin element))
+              (end (org-element-property :contents-end element)))
+        (my/individual-visibility-source-blocks begin end)
+        (my/individual-visibility-source-blocks)))
 #+end_src
 
 Скрытие блоков слетает на применении org-cycle,
