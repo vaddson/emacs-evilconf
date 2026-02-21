@@ -31,6 +31,7 @@
 - [[#вводная][Вводная]]
 - [[#lexical-binding-лексические-замыкания][Lexical-binding. Лексические замыкания]]
 - [[#отладка][Отладка]]
+- [[#customize-в-отдельном-файле][Customize в отдельном файле]]
 - [[#общие-параметры-и-переменные-данной-конфигурации][Общие параметры и переменные данной конфигурации]]
   - [[#кодировка-по-умолчанию-utf-8][Кодировка по-умолчанию (utf-8)]]
   - [[#директория-файлов-конфигурации][Директория файлов конфигурации]]
@@ -342,6 +343,18 @@
         (goto-char (point-max))))
 #+end_src
 
+* Customize в отдельном файле
+
+#+begin_src emacs-lisp :tangle yes
+(require 'custom)
+
+(setopt custom-file (expand-file-name (convert-standard-filename "custom.el")
+                                      user-emacs-directory))
+(when (file-exists-p custom-file)
+    (load custom-file))
+
+#+end_src
+
 * Общие параметры и переменные данной конфигурации
 
 Здесь собраны параметры, значения которых будут далее использованы по всему
@@ -475,18 +488,11 @@ email clients, file templates and snippets."
    :ID:       40986685-fc80-45b7-ab77-4cac074fea9f
    :END:
 
-Загружаем красивые темы и устанавливаем одну из них.
-Стараемся успеть до загрузки всех остальных настроек.
+Загружаем красивые темы.
 
 #+begin_src emacs-lisp :tangle yes
 (use-package doom-themes
-    :ensure t
-    :config
-    (load-theme 'doom-one t)
-    ;; (load-theme 'doom-gruvbox-light t)
-    ;; (load-theme 'doom-gruvbox t)
-    ;; (load-theme 'doom-molokai t)
-    )
+    :ensure t)
 (use-package alect-themes
     :ensure t
     :config
@@ -510,6 +516,16 @@ email clients, file templates and snippets."
     :ensure t)
 (use-package rg-themes
     :ensure t)
+#+end_src
+
+Устанавливаем одну из тем. Стараемся успеть до загрузки всех остальных
+настроек.
+
+#+begin_src emacs-lisp :tangle yes
+(defcustom my/default-theme 'doom-one
+  "Default visual theme."
+  :type '(symbol))
+(load-theme my/default-theme t)
 #+end_src
 
 * Полезные пакеты, вытащенные из сторонних проектов
@@ -3910,19 +3926,35 @@ Magit", можно по имени текущего буфера - =" *server*"=
 Так сложнее визуально перепутать клиентские фреймы для каждого из
 демонов.
 
+Заведем переменные подобные my/default-theme.
+
+#+begin_src emacs-lisp :tangle yes
+(defcustom my/default-theme-notes 'ef-winter
+  "Default visual theme for daemon `notes'."
+  :type '(symbol))
+
+(defcustom my/default-theme-dev 'doom-one
+  "Default visual theme for daemon `dev'."
+  :type '(symbol))
+
+(defcustom my/default-theme-rest 'doom-one
+  "Default visual theme for daemon `rest'."
+  :type '(symbol))
+#+end_src
+
 Установим каждому демону тему на старте.
 
 #+begin_src emacs-lisp :tangle yes
 (pcase (daemonp)
     ("notes"
-     (load-theme 'ef-winter t))
+     (load-theme my/default-theme-notes t))
 
     ("dev"
-     (load-theme 'doom-one t))
+     (load-theme my/default-theme-dev t))
 
     ("rest"
      (setq my/transparency-level 1)
-     (load-theme 'doom-one t)))
+     (load-theme my/default-theme-rest t)))
 #+end_src
 
 А тема по-умолчанию задается [[id:40986685-fc80-45b7-ab77-4cac074fea9f][выше]].
@@ -8579,7 +8611,6 @@ aider --model openai/GigaChat-2-Max \
                     ">" 'tablist-enlarge-column
                     "<" 'tablist-shrink-column)
 #+end_src
-
 
 ** Всегда параметр запуска отдельным инстансом
 
