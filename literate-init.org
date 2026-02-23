@@ -308,6 +308,7 @@
     - [[#информация-на-память][Информация на память]]
   - [[#javascripttypescript][JavaScript/TypeScript]]
   - [[#scala][Scala]]
+  - [[#perl][Perl]]
 - [[#финалочки][Финалочки]]
   - [[#чистка-статусной-панели-от-всего-лишнего-modeline][Чистка статусной панели от всего лишнего (modeline)]]
 
@@ -8990,10 +8991,13 @@ running". Простые перезагрузки LSP-сервера не пом
 
 #+begin_src emacs-lisp :tangle yes
 (defun my/treesit-install-language-grammar (lang-symbol github-path)
-    (add-to-list 'treesit-language-source-alist
-                 `(,lang-symbol ,github-path))
-    (unless (treesit-ready-p lang-symbol)
-        (treesit-install-language-grammar lang-symbol)))
+    (let ((element (if (listp github-path)
+                       `(,lang-symbol . ,github-path)
+                       `(,lang-symbol ,github-path))))
+        (add-to-list 'treesit-language-source-alist
+                     element)
+        (unless (treesit-ready-p lang-symbol)
+            (treesit-install-language-grammar lang-symbol))))
 #+end_src
 
 После регистрации необходимо заменить привычные ~<LANG>-mode~ на
@@ -10019,8 +10023,14 @@ Pyright лучше установить в системе через npm (не �
 (when (treesit-ready-p 'haskell)
     (treesit-parser-create 'haskell))
 
-;; ;; Не реализовано.
-;; (add-to-list 'major-mode-remap-alist '(haskell-mode . haskell-ts-mode))
+(add-hook 'haskell-mode-hook #'my/treesit-minor-mode)
+(add-hook 'haskell-literate-mode-hook #'my/treesit-minor-mode)
+
+(defun my/treesit-minor-mode ()
+    ;;; Empty here...
+    ;; (treesit-explore-mode 1)
+    ;; (treesit-explore-mode -1)
+    )
 #+end_src
 
 Позаботимся о вычислении org-babel блоков.
@@ -11036,29 +11046,6 @@ dap-mode.
 : mvn dependency:get -Dartifact=org.springframework.boot:spring-boot-starter-web:3.2.0
 : mvn dependency:get -Dartifact=org.springframework.boot:spring-boot-starter-test:3.2.0
 
-** COMMENT Java. Spring Boot
-
-/Lens в этом разделе затрудняют автодополнение. При этод/
-/дополнительной пользы пока не заметил. Поэтому отключим этот раздел с/
-/jsp-java-boot-lens-mode./
-
-Чтобы установить Spring Boot, вводим следующие команды:
-: curl -s "https://get.sdkman.io" | bash
-: sdk install springboot
-Пакет появится по пути: [[~/.sdkman/candidates/springboot/current/]].
-
-(Надо еще как-то поставить STS4 - Spring Tool Suite. Как сказано тут,
-он должен подтянуться при установке lsp-сервера jdtls.)
-: yay -S spring-tool-suite
-
-#+begin_src emacs-lisp :tangle yes
-;; (require 'jsp-java-boot)
-(use-package lsp-java
-    :hook ((lsp-mode-hook . lsp-lens-mode)
-           ((java-mode java-ts-mode) . lsp-deferred)
-           ((java-mode java-ts-mode) . lsp-java-boot-lens-mode)))
-#+end_src
-
 ** JavaScript/TypeScript
 
 Информация о сервере и его установке смотрим тут:
@@ -11162,6 +11149,34 @@ lsp-сервера.
 # (org-babel-do-load-languages 'org-babel-load-languages
 #                              langs)
 # #+end_src
+
+** Perl
+
+#+begin_src emacs-lisp :tangle yes
+(use-package perl-ts-mode
+    :ensure t)
+(lsp-ensure-server 'perlnavigator)
+(fset 'perl-mode 'cperl-mode)
+#+end_src
+
+Пока будем пользоваться простеньким =perlnavigator=, поскольку по
+инструкции отсюда: [[https://emacs-lsp.github.io/lsp-mode/page/lsp-perl/][LSP Mode - LSP support for Emacs / Perl]] установить
+сервер пока не получилось.
+: cpan Perl::LanguageServer
+
+Позаботимся о вычислении org-babel блоков.
+
+#+begin_src emacs-lisp :tangle yes
+(my/--register-org-babel 'perl)
+#+end_src
+
+Поддержка tree-sitter.
+
+#+begin_src emacs-lisp :tangle yes
+(my/treesit-install-language-grammar
+ 'perl
+ '("https://github.com/tree-sitter-perl/tree-sitter-perl" "release"))
+#+end_src
 
 * Финалочки
 
