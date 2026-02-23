@@ -9005,6 +9005,17 @@ running". Простые перезагрузки LSP-сервера не пом
 : (add-to-list 'auto-mode-alist '("\\.cpp\\'" . c++-ts-mode))
 : (add-to-list 'auto-mode-alist '("\\.c\\'" . c-ts-mode))
 
+Горячие клавиши. Не все -ts-режимы хороши или просто присутствуют в
+пакетах. Поэтому можно вызывать =treesit-explore-mode= для получения
+минорного treesit-режима.
+
+#+begin_src emacs-lisp :tangle yes
+(my/leader-def nil 'override
+               "c t" '(:ignore t :which-key "treesit")
+               "c t e" '(treesit-explore-mode :which-key "Explore mode")
+               "c t i" '(treesit-inspect-mode :which-key "Inspect mode"))
+#+end_src
+
 ** COMMENT Схлопывание текста с tree-sitter (ts-fold)
 
    Не дружит со встроенным в Emacs 29 treesit.
