@@ -6475,6 +6475,7 @@ treemacs при показе текущего файла в дереве про�
 (provide 'seq-25)
 (use-package magit
     :ensure t
+    :pin "melpa-stable"
     :config
     ;; Define some keys:
     (setq magit-diff-refine-hunk t)
@@ -8255,6 +8256,8 @@ Web-server не умеет справляться с заголовком авт
            "emacs-lisp")
           ((string= lang "org")
            "emacs-lisp")
+          ((string= lang "cperl")
+           "perl")
           (t
            lang))))
 #+end_src
@@ -8266,10 +8269,10 @@ Web-server не умеет справляться с заголовком авт
 - пояснения выделенного кода.
 
 #+begin_src emacs-lisp :tangle yes
-(defun my/llm-codework-complete ()
-    (interactive)
-    (let* ((lang (my/get-lang))
-           (prompt "")
+(defun my/llm-codework-complete (lang)
+    (interactive (list (read-string "Language: "
+                                    (my/get-lang))))
+    (let* ((prompt "")
            (system (format "Complete or finish the following code written in %s that starts after the <src_code_block> tag and ends before the </src_code_block> tag. Do not modify or add comments to the original code. Use only objects and variables present in the source code; do not introduce new ones. If you need more context to complete the task, request additional preceding code. Include the result along with the original code. Replace the tags <src_code_block> and </src_code_block> with #+begin_src %s and #+end_src, respectively. Provide your answer in Russian."
                            lang lang)))
            ;; (system (format "Дополни или заверши приведенный ниже код на %s, который начинается после тега <src_code_block> и завершается перед тегом </src_code_block>. Исходный код не исправляй и не дополняй комментариями. В ответе используй только те объекты и переменные, которые есть в исходном коде, других не придумывай. Если для выполнения задачи тебе не хватает контекста, то ответом запроси нужный тебе предшествующий код. Результат приведи вместе с исходным кодом. Теги <src_code_block> и </src_code_block> в своем ответе замени на операторные скобки #+begin_src %s и #+end_src. Ответ дай по русски."
@@ -8278,10 +8281,10 @@ Web-server не умеет справляться с заголовком авт
                               system
                               prompt)))
 
-(defun my/llm-codework-completion-variants ()
-    (interactive)
-    (let* ((lang (my/get-lang))
-           (prompt "")
+(defun my/llm-codework-completion-variants (lang)
+    (interactive (list (read-string "Language: "
+                                    (my/get-lang))))
+    (let* ((prompt "")
            (system (format "Complete or finish the following code written in %s that starts after the <src_code_block> tag and ends before the </src_code_block> tag. Do not modify or add comments to the original code. Use only objects and variables present in the given code; do not introduce new ones. Provide your result along with the original code. Create 1 to 5 versions of the answer and number them accordingly. Include the original code in your response. Replace the tags <src_code_block> and </src_code_block> with #+begin_src %s and #+end_src, respectively. Provide your answer in Russian."
                            lang lang)))
         ;; (system (format "Дополни или заверши приведенный ниже код на %s, который начинается после тега <src_code_block> и завершается перед тегом </src_code_block>. Исходный код не исправляй и не дополняй комментариями. В ответе используй только те объекты и переменные, которые есть в исходном коде, других не придумывай. Результат приведи вместе с исходным кодом. Сделай таким образом от 1 до 5 вариантов ответа и пронумеруй их. Результат приведи вместе с исходным кодом. Теги <src_code_block> и </src_code_block> в своем ответе замени на операторные скобки #+begin_src %s и #+end_src. Ответ дай по русски."
@@ -8290,10 +8293,10 @@ Web-server не умеет справляться с заголовком авт
                               system
                               prompt)))
 
-(defun my/llm-codework-optimize ()
-    (interactive)
-    (let* ((lang (my/get-lang))
-           (prompt "")
+(defun my/llm-codework-optimize (lang)
+    (interactive (list (read-string "Language: "
+                                    (my/get-lang))))
+    (let* ((prompt "")
            (system (format "Optimize the following code written in %s, which starts after <src_code_block> tag and ends before </src_code_block> tag. Below provide an explanation of your optimization. If no optimization is needed, indicate this in your response without changing the original code. You can use more efficient solutions or libraries. Replace tags <src_code_block> and </src_code_block> with block delimiters #+begin_src %s and #+end_src. Provide your answer in Russian."
                            lang lang)))
         ;; (system (format "Оптимизируй код на %s, приведенный ниже, который начинается после тега <src_code_block> и завершается перед тегом </src_code_block>. Ниже приведи объяснение своей оптимизации. Если оптимизации не требуется, сообщи об этом в ответе, а не меняй исходный код. Можешь использовать более эффективные решения или библиотеки.  Теги <src_code_block> и </src_code_block> в своем ответе замени на операторные скобки #+begin_src %s и #+end_src. Ответ дай по русски."
@@ -8302,10 +8305,10 @@ Web-server не умеет справляться с заголовком авт
                               system
                               prompt)))
 
-(defun my/llm-codework-explain ()
-    (interactive)
-    (let* ((lang (my/get-lang))
-           (prompt "")
+(defun my/llm-codework-explain (lang)
+    (interactive (list (read-string "Language: "
+                                    (my/get-lang))))
+    (let* ((prompt "")
            (system (format "Explain the following %s code, which starts after the =<src_code_block>= tag and ends before the =</src_code_block>= tag. Provide the explanation in Russian."
                            lang)))
         ;; (system (format "Объясни код ниже на %s, который начинается после тега <src_code_block> и завершается перед тегом </src_code_block>. Объяснение дай на русском языке."
@@ -8321,7 +8324,6 @@ Web-server не умеет справляться с заголовком авт
 
 #+begin_src emacs-lisp :tangle yes
 (defun my/llm-codework-inquire-further ()
-    (interactive)
     (when (and (string= (buffer-name) my/llm-codework-out-buffer)
                (org-current-level)
                (equal 2 (org-current-level)))
@@ -8347,11 +8349,11 @@ Web-server не умеет справляться с заголовком авт
 исследования. Сделаем для этого функцию.
 
 #+begin_src emacs-lisp :tangle yes
-(defun my/llm-codework-remember ()
-    (interactive)
+(defun my/llm-codework-remember (lang)
+    (interactive (list (read-string "Language: "
+                                    (my/get-lang))))
     (when (use-region-p)
-        (let* ((lang (my/get-lang))
-               (text (my/llm-codework-get-region-code))
+        (let* ((text (my/llm-codework-get-region-code))
                (prompt (format "Remember code in %s. The code starts with the <src_code_block> tag and ends with the </src_code_block> tag. All explanations give in russian." lang)))
             (my/llm-codework-switch-to-out-buffer my/llm-codework-out-buffer)
             (goto-char (point-max))
@@ -8371,10 +8373,10 @@ Web-server не умеет справляться с заголовком авт
 И самый простое - начать новую тему без вопроса.
 
 #+begin_src emacs-lisp :tangle yes
-(defun my/llm-codework-new-theme ()
-    (interactive)
-    (let* ((lang (my/get-lang))
-           (prompt (format "Remember codes in %s (if exists). Codes starts with the <src_code_block> tag and ends with the </src_code_block> tag. All explanations give in russian." lang)))
+(defun my/llm-codework-new-theme (lang)
+    (interactive (list (read-string "Language: "
+                                    (my/get-lang))))
+    (let* ((prompt (format "Remember codes in %s (if exists). Codes starts with the <src_code_block> tag and ends with the </src_code_block> tag. All explanations give in russian." lang)))
         (my/llm-codework-switch-to-out-buffer my/llm-codework-out-buffer)
         (goto-char (point-max))
         (unless (boundp 'my/header-count)
@@ -11166,14 +11168,20 @@ lsp-сервера.
 #+begin_src emacs-lisp :tangle yes
 (use-package perl-ts-mode
     :ensure t)
-(lsp-ensure-server 'perlnavigator)
+;; (lsp-ensure-server 'perlnavigator)
 (fset 'perl-mode 'cperl-mode)
 #+end_src
 
-Пока будем пользоваться простеньким =perlnavigator=, поскольку по
-инструкции отсюда: [[https://emacs-lsp.github.io/lsp-mode/page/lsp-perl/][LSP Mode - LSP support for Emacs / Perl]] установить
-сервер пока не получилось.
-: cpan Perl::LanguageServer
+Устанавливаем LSP-сервер PLS, как показано в
+- [[https://emacs-lsp.github.io/lsp-mode/page/lsp-pls/][LSP Mode - LSP support for Emacs / PLS]]
+но под =sudo=:
+: which cpan
+: sudo /usr/bin/core_perl/cpan PLS
+
+#+begin_src emacs-lisp :tangle yes
+(use-package lsp-mode
+    :hook (((perl-mode cperl-mode) . lsp-deferred)))
+#+end_src
 
 Позаботимся о вычислении org-babel блоков.
 
