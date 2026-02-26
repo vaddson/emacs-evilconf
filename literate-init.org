@@ -8376,15 +8376,14 @@ Web-server не умеет справляться с заголовком авт
 (defun my/llm-codework-new-theme (lang)
     (interactive (list (read-string "Language: "
                                     (my/get-lang))))
-    (let* ((prompt (format "Remember codes in %s (if exists). Codes starts with the <src_code_block> tag and ends with the </src_code_block> tag. All explanations give in russian." lang)))
-        (my/llm-codework-switch-to-out-buffer my/llm-codework-out-buffer)
-        (goto-char (point-max))
-        (unless (boundp 'my/header-count)
-            (setq-local my/header-count 0))
-        (insert (format "\n* %s. (%s) New theme\n\n"
-                        (setq-local my/header-count (1+ my/header-count))
-                        lang))
-        (insert "** ")))
+    (my/llm-codework-switch-to-out-buffer my/llm-codework-out-buffer)
+    (goto-char (point-max))
+    (unless (boundp 'my/header-count)
+        (setq-local my/header-count 0))
+    (insert (format "\n* %s. (%s) New theme\n\n"
+                    (setq-local my/header-count (1+ my/header-count))
+                    lang))
+    (insert "** "))
 #+end_src
 
 Далее идут вспомогательные функции к функциям выше. Одна из них делает
