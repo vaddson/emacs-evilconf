@@ -8255,11 +8255,17 @@ Web-server не умеет справляться с заголовком авт
           ((string= lang "emacs")
            "emacs-lisp")
           ((string= lang "org")
-           "emacs-lisp")
+           (my/get-src-block-lang))
           ((string= lang "cperl")
            "perl")
           (t
            lang))))
+
+(defun my/get-src-block-lang ()
+    (if-let* ((info (org-babel-get-src-block-info))
+              (lang (car info)))
+        lang
+        "emacs-lisp"))
 #+end_src
 
 Ниже находятся интерактивные функции для
