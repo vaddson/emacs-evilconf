@@ -10397,19 +10397,36 @@ LSP-сервер будет работать так же, как на локал
 
 ** Go
 
-На минималках.
-
 #+begin_src emacs-lisp :tangle yes
 (use-package go-mode
     :ensure t)
+(use-package go-ts-mode
+    :ensure t)
 (use-package ob-go
     :ensure t)
+(add-to-list 'major-mode-remap-alist '(go-mode . go-ts-mode))
 #+end_src
 
 Позаботимся о вычислении org-babel блоков.
 
 #+begin_src emacs-lisp :tangle yes
 (my/--register-org-babel 'go)
+#+end_src
+
+Поддержка tree-sitter.
+
+#+begin_src emacs-lisp :tangle yes
+(my/treesit-install-language-grammar
+ 'go
+ "https://github.com/tree-sitter/tree-sitter-go")
+#+end_src
+
+Настройка LSP-сервера. Достаточно просто установить =gopls= в систему:
+: sudo pacman -S gopls
+
+#+begin_src emacs-lisp :tangle yes
+(use-package lsp-mode
+    :hook (((go-mode go-ts-mode) . lsp-deferred)))
 #+end_src
 
 ** Groovy
