@@ -163,8 +163,8 @@
   - [[#клавиши-для-работы-в-org-mode][Клавиши для работы в org-mode]]
   - [[#переход-по-ссылкам][Переход по ссылкам]]
   - [[#функция-показа-и-скрытия-картинки-в-org-mode][Функция показа и скрытия картинки в org-mode]]
-  - [[#разнообразная-реакция-на-enter-ret][Разнообразная реакция на Enter (RET)]]
-  - [[#разнообразная-реакция-на-двойное-нажатие-мышки][Разнообразная реакция на двойное нажатие мышки]]
+  - [[#разнообразная-реакция-на-enter-ret-dwim][Разнообразная реакция на Enter (RET, dwim)]]
+  - [[#разнообразная-реакция-на-двойное-нажатие-мышки-mouse-dwim][Разнообразная реакция на двойное нажатие мышки (mouse, dwim)]]
   - [[#открытие-org-ссылки-в-том-же-окне][Открытие org-ссылки в том же окне]]
   - [[#директория-для-org-файлов-и-прочей-org-кухни][Директория для org-файлов и прочей org-кухни]]
   - [[#подгрузка-остальных-пакетов][Подгрузка остальных пакетов]]
@@ -310,6 +310,7 @@
   - [[#scala][Scala]]
   - [[#perl][Perl]]
 - [[#финалочки][Финалочки]]
+  - [[#возвращаем-поведение-по-умолчанию-для-переходов-по-ссылкам-в-режиме-редактирования][Возвращаем поведение по умолчанию для переходов по ссылкам в режиме редактирования]]
   - [[#чистка-статусной-панели-от-всего-лишнего-modeline][Чистка статусной панели от всего лишнего (modeline)]]
 
 * Lexical-binding. Лексические замыкания
@@ -1482,7 +1483,7 @@ follow-mode. Это удобно, когда буфер появляется в 
       scroll-preserve-screen-position t  ;; nil
       scroll-margin 0  ;; 0
       scroll-conservatively 10000  ;; 0
-      maximum-scroll-margin 0.0  ;; 0.25
+      maximum-scroll-margin 0.1  ;; 0.25
       scroll-up-aggressively 0.0   ;; nil
       scroll-down-aggressively 0.0)  ;; nil
 #+end_src
@@ -4178,10 +4179,14 @@ drawer'ов.
             t)))
 #+end_src
 
-** Разнообразная реакция на Enter (RET)
+** Разнообразная реакция на Enter (RET, dwim)
 
 При нажатии Enter попробуем узнать тип объекта под курсором и в
 зависимости от него вызвать соответствующую функцию.
+
+Сперва отключим переход на RET по ссылкам при редактировании. С
+некоторых пор какой-то из пакетов устанавливает переменную
+=org-return-follows-link= в t. В [[*Финалочки]["Финалочках"]] отключим это.
 
 Определим функцию для определения типа объекта под курсором.  Функция
 возвращает информацию о типе org-объекта, которая может быть одним из
@@ -4286,7 +4291,7 @@ drawer'ов.
                "RET" #'my/dwim-at-point)
 #+end_src
 
-** Разнообразная реакция на двойное нажатие мышки
+** Разнообразная реакция на двойное нажатие мышки (mouse, dwim)
 
 Пропишем аналогичное поведение на двойное нажатие мышки.
 Выделение слова стоит оставить не тронутым.
@@ -4348,8 +4353,28 @@ drawer'ов.
 вызов 'find-file-other-window на 'find-file.
 
 #+begin_src emacs-lisp :tangle yes
-(let* ((pair (assq 'file org-link-frame-setup)))
+(when-let* ((pair (assq 'file org-link-frame-setup)))
     (setcdr pair 'find-file))
+#+end_src
+
+Однако, оставим возможность переходить по ссылке в другом окне.
+
+#+begin_src emacs-lisp :tangle yes
+(defun my/link-to-other-window ()
+    (interactive)
+    (when-let* ((type (my/object-type-at-point))
+                (is-link (eq type 'link)))
+        (save-excursion
+            (switch-to-buffer-other-window (current-buffer)))
+        (my/dwim-at-point)))
+
+(define-key org-mode-map (kbd "S-<return>") nil)
+(define-key org-mode-map (kbd "S-RET") nil)
+
+(my/evil-define-key '(normal visual motion) 'org-mode-map
+                    "S-<return>" 'my/link-to-other-window)
+(my/evil-define-key '(normal visual motion) 'org-mode-map
+                    "S-RET" 'my/link-to-other-window)
 #+end_src
 
 ** Директория для org-файлов и прочей org-кухни
@@ -11223,6 +11248,12 @@ lsp-сервера.
 
 Здесь соберем все действия, которые нужно применить после установки
 всего остального.
+
+** Возвращаем поведение по умолчанию для переходов по ссылкам в режиме редактирования
+
+#+begin_src emacs-lisp :tangle yes
+(setq org-return-follows-link nil)
+#+end_src
 
 ** Чистка статусной панели от всего лишнего (modeline)
 
