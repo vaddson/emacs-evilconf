@@ -211,6 +211,7 @@
   - [[#eshell][eshell]]
   - [[#shell][shell]]
   - [[#vterm][vterm]]
+  - [[#eat][eat]]
   - [[#асинхронный-вызов-системных-команд-async-shell-command][Асинхронный вызов системных команд (async-shell-command)]]
 - [[#удаленный-доступ-tramp][Удаленный доступ (tramp)]]
   - [[#клавиши-для-функций-tramp][Клавиши для функций tramp]]
@@ -4781,11 +4782,14 @@ sudo pacman -S texlive
 
 ** LaTeX preview. Ручное изменение размеров формул (костыль)
 
-На одном из ноутов формулы стали не выше текстовой строки.  Полагаю,
-что софт ловит физический размер экрана и строит формулы по нему
-(больше разрешение - меньше формула).
+Размер картинки с формулой в org-mode сильно зависит от физического
+разрешения монитора. Из-за этого она может оказаться слишком маленькой
+или большой рядом с остальным текстом. Поправить это можно лишь
+вручную, подобрав параметр =:scale= в свойствах
+=org-format-latex-options=. Проще и лучше всего это сделать через
+customize.
 
-Сделаем костыль по увеличению и уменьшению формул.
+Ниже сделаем костыль, если customize трогать не хочется.
 
 #+begin_src emacs-lisp :tangle yes
 (defun my/latex-preview-scale-set (scale)
@@ -6386,6 +6390,72 @@ node.
 (my/leader-def nil 'override
     "o t" #'my/popup-vterm-toggle
     "o T" #'my/vterm-replace-toggle)
+#+end_src
+
+** eat
+
+Рассматриваю Eat, как альтернативу Vterm. Устанавливаем Eat.
+
+#+begin_src emacs-lisp :tangle yes
+(use-package eat
+    :quelpa (eat :fetcher git
+                 :url "https://codeberg.org/akib/emacs-eat"
+                 :files ("*.el" ("term" "term/*.el") "*.texi"
+                                "*.ti" ("terminfo/e" "terminfo/e/*")
+                                ("terminfo/65" "terminfo/65/*")
+                                ("integration" "integration/*")
+                                (:exclude ".dir-locals.el" "*-tests.el"))))
+(require 'eat)
+#+end_src
+
+Здесь просто запомню хуки для интеграции с Eat. Пока она мне не
+нужна.
+
+#+begin_src emacs-lisp :tangle yes
+;; ;; For `eat-eshell-mode'.
+;; (add-hook 'eshell-load-hook #'eat-eshell-mode)
+;; ;; For `eat-eshell-visual-command-mode'.
+;; (add-hook 'eshell-load-hook #'eat-eshell-visual-command-mode)
+#+end_src
+
+Вызов терминала Eat. Терминал создается по возможности свой для
+каждого рабочего пространства. Если буфер с таким терминалом уже
+создан, то он показывается в окне или окно с таким терминалом
+скрывается.
+
+#+begin_src emacs-lisp :tangle yes
+(defun my/popup-eat-toggle ()
+    (interactive)
+    (my/eat-toggle 'pop-to-buffer))
+
+(defun my/eat-replace-toggle ()
+    (interactive)
+    (my/eat-toggle 'switch-to-buffer))
+
+(defun my/eat-toggle (switch-func)
+    (let* ((eat-buffer-name (format "*eat-popup:%s*"
+                                    (my/--make-buffer-suffix)))
+           (buffer (get-buffer eat-buffer-name))
+           (window))
+        (unless buffer
+            (setq buffer (get-buffer-create eat-buffer-name))
+            (with-current-buffer buffer
+                (eat)))
+        (if-let ((window (get-buffer-window buffer)))
+            (delete-window window))
+        (funcall switch-func buffer)))
+
+(defun my/scratch-buffer-name-eat ()
+    (format "*eat-popup:%s*"
+            (my/--make-buffer-suffix)))
+#+end_src
+
+Запилим горячие клавиши на вызов окошка Eat.
+
+#+begin_src emacs-lisp :tangle yes
+(my/leader-def nil 'override
+    "o l" #'my/popup-eat-toggle
+    "o L" #'my/eat-replace-toggle)
 #+end_src
 
 ** Асинхронный вызов системных команд (async-shell-command)
@@ -8355,6 +8425,7 @@ Web-server не умеет справляться с заголовком авт
 
 #+begin_src emacs-lisp :tangle yes
 (defun my/llm-codework-inquire-further ()
+    (interactive)
     (when (and (string= (buffer-name) my/llm-codework-out-buffer)
                (org-current-level)
                (equal 2 (org-current-level)))
