@@ -168,7 +168,7 @@
   - [[#функция-показа-и-скрытия-картинки-в-org-mode][Функция показа и скрытия картинки в org-mode]]
   - [[#разнообразная-реакция-на-enter-ret-dwim][Разнообразная реакция на Enter (RET, dwim)]]
   - [[#разнообразная-реакция-на-двойное-нажатие-мышки-mouse-dwim][Разнообразная реакция на двойное нажатие мышки (mouse, dwim)]]
-  - [[#открытие-org-ссылки-в-том-же-окне][Открытие org-ссылки в том же окне]]
+  - [[#открытие-org-ссылки-в-том-же-окне-и-в-окне-соседнем][Открытие org-ссылки в том же окне и в окне соседнем]]
   - [[#директория-для-org-файлов-и-прочей-org-кухни][Директория для org-файлов и прочей org-кухни]]
   - [[#подгрузка-остальных-пакетов][Подгрузка остальных пакетов]]
   - [[#запуск-скриптов-в-org-babel-src-блоках][Запуск скриптов в org-babel src-блоках]]
@@ -2101,7 +2101,7 @@ prog-mode, поэтому делаем свою функцию проверки 
 (use-package consult
     :ensure t
     :config
-    (setq consult-preview-key nil
+    (setq consult-preview-key 'any
           consult-narrow-key "<"))
 #+end_src
 
@@ -2151,6 +2151,9 @@ prog-mode, поэтому делаем свою функцию проверки 
 
 #+begin_src emacs-lisp :tangle yes
 (setq company-minimum-prefix-length 2)
+(setq company-transformers '(company-sort-prefer-same-case-prefix
+                             company-sort-by-backend-importance
+                             company-sort-by-occurrence))
 #+end_src
 
 Назначим горячие клавиши для переключения ~company-mode~. Это нужно
@@ -2256,6 +2259,8 @@ Ctrl + jk.
 ** Consult-line. Живой поиск текста
 
 Поиск текста по открытому буферу с результатами в минибуфере.
+
+Горячие клавиши.
 
 #+begin_src emacs-lisp :tangle yes
 (my/leader-def nil 'override
@@ -4251,7 +4256,7 @@ drawer'ов.
 (advice-add #'evil-mouse-drag-region :around #'my/cancel-mouse-action)
 #+end_src
 
-** Открытие org-ссылки в том же окне
+** Открытие org-ссылки в том же окне и в окне соседнем
 
 Открывать org-ссылку в другом окне оказалось очень неудобно. Сделаем
 открытие ссылки в том же окне, где и сам org-файл. Правило это
@@ -8583,7 +8588,19 @@ Opencode и других. Страница на GitHub:
               (lambda ()
                   (when (string-match-p "\\*agent-shell-diff\\*" (buffer-name))
                       (evil-emacs-state)))))
+#+end_src
 
+Горячие клавиши.
+
+#+begin_src emacs-lisp :tangle yes
+(my/leader-def nil 'override
+               "l a" '(:ignore t :which-key "agent-shell")
+               "l a a" '(agent-shell :which-key "Select agent")
+               "l a o" '(agent-shell-opencode-start-agent
+                         :which-key "OpenCode")
+               "l a d" '(agent-shell-anthropic-start-claude-code
+                         :which-key "Claude-Code")
+               "l a u" '(agent-shell-cursor-start-agent))
 #+end_src
 
 * LSP сервер (vs Eglot)
@@ -10265,7 +10282,7 @@ lsp-mode (без eglot'а).
 
 #+begin_src emacs-lisp :tangle yes
 (add-hook 'prog-mode-hook 'company-mode)
-(add-to-list 'company-backends 'company-capf)
+;; (add-to-list 'company-backends 'company-capf)
 #+end_src
 
 Поддержка tree-sitter.
