@@ -3436,9 +3436,12 @@ Return history hash-map."
 Поиск файла по директории.
 
 #+begin_src emacs-lisp :tangle yes
+(use-package counsel
+    :ensure t)
+
 (defun my/find-file-in-directory ()
     (interactive)
-    (find-file-internal default-directory))
+    (counsel-file-jump))
 #+end_src
 
 Назначаем горячие клавиши для поиска.
