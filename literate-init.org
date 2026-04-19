@@ -2151,9 +2151,10 @@ prog-mode, поэтому делаем свою функцию проверки 
 
 #+begin_src emacs-lisp :tangle yes
 (setq company-minimum-prefix-length 2)
-(setq company-transformers '(company-sort-prefer-same-case-prefix
-                             company-sort-by-backend-importance
-                             company-sort-by-occurrence))
+;; (setq company-transformers '(company-sort-prefer-same-case-prefix
+;;                              company-sort-by-backend-importance
+;;                              company-sort-by-occurrence))
+(setq company-transformers '(company-sort-prefer-same-case-prefix))
 #+end_src
 
 Назначим горячие клавиши для переключения ~company-mode~. Это нужно
