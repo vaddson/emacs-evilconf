@@ -3059,16 +3059,10 @@ scratch-буфера (на замену стандартному "*scratch*").
                "f" '(:ignore t :which-key "files")
                "f s" '(save-buffer :which-key "Save file or buffer")
                "f S" '(write-buffer :which-key "Save file as")
-               "f d" '(my/find-file :which-key "Open directory or file")
-               "f f" '(my/find-file :which-key "Open file")
+               "f d" '(find-file :which-key "Open directory or file")
+               "f f" '(find-file :which-key "Open file")
                "f r" '(consult-recent-file :which-key "Open recent file")
                "o -" '(dired-jump :which-key "Open directory and select file"))
-
-(defun my/find-file (filename &optional wildcards)
-    (interactive
-     (find-file-read-args "Find file: "
-                          (confirm-nonexistent-file-or-buffer)))
-    (find-file filename wildcards))
 #+end_src
 
 ** Режим ранее открытых файлов
