@@ -219,7 +219,8 @@
 - [[#удаленный-доступ-tramp][Удаленный доступ (tramp)]]
   - [[#клавиши-для-функций-tramp][Клавиши для функций tramp]]
   - [[#ошибка-too-many-authentication-failures][Ошибка "Too many authentication failures"]]
-- [[#инструменты-внешние][Инструменты внешние]]
+- [[#инструменты][Инструменты]]
+  - [[#eww-встроенный-в-emacs-браузер][Eww. Встроенный в Emacs браузер]]
   - [[#treemacs][Treemacs]]
   - [[#magit][Magit]]
   - [[#git-timemachine][Git-timemachine]]
@@ -6421,7 +6422,20 @@ ssh: "Too many authentication failures".
                                  (tramp-parse-sconfig "~/.ssh/config")))
 #+end_src
 
-* Инструменты внешние
+* Инструменты
+
+** Eww. Встроенный в Emacs браузер
+
+Если поставить курсор на URL, то запуск eww сразу подставит его в
+строку запроса браузера перед открытием. Этим удобно, например,
+смотреть картинки по ссылкам. Это достойно горячей клавиши.
+
+Горячие клавиши.
+
+#+begin_src emacs-lisp :tangle yes
+(my/leader-def nil 'override
+               "o b" '(eww :which-key "EWW Browser"))
+#+end_src
 
 ** Treemacs
 
@@ -9474,11 +9488,11 @@ sudo apt install retext
 (lsp-ensure-server 'json-ls)
 #+end_example
 
-Поддержка tree-sitter. Слабенькая (json-ts-mode не тянет большие
-файлы), но если вручную выставить:
-: (json-ts-mode)
-: (combobulate-mode)
-то, может, редактировать JSON'ы будет удобнее.
+Поддержка tree-sitter.
+
+#+begin_src emacs-lisp :tangle yes
+(add-to-list 'auto-mode-alist '("\\.json\\'" . json-ts-mode))
+#+end_src
 
 #+begin_src emacs-lisp :tangle yes
 (my/treesit-install-language-grammar
@@ -11164,7 +11178,7 @@ dap-mode.
 (add-hook 'typescript-mode-hook 'my/--lsp-except-json)
 
 (defun my/--lsp-except-json ()
-    (unless (equal major-mode 'json-mode)
+    (unless (member major-mode '(json-mode json-ts-mode))
         (lsp)))
 #+end_src
 
