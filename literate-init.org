@@ -3328,6 +3328,7 @@ Return history hash-map."
                (org-mode)
                (goto-char 0)
                (org-next-link)
+               (my/set-word-wrap 1)
                (read-only-mode 1))))
 #+end_src
 
@@ -3625,7 +3626,7 @@ emacs-клиента.
 #+begin_src emacs-lisp :tangle yes
 (my/leader-def nil 'override
     "o F" '(my/make-frame-and-switch-perpective :which-key "Make frame and switch workspace")
-    "n I" '(my/set-title-bar-and-workspace-interactive :which-key "Set title for frame and workspace"))
+    "n I" '(my/set-title-bar-and-workspace-interactive :which-key "Title for frame+workspace"))
 #+end_src
 
 * Проекты (projects)
