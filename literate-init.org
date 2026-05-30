@@ -316,6 +316,7 @@
   - [[#scala][Scala]]
   - [[#perl][Perl]]
 - [[#финалочки][Финалочки]]
+  - [[#запрещаем-временно-ts-режимы-treesit-поломался][Запрещаем временно ts-режимы (treesit поломался)]]
   - [[#возвращаем-поведение-по-умолчанию-для-переходов-по-ссылкам-в-режиме-редактирования][Возвращаем поведение по умолчанию для переходов по ссылкам в режиме редактирования]]
   - [[#чистка-статусной-панели-от-всего-лишнего-modeline][Чистка статусной панели от всего лишнего (modeline)]]
 
@@ -9587,10 +9588,17 @@ Must be a list of pairs (begin . end).")
 
 * Программирование
 
+Здесь собраны инструменты для работы с кодом (редактирование,
+компиляция и пр.). Также здесь работаем с разными форматами текста,
+поскольку грань между текстом и кодом бывает расплывчатой (пример -
+PlantUML). Особняком тут держится работа с PDF.
+
 ** Навигация по ошибкам
 
-Запилим горячие клавиши для перемещения по ошибкам на основе flycheck
-(а для C++/C - flymake, потому что пока работает на Eglot+Clangd).
+Ошибки в коде выделяются редактором по общему для всех
+механизму. Запилим горячие клавиши для перемещения по ошибкам на
+основе flycheck (а для C++/C когда-то - flymake, но это устарело и
+присутствует в виде рудимента).
 
 #+begin_src emacs-lisp :tangle yes
 (my/leader-def nil 'override
@@ -9621,6 +9629,11 @@ Must be a list of pairs (begin . end).")
 #+end_src
 
 ** Компиляция (compile). Назначение клавиш
+
+Для компиляции чего либо можно вызвать функцию =compile=. Она
+позволить ввести команду для выполнения, а выхлоп команды будет
+собирать в буфер compile. Там же в буфере можно переходить на ошибки в
+исходниках.
 
 Для вызова асинхронной shell-команды есть стандартные клавиши:
 : M-&
@@ -9797,6 +9810,8 @@ sudo apt install retext
 
 ** Json
 
+Работа с Json: подсветка, навигация, разбор, форматирование и прочее.
+
 #+begin_src emacs-lisp :tangle yes
 (use-package json-mode
     :ensure t)
@@ -9881,11 +9896,15 @@ If BODY is a Elisp object, it is converted to JSON and then pretty-printed."
 
 ** Make
 
+Подсветка make-файлов.
+
 #+begin_src emacs-lisp :tangle yes
 (require 'make-mode)
 #+end_src
 
 ** Vimrc
+
+Подсветка vim script.
 
 #+begin_src emacs-lisp :tangle yes
 (use-package vimrc-mode
@@ -9898,6 +9917,10 @@ If BODY is a Elisp object, it is converted to JSON and then pretty-printed."
 По-умолчанию на выходе стоит "svg"-файл (есть еще "png" и "txt").
 Это неудобно для темных тем, поскольку все буквы идут черным цветом.
 Перейдем на "png" по-умолчанию.
+
+Наряду с plantuml-mode можно рисовать диаграммы в org-файлах,
+используя src-блоки - сформированная картинка с диаграммой будет
+результатом выполнения такого блока.
 
 #+begin_src emacs-lisp :tangle yes
 (use-package plantuml-mode
@@ -11609,6 +11632,59 @@ lsp-сервера.
 
 Здесь соберем все действия, которые нужно применить после установки
 всего остального.
+
+** Запрещаем временно ts-режимы (treesit поломался)
+
+Treesit как-то поломался - написал костыль - далее treesit
+починили. Но не пропадать же костылю, а вдруг пригодиться еще раз.
+
+Костыль на старте редактора вычищает из настроек все
+ts-режимы. Сработает, если в t установлена переменная
+=my/disable-ts-mode= (настраивается через customize).
+
+#+begin_src emacs-lisp :tangle yes
+(defcustom my/disable-ts-mode nil
+  "Disable treesit (*-ts-mode) if t."
+  :type 'boolean)
+#+end_src
+
+Функция, которая убирает из настроек ts-режимы.
+
+#+begin_src emacs-lisp :tangle yes
+(defun my/disable-ts-modes ()
+    (my/ts--remove-from-major-mode-remap-alist)
+    (my/ts--replace-in-auto-mode-alist))
+
+(defun my/ts--remove-from-major-mode-remap-alist ()
+    (setq major-mode-remap-alist
+          (cl-remove-if (lambda (pair)
+                            (let* ((mode (cdr pair))
+                                   (mode-name (symbol-name mode)))
+                                (string-search "-ts-" mode-name)))
+                        major-mode-remap-alist)))
+
+(defun my/ts--replace-in-auto-mode-alist ()
+    (setq auto-mode-alist
+          (mapcar (lambda (pair)
+                      (if-let* ((file-ext (car pair))
+                                (mode (cdr pair))
+                                (is-symbol (symbolp mode))
+                                (mode-name (symbol-name mode))
+                                (is-ts-mode (string-search "-ts-mode" mode-name))
+                                (mode-new-name (string-replace "-ts-mode"
+                                                               "-mode"
+                                                               mode-name)))
+                          (cons file-ext (intern mode-new-name))
+                          pair))
+                  auto-mode-alist)))
+#+end_src
+
+Убираем ts-режимы, если это прописано в customize.
+
+#+begin_src emacs-lisp :tangle yes
+(when my/disable-ts-mode
+    (my/disable-ts-modes))
+#+end_src
 
 ** Возвращаем поведение по умолчанию для переходов по ссылкам в режиме редактирования
 
