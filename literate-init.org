@@ -162,6 +162,7 @@
   - [[#начальная-инициализация-всей-org-кухни][Начальная инициализация всей org-кухни]]
   - [[#сквозные-идентификаторы-в-org-id-и-custom_id][Сквозные идентификаторы в org (ID и CUSTOM_ID)]]
   - [[#клавиши-для-работы-в-org-mode][Клавиши для работы в org-mode]]
+  - [[#новый-пункт-в-списке][Новый пункт в списке]]
   - [[#переход-по-ссылкам][Переход по ссылкам]]
   - [[#функция-показа-и-скрытия-картинки-в-org-mode][Функция показа и скрытия картинки в org-mode]]
   - [[#разнообразная-реакция-на-enter-ret-dwim][Разнообразная реакция на Enter (RET, dwim)]]
@@ -4160,6 +4161,49 @@ drawer'ов.
 	"[ l" nil
 	"] l" nil)
 (define-key org-mode-map (kbd "C-,") nil)
+#+end_src
+
+** Новый пункт в списке
+
+Не всегда функция org-ctrl-c-ret работает так, как хочется. Например,
+если на родительских уровнях списка есть разделительные пустые строки,
+то и новый пункт списка будет сделан с добавлением перед ним пустой
+строки, которую приходится удалять. Это неудобно.
+
+Сделаем функцию, которая создает новый пункт списка, не добавляя
+пустую строку. Если функция вызвана на пустой строке, то новый элемент
+списка будет создан на этой же строке. И параметр для чекбокса.
+
+#+begin_src emacs-lisp :tangle yes
+(defun my/org-new-list-item-new-line-check ()
+    (interactive)
+    (my/org-new-list-item-new-line t))
+
+(defun my/org-new-list-item-new-line (&optional check)
+    (interactive)
+    (unless (string-empty-p (my/get-current-line-trim))
+        (evil-open-below 0))
+    (my/org-new-list-item check))
+
+(defun my/org-new-list-item (&optional check)
+    (interactive)
+    (indent-for-tab-command)
+    (if check
+        (insert "- [ ] ")
+        (insert "- "))
+    (org-metaleft))
+
+(defun my/get-current-line-trim ()
+    (string-trim
+     (buffer-substring-no-properties (line-beginning-position)
+                                     (line-end-position))))
+#+end_src
+
+Повесим создание нового элемента списка на быстрые клавиши.
+
+#+begin_src emacs-lisp :tangle yes
+(define-key org-mode-map (kbd "M-o") 'my/org-new-list-item-new-line)
+(define-key org-mode-map (kbd "M-O") 'my/org-new-list-item-new-line-check)
 #+end_src
 
 ** Переход по ссылкам
