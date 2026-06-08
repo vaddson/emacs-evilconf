@@ -2144,8 +2144,20 @@ prog-mode, поэтому делаем свою функцию проверки 
 (use-package consult
     :ensure t
     :config
-    (setq consult-preview-key 'any
+    (setq consult-preview-key nil
           consult-narrow-key "<"))
+#+end_src
+
+Настраиваем предпоказ только для посика по буферу.
+
+#+begin_src emacs-lisp :tangle yes
+(consult-customize consult-line :preview-key 'any  ;; '(:debounce 0.3 any)
+                   consult-line-multi :preview-key 'any
+                   ;; For memory:
+                   consult-buffer      :preview-key nil
+                   consult-find        :preview-key nil
+                   consult-theme       :preview-key nil
+                   consult-yank-pop    :preview-key nil)
 #+end_src
 
 Горячие клавиши для основных функций Consult.
@@ -2159,7 +2171,7 @@ prog-mode, поэтому делаем свою функцию проверки 
                "h p" '(describe-package :which-key "Describe package")
                "h o" '(describe-symbol :which-key "Describe symbol")
                "h t" '(consult-theme :which-key "Load visual theme")
-               "h a" '(consult-apropos :which-key "Apropos")
+               "h a" '(counsel-apropos :which-key "Apropos")
                "h m" '(describe-mode :which-key "Describe mode")
                "h i" '(emacs-index-search :which-key "Emacs index search"))
 #+end_src
