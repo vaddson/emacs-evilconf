@@ -2144,7 +2144,7 @@ prog-mode, поэтому делаем свою функцию проверки 
 (use-package consult
     :ensure t
     :config
-    (setq consult-preview-key nil
+    (setq consult-preview-key 'any
           consult-narrow-key "<"))
 #+end_src
 
@@ -5826,6 +5826,8 @@ For example: 'or' logic instead of 'and' logic:
 Для основных документов вставим дату в поле `#+date:' - так мне
 привычней.
 
+Помимо основного тега "@main" добавим не наследуемый тег "<base".
+
 #+begin_src emacs-lisp :tangle yes
 (setq org-roam-capture-templates
       `(("d" "default" plain "%?"
@@ -5833,7 +5835,7 @@ For example: 'or' logic instead of 'and' logic:
              (file+head "main-roam/%<%Y%m%d%H%M%S>-${slug}.org"
                         ,(concat "#+title: ${title}" "\n"
                                  "#+date: %<%Y-%m-%d>" "\n"
-                                 "#+filetags: :@main:" "\n"))
+                                 "#+filetags: :@main:<base:" "\n"))
              :empty-lines-before 1
              :unnarrowed t)))
 #+end_src
@@ -5844,6 +5846,8 @@ For example: 'or' logic instead of 'and' logic:
 заметки. Сами заголовки делаем отдельными узлами. А еще добавим время
 создания заголовка (думаю, это может иногда пригодиться).
 
+Помимо основного тега "@daily" добавим не наследуемый тег "<base".
+
 #+begin_src emacs-lisp :tangle yes
 (setq org-roam-dailies-capture-templates
       `(("d" "default"
@@ -5853,7 +5857,7 @@ For example: 'or' logic instead of 'and' logic:
              (file+head "%<%Y-%m-%d>.org"
                         ,(concat "#+title: %<%Y-%m-%d>" "\n"
                                  "#+startup: content" "\n"
-                                 "#+filetags: :@daily:" "\n"))
+                                 "#+filetags: :@daily:<base:" "\n"))
              :empty-lines-before 1)))
 
 (defun my/org-roam--id-copy (node)
@@ -5894,6 +5898,8 @@ For example: 'or' logic instead of 'and' logic:
 меню создания заметки, и этот ключ должен быть уникальным. Выбор буквы
 для ключа автоматизируем.
 
+Помимо основного тега директории добавим не наследуемый тег "<base".
+
 #+begin_src emacs-lisp :tangle yes
 (defun my/org-roam--make-subdirectory-template (subdirectory-name)
     (let* ((subdirectory-name (string-replace " " "-"
@@ -5912,7 +5918,7 @@ For example: 'or' logic instead of 'and' logic:
           (file+head ,(concat subdirectory-name "/%<%Y%m%d%H%M%S>-${slug}.org")
                      ,(concat "#+title: ${title}" "\n"
                               "#+date: %<%Y-%m-%d>" "\n"
-                              "#+filetags: :@" subdirectory-name ":" "\n"))
+                              "#+filetags: :@" subdirectory-name ":<base:" "\n"))
           :unnarrowed t
           :empty-lines-before 1)))
 
