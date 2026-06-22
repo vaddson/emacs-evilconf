@@ -3563,12 +3563,18 @@ Return history hash-map."
 
 ** Поиск текста и файла по директории
 
-Функция поиска текста рекурсивно по текущей директории.
+Функция поиска текста рекурсивно по текущей директории. Под капотом у
+нее может быть две альтернативы:
+1. =consult-ripgrep= - выводит списками: файл и под ним найденные строки.
+2. =counsel-rg= - выводит один список, где имя файла и найденные
+   тексты строк находятся в одной строке списка.
 
 #+begin_src emacs-lisp :tangle yes
 (defun my/search-in-directory ()
     (interactive)
-    (consult-ripgrep))
+    (consult-ripgrep default-directory)
+    ;; (counsel-rg)  ;; Alternative.
+    )
 #+end_src
 
 Поиск файла по директории.
