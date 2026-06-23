@@ -661,6 +661,7 @@ GigaChat) запущен постоянно, то выключим запрос 
 #+begin_src emacs-lisp :tangle yes
 (use-package evil
     :ensure t
+    :pin "melpa-stable"
     :init
     ;; (setq evil-undo-system 'undo-tree)
     (setq evil-want-keybinding nil)
@@ -732,6 +733,7 @@ GigaChat) запущен постоянно, то выключим запрос 
 #+begin_src emacs-lisp :tangle yes
 (use-package evil-collection
     :ensure t
+    :pin "melpa-stable"
     :config
     (evil-collection-init))
 #+end_src
@@ -969,7 +971,8 @@ GigaChat) запущен постоянно, то выключим запрос 
           (maximum-scroll-margin 0.0)
           (scroll-up-aggressively 0.0)
           (scroll-down-aggressively 0.0))
-        (evil-scroll-line-to-top-first-non-blank count)
+        (evil-scroll-line-to-top count)
+        ;; (evil-scroll-line-to-top-first-non-blank count)
         (evil-next-line)))
 #+end_src
 
@@ -1046,9 +1049,16 @@ GigaChat) запущен постоянно, то выключим запрос 
 #+end_src
 
 Напишем функцию, которая в указанном (или активном) фрейме в
-зависимости от ширины экрана выбирает один из двух шрифтов.
+зависимости от ширины экрана выбирает один из двух шрифтов. Поскольку
+возможность не угадать размер всегда остается, то предусмотрим
+катсомную переменную =my/font-total-scale=, в которой зададим
+возможность подкрутить размер шрифта под кривые данные монитора.
 
 #+begin_src emacs-lisp :tangle yes
+(defcustom my/font-total-scale 1.0
+  "Scale for all fonts (float). Default is 1.0."
+  :type 'float)
+
 (defun my/select-frame-font-for-monitor (frame font-dec font font-inc font-hug)
     (my/ensure-fonts frame)
     (when (and font-dec font font-inc font-hug)
@@ -1066,7 +1076,8 @@ GigaChat) запущен постоянно, то выключим запрос 
     (let* ((monitor-attrs (frame-monitor-attributes frame))
            (points (nth 3 (assoc 'workarea monitor-attrs)))
            (mm-width (cl-second (assoc 'mm-size monitor-attrs)))
-           (dpmm (if mm-width (/ points (float mm-width)) 5.0)))
+           (dpmm (if mm-width (/ points (float mm-width)) 5.0))
+           (dpmm (* dpmm my/font-total-scale)))
         (cond ((> dpmm 6.4) 'hugo)
               ((> dpmm 6.0) 'big)
               ((> dpmm 4.0) 'normal)
