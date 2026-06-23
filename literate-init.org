@@ -4512,10 +4512,12 @@ drawer'ов.
 (defun my/link-to-other-window ()
     (interactive)
     (when-let* ((type (my/object-type-at-point))
-                (is-link (eq type 'link)))
+                (is-link (member type '(link link-image))))
         (save-excursion
             (switch-to-buffer-other-window (current-buffer)))
-        (my/dwim-at-point)))
+        (if (eq type 'link-image)
+            (my/open-picture-in-same-window)
+            (my/dwim-at-point))))
 
 (define-key org-mode-map (kbd "S-<return>") nil)
 (define-key org-mode-map (kbd "S-RET") nil)
@@ -5115,10 +5117,13 @@ customize.
     (when-let* ((element (org-element-context))
                 (file-p (equal "file" (org-element-property :type element)))
                 (raw-link (org-element-property :raw-link element))
-                (file (if (string= "file" (car (split-string raw-link ":")))
-                          (substring raw-link (length "file:"))
-                          raw-link)))
+                (file (my/extract-file-name-from-link raw-link)))
         (find-file file)))
+
+(defun my/extract-file-name-from-link (file-link)
+    (if (string= "file" (car (split-string file-link ":")))
+        (substring file-link (length "file:"))
+        file-link))
 #+end_src
 
 Горячие клавиши.
