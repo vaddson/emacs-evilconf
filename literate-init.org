@@ -248,6 +248,7 @@
   - [[#общие-клавиши][Общие клавиши]]
   - [[#ollama-buddy-клиент-для-ollama][Ollama-buddy (клиент для Ollama)]]
   - [[#gptel-простой-llm-клиент-для-emacs][GPTel (простой LLM-клиент для Emacs)]]
+  - [[#gptel-выбор-модели-заданного-бекэнда][GPTel. Выбор модели заданного бекэнда]]
   - [[#gptel-подключаем-deepseek][GPTel. Подключаем DeepSeek]]
   - [[#gptel-подключаем-ollama][GPTel. Подключаем Ollama]]
   - [[#gptel-подключаем-gigachat][GPTel. Подключаем GigaChat]]
@@ -661,7 +662,6 @@ GigaChat) запущен постоянно, то выключим запрос 
 #+begin_src emacs-lisp :tangle yes
 (use-package evil
     :ensure t
-    :pin "melpa-stable"
     :init
     ;; (setq evil-undo-system 'undo-tree)
     (setq evil-want-keybinding nil)
@@ -733,7 +733,6 @@ GigaChat) запущен постоянно, то выключим запрос 
 #+begin_src emacs-lisp :tangle yes
 (use-package evil-collection
     :ensure t
-    :pin "melpa-stable"
     :config
     (evil-collection-init))
 #+end_src
@@ -745,8 +744,8 @@ GigaChat) запущен постоянно, то выключим запрос 
     :ensure t)
 (use-package evil-easymotion
     :ensure t)
-(use-package evil-embrace
-    :ensure t)
+;; (use-package evil-embrace
+;;     :ensure t)
 (use-package evil-escape
     :ensure t)
 (use-package evil-exchange
@@ -7984,6 +7983,27 @@ gptel-mode, в заголовок файла можно воткнуть ком�
                          :which-key "GPTel mode header"))
 #+end_src
 
+** GPTel. Выбор модели заданного бекэнда
+
+ Функция выбора модели у указанного бекэнда. При вызове сперва
+ обновляет список моделей.
+
+#+begin_src emacs-lisp :tangle yes
+(defun my/gptel--select-backend-model (backend-name)
+    (when-let* ((make-backend-func (gethash backend-name my/gptel--backends-hash))
+                (backend (funcall make-backend-func backend-name))
+                (models-symbols (gptel-backend-models backend))
+                (models-names (mapcar 'symbol-name models-symbols))
+                (model (completing-read "Select model: "
+                                        models-names
+                                        nil nil
+                                        (car models-names)))
+                (model (my/find-symbol-with-same-name (intern model)
+                                                      models-symbols)))
+        (setq gptel-backend backend)
+        (setq gptel-model model)))
+#+end_src
+
 ** GPTel. Подключаем DeepSeek
 
 Через customize устанавливаем API ключ DeepSeek в переменную
@@ -8050,6 +8070,21 @@ my/deepseek-api-key.
                                     :stream t
                                     :models (my/gptel-get-ollama-models-names)
                                     :request-params my/gptel-def-request-params)))
+#+end_src
+
+Повесим быстрое переключение на Ollama на горячие клавиши. При
+переключении сначала обновится список локальных моделей, а потом будет
+предложено выбрать одну из них. И повесим на горячие клавиши.
+
+Пригодится, если есть возможность запускать локальные модели.
+
+#+begin_src emacs-lisp :tangle yes
+(defun my/gptel-switch-to-ollama ()
+    (interactive)
+    (my/gptel--select-backend-model "Ollama"))
+
+(my/leader-def nil 'override
+               "l g L" '(my/gptel-switch-to-ollama :which-key "Switch to Ollama"))
 #+end_src
 
 ** GPTel. Подключаем GigaChat
@@ -10565,9 +10600,10 @@ Pyright лучше установить в системе через npm (не �
 
 (use-package lsp-haskell
     :ensure t
+    :hook ((haskell-mode-hook
+            haskell-ts-mode-hook
+            haskell-literate-mode-hook) . lsp)
     :config
-    (add-hook 'haskell-mode-hook #'lsp)
-    (add-hook 'haskell-literate-mode-hook #'lsp)
     ;; (customize-group 'lsp-haskell)
     )
 
@@ -11662,10 +11698,10 @@ dap-mode.
 #+begin_src emacs-lisp :tangle yes
 (use-package js2-mode
     :ensure t)
-(lsp-ensure-server 'jsts-ls)
 (use-package typescript-mode
     :ensure t)
 (lsp-ensure-server 'ts-ls)
+(lsp-ensure-server 'jsts-ls)
 #+end_src
 
 И назначим соответствующие хуки...
