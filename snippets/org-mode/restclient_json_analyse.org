@@ -3,15 +3,15 @@
 # key: restclient_json_analyse
 # --
 #+name: ${1:json_result}
-#+begin_src restclient :results value :wrap export json :cache yes
+#+begin_src restclient :results value :wrap export json :cache yes :hidden
 $0
 #+end_src
 
-#+begin_src python :var json_result=$1 :results pp :wrap export js
+#+begin_src python :var json_result=$1 :results output :wrap "src json :eval no" :hidden
 def vals(container, *fields):
-    return [container[field] for field in fields]
+    return {field: container[field] for field in fields}
 
 import json
 data = json.loads(json_result)
-return data
+print(json.dumps(data, ensure_ascii=False, indent=4))
 #+end_src
