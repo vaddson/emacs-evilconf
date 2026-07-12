@@ -8938,12 +8938,12 @@ Web-server не умеет справляться с заголовком авт
 
 (defun my/llm-codework-callback (header text out-buffer response _info)
     (when (and response
+               (stringp response)
                (not (string-empty-p response)))
         (my/llm-codework-switch-to-out-buffer out-buffer)
         (my/llm-codework--delete-wait (plist-get _info :position))
         (insert (gptel--convert-markdown->org response))
-        (insert "\n")
-        ))
+        (insert "\n")))
 
 (setq my/llm-codework--wait-text "Wait ...")
 
