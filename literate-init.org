@@ -10471,7 +10471,8 @@ Pyright лучше установить в системе через npm (не �
 (my/leader-def nil 'override
                "c v" '(:ignore t :which-key "python venv")
                "c v a" '(my/pyvenv-activate :which-key "Activate venv")
-               "c v i" '(my/pyvenv-select-path :which-key "Select venv"))
+               "c v i" '(my/pyvenv-select-path :which-key "Select venv")
+               "c v d" '(pyvenv-deactivate :which-key "Deactivate venv"))
 #+end_src
 
 ** COMMENT Python. UV-mode
