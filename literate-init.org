@@ -255,7 +255,7 @@
     - [[#материалы-только-информация-и-ссылки][Материалы (только информация и ссылки)]]
     - [[#получение-access-token][Получение access token]]
     - [[#настройки][Настройки]]
-    - [[#proxy-в-api-gigachat][Proxy в API Gigachat]]
+  - [[#proxy-в-api-gigachat][Proxy в API Gigachat]]
   - [[#работа-с-кодом-автодополнение-оптимизация-и-прочее][Работа с кодом (автодополнение, оптимизация и прочее)]]
     - [[#буфер-для-результатов-работы-с-кодом][Буфер для результатов работы с кодом]]
     - [[#функции-работы-с-кодом][Функции работы с кодом]]
@@ -8361,17 +8361,19 @@ my/gptel-gigachat-access-token.
 
 Мне не удалось посылать через GPTel запросы в GigaChat через curl. Но
 без curl не работает стриминг ответа в буфере. Поэтому запретим
-пользоваться curl'ом только для буферов с GigaChat.
+пользоваться curl'ом только для буферов с +GigaChat+ - для всех
+буферов, с Ollama тоже фокусы.
 
 #+begin_src emacs-lisp :tangle yes
 (defun my/gptel-set-curl-mode ()
-    (setq-local gptel-use-curl (not (equal "GigaChat"
-                                           (gptel-backend-name gptel-backend)))))
+    ;; (setq-local gptel-use-curl (not (equal "GigaChat"
+    ;;                                        (gptel-backend-name gptel-backend))))
+    )
 
 (add-hook 'gptel-mode-hook 'my/gptel-set-curl-mode)
 #+end_src
 
-*** Proxy в API Gigachat
+** Proxy в API Gigachat
 
 Будем хранить URL к Гиге и фальшивый ключ в этих переменных.
 
