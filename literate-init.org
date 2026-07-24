@@ -52,7 +52,7 @@
   - [[#general-назначение-клавиш-на-помощь-evil][General (назначение клавиш на помощь evil)]]
   - [[#прокрутка-строки-к-верху-окна][Прокрутка строки к верху окна]]
 - [[#внешний-вид-ui-и-gui][Внешний вид UI и GUI]]
-  - [[#автоматическая-установка-шрифтов][Автоматическая установка шрифтов]]
+  - [[#автоматическая-установка-шрифтов-под-монитор][Автоматическая установка шрифтов под монитор]]
   - [[#установка-nerd-шрифтов-иконочки][Установка nerd-шрифтов (иконочки)]]
   - [[#мигание-курсора][Мигание курсора]]
   - [[#подсветка-строки-с-курсором][Подсветка строки с курсором]]
@@ -986,7 +986,7 @@ GigaChat) запущен постоянно, то выключим запрос 
 
 * Внешний вид UI и GUI
 
-** Автоматическая установка шрифтов
+** Автоматическая установка шрифтов под монитор
 
 Для маленького монитора в 14" удобнее взять шрифт побольше.  Поскольку
 отображение текста в Emacs не подстраивается к текущему DPI, напишем
@@ -1016,6 +1016,26 @@ GigaChat) запущен постоянно, то выключим запрос 
                          (:family "Monospace" :size-dec 8 :size 9 :size-inc 10 :size-hug 13)))
 #+end_src
 
+Поскольку плотность точек на мониторе не всегда отдается правильно, то
+зададим две переменные, позволяющие подкрутить размер шрифтов в нужную
+сторону:
+- =my/font-size-shift= - прибавит свое значение к размерам шрифтов,
+  указанных в структуре my/font-families. Для получения эффекта
+  редактор надо будет перезагрузить.
+- =my/font-total-scale= - домножает плотность монитора на свое
+  значение.
+
+#+begin_src emacs-lisp :tangle yes
+(defcustom my/font-size-shift 0
+  "Add this value to fonts sizes. Default is 1.
+Restart Emacs after changing it."
+  :type 'integer)
+
+(defcustom my/font-total-scale 1.0
+  "Scale for all fonts (float). Default is 1.0."
+  :type 'float)
+#+end_src
+
 Теперь напишем подстраховку на наличие в системе шрифтов.  Работать это
 будет только при живом фрейме.
 
@@ -1034,10 +1054,10 @@ GigaChat) запущен постоянно, то выключим запрос 
         (when my/frame-font-families
             (dolist (row my/font-families)
                 (let ((family (plist-get row :family))
-                      (size-dec (plist-get row :size-dec))
-                      (size (plist-get row :size))
-                      (size-inc (plist-get row :size-inc))
-                      (size-hug (plist-get row :size-hug)))
+                      (size-dec (+ (plist-get row :size-dec) my/font-size-shift))
+                      (size (+ (plist-get row :size) my/font-size-shift))
+                      (size-inc (+ (plist-get row :size-inc) my/font-size-shift))
+                      (size-hug (+ (plist-get row :size-hug) my/font-size-shift)))
                     (when (member family my/frame-font-families)
                         (setq my/global-font-dec (format "%s-%s" family size-dec)
                               my/global-font (format "%s-%s" family size)
@@ -1048,16 +1068,9 @@ GigaChat) запущен постоянно, то выключим запрос 
 #+end_src
 
 Напишем функцию, которая в указанном (или активном) фрейме в
-зависимости от ширины экрана выбирает один из двух шрифтов. Поскольку
-возможность не угадать размер всегда остается, то предусмотрим
-катсомную переменную =my/font-total-scale=, в которой зададим
-возможность подкрутить размер шрифта под кривые данные монитора.
+зависимости от ширины экрана выбирает один из двух шрифтов.
 
 #+begin_src emacs-lisp :tangle yes
-(defcustom my/font-total-scale 1.0
-  "Scale for all fonts (float). Default is 1.0."
-  :type 'float)
-
 (defun my/select-frame-font-for-monitor (frame font-dec font font-inc font-hug)
     (my/ensure-fonts frame)
     (when (and font-dec font font-inc font-hug)
