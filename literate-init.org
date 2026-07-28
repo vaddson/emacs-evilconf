@@ -1027,7 +1027,7 @@ GigaChat) запущен постоянно, то выключим запрос 
 
 #+begin_src emacs-lisp :tangle yes
 (defcustom my/font-size-shift 0
-  "Add this value to fonts sizes. Default is 1.
+  "Add this value to fonts sizes.
 Restart Emacs after changing it."
   :type 'integer)
 
