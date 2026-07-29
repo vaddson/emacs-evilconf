@@ -1011,9 +1011,18 @@ GigaChat) запущен постоянно, то выключим запрос 
 3. 6.193 = 1920 / 310 -- 14", округляем до 6.
 
 #+begin_src emacs-lisp :tangle yes
-(setq my/font-families '((:family "JetBrains Mono" :size-dec 8 :size 9 :size-inc 10 :size-hug 13)
-                         (:family "Liberation Mono" :size-dec 8 :size 9 :size-inc 10 :size-hug 13)
-                         (:family "Monospace" :size-dec 8 :size 9 :size-inc 10 :size-hug 13)))
+(defcustom my/font-families
+  '((:family "Iosevka" :size-dec 9 :size 10 :size-inc 11 :size-hug 14)
+    (:family "JetBrains Mono" :size-dec 8 :size 9 :size-inc 10 :size-hug 13)
+    (:family "Liberation Mono" :size-dec 8 :size 9 :size-inc 10 :size-hug 13)
+    (:family "Monospace" :size-dec 8 :size 9 :size-inc 10 :size-hug 13))
+  "List of font families with size variants."
+  :type '(repeat (list (const :family) string
+                  (const :size-dec) integer
+                  (const :size) integer
+                  (const :size-inc) integer
+                  (const :size-hug) integer))
+  :group 'my-faces)
 #+end_src
 
 Поскольку плотность точек на мониторе не всегда отдается правильно, то
@@ -1027,12 +1036,12 @@ GigaChat) запущен постоянно, то выключим запрос 
 
 #+begin_src emacs-lisp :tangle yes
 (defcustom my/font-size-shift 0
-  "Add this value to fonts sizes.
+  "Add this value to fonts sizes (integer).
 Restart Emacs after changing it."
   :type 'integer)
 
 (defcustom my/font-total-scale 1.0
-  "Scale for all fonts (float). Default is 1.0."
+  "Scale for all fonts (float)."
   :type 'float)
 #+end_src
 
