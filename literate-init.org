@@ -6630,6 +6630,20 @@ emacs-lisp. Одна из его полезностей заключается �
     (setq vterm-max-scrollback 100000))
 #+end_src
 
+Дружим Vterm c Evil. Для этого надо отключить vi-режим в терминале.
+
+#+begin_src emacs-lisp :tangle yes
+(setopt vterm-keymap-exceptions
+        '("C-c" "C-x" "C-u" "C-g" "C-h" "C-l"
+          "M-x" "M-o" "C-v" "M-v" "C-y" "M-y" "C-w"
+          "C-\\" "C-r"))
+
+(defun my/vterm--set-emacs-mode ()
+    (vterm-send-string " set -o emacs\n"))
+
+(add-hook 'vterm-mode-hook 'my/vterm--set-emacs-mode)
+#+end_src
+
 Вызов терминала vterm. Терминал создается по возможности свой для
 каждого проекта или рабочего пространства. Если буфер с таким
 терминалом уже создан, то он показывается в окне.
