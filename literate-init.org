@@ -264,6 +264,7 @@
     - [[#aider-в-связке-с-ollama-qwen-code][Aider в связке с Ollama (qwen-code)]]
     - [[#aider-в-связке-с-gigachatом][Aider в связке с GigaChat'ом]]
   - [[#agent-shell][Agent-shell]]
+  - [[#macher-работа-с-проектом-через-gptel][Macher. Работа с проектом через Gptel]]
 - [[#lsp-сервер-vs-eglot][LSP сервер (vs Eglot)]]
   - [[#установка-1][Установка]]
   - [[#всегда-параметр-запуска-отдельным-инстансом][Всегда параметр запуска отдельным инстансом]]
@@ -2965,6 +2966,18 @@ Spacemacs. Код находится в файле [[./funcs.el][funcs.el]].
 
         ;; Json pretty show
         ("^\\*json-pretty-show\\*$")
+
+        ;; Macher
+        ("\\*macher:.*\\*")
+        ("\\*macher-patch:.*\\*")
+
+      ;; ;; Macher (as recommended)
+        ;; ("\\*macher:.*\\*"
+        ;;  (display-buffer-in-side-window)
+        ;;  (side . bottom))
+        ;; ("\\*macher-patch:.*\\*"
+        ;;  (display-buffer-in-side-window)
+        ;;  (side . right))
 
         ;; Other buffers with name like "*Name*"
         ("^\\*.*\\*<.*>$"
@@ -9133,6 +9146,51 @@ Opencode и других. Страница на GitHub:
                "l a d" '(agent-shell-anthropic-start-claude-code
                          :which-key "Claude-Code")
                "l a u" '(agent-shell-cursor-start-agent))
+#+end_src
+
+** Macher. Работа с проектом через Gptel
+
+Установка.
+
+#+begin_src emacs-lisp :tangle yes
+(use-package macher
+    :ensure t
+    :custom
+    (macher-action-buffer-ui 'org)
+    :config
+    (macher-install)
+    (macher-enable)
+    :hook
+    (macher-action-buffer-setup . my/macher--on-buffer-setup-hook)
+    ;; ;; Adjust buffer positioning to taste.
+    ;; (add-to-list 'display-buffer-alist
+    ;;              '("\\*macher:.*\\*"
+    ;;                (display-buffer-in-side-window)
+    ;;                (side . bottom)))
+    ;; (add-to-list 'display-buffer-alist
+    ;;              '("\\*macher-patch:.*\\*"
+    ;;                (display-buffer-in-side-window)
+    ;;                (side . right)))
+    )
+
+(defun my/macher--on-buffer-setup-hook ()
+    (setq-local window-point-insertion-type t)
+    (visual-line-mode 1))
+#+end_src
+
+Горячие клавиши.
+
+#+begin_src emacs-lisp :tangle yes
+(my/leader-def nil 'override
+               "l m" '(:ignore t :which-key "macher")
+               "l m k" '(macher-abort :which-key "Abort request")
+               "l m a" '(macher-action :whick-key "Action")
+               "l m d" '(macher-discuss :which-key "Discuss")
+               "l m f" '(macher-focus-string :which-key "Focus string")
+               "l m i" '(macher-implement :which-key "Implement")
+               "l m q" '(macher-process-request :which-key "Process request")
+               "l m w" '(macher-process-request-dwim :whick-key "DWIM process request")
+               "l m r" '(macher-revise :which-key "Revise"))
 #+end_src
 
 * LSP сервер (vs Eglot)
