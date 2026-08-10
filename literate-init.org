@@ -4280,6 +4280,12 @@ drawer'ов.
 (define-key org-mode-map (kbd "C-,") nil)
 #+end_src
 
+Вызов календарика из любого буфера.
+
+#+begin_src emacs-lisp :tangle yes
+(global-set-key (kbd "C-c C-.") 'org-goto-calendar)
+#+end_src
+
 ** Новый пункт в списке
 
 Не всегда функция org-ctrl-c-ret работает так, как хочется. Например,
@@ -9150,7 +9156,47 @@ Opencode и других. Страница на GitHub:
 
 ** Macher. Работа с проектом через Gptel
 
-Установка.
+Macher - это агент для работы с много-файловыми проектами, подобно
+Aider, Pi или Claude, но нативный для Emacs. Контекстное окно Macher
+держит в org-буфере, дополняя его по мере необходимости. Заголовки в
+этом буфере - вопросы и задания. При необходимости что-то изменить в
+проекте Macher создает diff-буфер, который можно применить командой
+diff-apply-buffer (с записью в файлах) или diff-apply-hunk (только в
+буфере).
+
+Ниже привожу немного сценариев использования Macher:
+
+- Планирование выполнения задачи ::
+  1) Вызываем macher-discuss и вводим постановку задачи в
+     минибуфере. Если текст большой и вводить его в минибуфере
+     неудобно, то можно приготовить его где угодно, выделить и вызвать
+     macher-discuss.
+  2) В отдельном буфере Macher повторит запрос в виде org-заголовка,
+     выведет нужные контекст и даст ответ. Если ответ
+     неудовлетворителен, то можно продолжить диалог с моделью через
+     masher-discuss или прямо в окне, вводя запросы в новых
+     подзаголовках.
+  3) Удовлетворительный ответ может понадобиться сохранить в файл или
+     дать команду на выполнение. Для этого используем команду
+     macher-implement ровно таким же образом, как и macher-discuss.
+     Вместо явного вызова macher-discuss можно в начале запроса
+     поставить пресет @macher. Пример:
+     : @macher Хорошо. Теперь выполни задание.
+  4) Если diff чем-то не удовлетворяет, то можно сделать уточнение
+     через macher-revise.
+  5) Если с diff все хорошо, применяем к нему diff-apply-buffer или
+     diff-apply-hunk.
+
+- Выполнить задачу ::
+  + То же самое, что и в предыдущем сценарии, но начинаем сразу с
+    macher-implement.
+
+- Поправить ошибку в выхлопе или упавший тест ::
+  1) Выделяем выхлоп, содержащий информацию о проблеме, и вызываем
+     macher-implement.
+  2) Далее, как везде.
+
+Установка Macher.
 
 #+begin_src emacs-lisp :tangle yes
 (use-package macher
@@ -9178,6 +9224,35 @@ Opencode и других. Страница на GitHub:
     (visual-line-mode 1))
 #+end_src
 
+Костыль для применения diff-apply-buffer. В Emacs 30 эта функция не
+умеет работать с файлами (создавать и переименовывать). Но можно
+воспользоваться внешней командой "git apply -" (разумеется, только для
+проектов Git).
+
+#+begin_src emacs-lisp :tangle yes
+(defun my/git-apply-buffer ()
+    (interactive)
+    (if (= emacs-major-version 30)
+        (let ((default-directory (my/macher-get-default-directory)))
+            (if (my/get-git-apply-region-result)
+                (message "Patch applied successfully.")
+                (message "Patch failed. See *git-apply-errors* for details.")))
+        (diff-apply-buffer)))
+
+(defun my/macher-get-default-directory ()
+    (or (when-let ((proj (project-current)))
+            (project-root proj))
+        (vc-root-dir)
+        default-directory))
+
+(defun my/get-git-apply-region-result ()
+    (zerop
+     (shell-command-on-region (point-min) (point-max)
+                              "git apply -"
+                              t nil
+                              "*git-apply-errors*")))
+#+end_src
+
 Горячие клавиши.
 
 #+begin_src emacs-lisp :tangle yes
@@ -9190,7 +9265,8 @@ Opencode и других. Страница на GitHub:
                "l m i" '(macher-implement :which-key "Implement")
                "l m q" '(macher-process-request :which-key "Process request")
                "l m w" '(macher-process-request-dwim :whick-key "DWIM process request")
-               "l m r" '(macher-revise :which-key "Revise"))
+               "l m r" '(macher-revise :which-key "Revise")
+               "l m y" '(my/git-apply-buffer :which-key "Apply diff buffer"))
 #+end_src
 
 * LSP сервер (vs Eglot)
