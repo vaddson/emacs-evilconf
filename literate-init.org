@@ -3985,13 +3985,42 @@ emacs-клиента.
 Тут собраны в основном исключения для Python-проектов.
 
 #+begin_src emacs-lisp :tangle yes
-(setq grep-find-ignored-directories '("SCCS" "RCS" "CVS" "MCVS" ".src" ".svn" ".git" ".hg" ".bzr" "_MTN" "_darcs" "{arch}" "__pycache__" "build" "develop-eggs" "dist" "dist_local" "eggs" ".eggs" "sdist" ".pytest_cache" "env" "venv" "ENV" "env.bak" "venv.bak" ".mypy_cache" "build" ".ccls-cache")
-      grep-find-ignored-files (append grep-find-ignored-files '("TAGS" "tags"))
-      helm-grep-ignored-directories '("SCCS/" "RCS/" "CVS/" "MCVS/" ".svn/" ".git/" ".hg/" ".bzr/" "_MTN/" "_darcs/" "{arch}/" ".gvfs/" "__pycache__/" "build/" "develop-eggs/" "dist/" "dist_local/" "eggs/" ".eggs/" "sdist/" ".pytest_cache/" "env/" "venv/" "ENV/" "env.bak/" "venv.bak/" ".mypy_cache/" "build/" ".ccls-cache")
-      projectile-globally-ignored-directories '("~/.emacs.d/.local/" "~/.emacs.d/.local/" "~/.emacs.d/.local/" ".idea" ".vscode" ".ensime_cache" ".eunit" ".git" ".hg" ".fslckout" "_FOSSIL_" ".bzr" "_darcs" ".tox" ".svn" ".stack-work" ".ccls-cache" ".cache" ".clangd" "__pycache__" "build" "develop-eggs" "dist" "dist_local" "eggs" ".eggs" "sdist" ".pytest_cache" "env" "venv" "ENV" "env.bak" "venv.bak" ".mypy_cache" "build" ".ccls-cache")
-      projectile-globally-ignored-file-suffixes '(".elc" ".pyc" ".o" ".coverage" ".cache" ".ipynb_checkpoints" ".egg" ".pyo" ".pyd" ".cover" ".egg-info" "TAGS" "tags")
-      projectile-globally-ignored-files '(".DS_Store" "TAGS" "tags")
-)
+(setq grep-find-ignored-directories
+      '("SCCS" "RCS" "CVS" "MCVS" ".src" ".svn" ".git" ".hg" ".bzr"
+        "_MTN" "_darcs" "{arch}"
+        "__pycache__" "build" "develop-eggs"
+        "dist" "dist_local" "eggs" ".eggs" "sdist" ".pytest_cache"
+        "env" ".env" "venv" ".venv" "ENV" ".ENV"
+        "env.bak" ".env.bak" "venv.bak" ".venv.bak"
+        ".mypy_cache" "build" ".ccls-cache"))
+(setq grep-find-ignored-files
+      (append grep-find-ignored-files '("TAGS" "tags")))
+(setq helm-grep-ignored-directories
+      '("SCCS/" "RCS/" "CVS/" "MCVS/" ".svn/" ".git/" ".hg/" ".bzr/"
+        "_MTN/" "_darcs/" "{arch}/" ".gvfs/"
+        "__pycache__/" "build/" "develop-eggs/"
+        "dist/" "dist_local/" "eggs/" ".eggs/" "sdist/" ".pytest_cache/"
+        "env/" ".env/" "venv/" ".venv/" "ENV/" ".ENV/"
+        "env.bak/" ".env.back/" "venv.bak/" ".venv.bak/"
+        ".mypy_cache/" "build/" ".ccls-cache"))
+(setq projectile-globally-ignored-directories
+      '("~/.emacs.d/.local/" "~/.emacs.d/.local/" "~/.emacs.d/.local/"
+        ".idea" ".vscode" ".ensime_cache" ".eunit"
+        ".git" ".hg" ".fslckout" "_FOSSIL_" ".bzr"
+        "_darcs" ".tox" ".svn" ".stack-work"
+        ".ccls-cache" ".cache" ".clangd"
+        "__pycache__" "build" "develop-eggs"
+        "dist" "dist_local" "eggs" ".eggs" "sdist" ".pytest_cache"
+        "env" ".env" "venv" ".venv" "ENV" ".ENV"
+        "env.bak" ".env.bak" "venv.bak" ".venv.bak"
+        ".mypy_cache" "build" ".ccls-cache"))
+(setq projectile-globally-ignored-file-suffixes
+      '(".elc" ".pyc" ".o" ".coverage"
+        ".cache" ".ipynb_checkpoints"
+        ".egg" ".pyo" ".pyd" ".cover" ".egg-info"
+        "TAGS" "tags"))
+(setq projectile-globally-ignored-files
+      '(".DS_Store" "TAGS" "tags"))
 #+end_src
 
 И еще докинем исключения для списков ранее открытых файлов.
@@ -9157,9 +9186,10 @@ Opencode и других. Страница на GitHub:
 ** Macher. Работа с проектом через Gptel
 
 Macher - это агент для работы с много-файловыми проектами, подобно
-Aider, Pi или Claude, но нативный для Emacs. Контекстное окно Macher
-держит в org-буфере, дополняя его по мере необходимости. Заголовки в
-этом буфере - вопросы и задания. При необходимости что-то изменить в
+Aider, Pi или Claude, но нативный для Emacs. В качестве бекэнда для
+моделей Macher использует Gptel. Контекстное окно Macher держит в
+org-буфере, дополняя его по мере необходимости. Заголовки в этом
+буфере - вопросы и задания. При необходимости что-то изменить в
 проекте Macher создает diff-буфер, который можно применить командой
 diff-apply-buffer (с записью в файлах) или diff-apply-hunk (только в
 буфере).
@@ -9234,7 +9264,7 @@ diff-apply-buffer (с записью в файлах) или diff-apply-hunk (т
     (interactive)
     (if (= emacs-major-version 30)
         (let ((default-directory (my/macher-get-default-directory)))
-            (if (my/get-git-apply-region-result)
+            (if (zerop (my/get-git-apply-region-status))
                 (message "Patch applied successfully.")
                 (message "Patch failed. See *git-apply-errors* for details.")))
         (diff-apply-buffer)))
@@ -9245,12 +9275,11 @@ diff-apply-buffer (с записью в файлах) или diff-apply-hunk (т
         (vc-root-dir)
         default-directory))
 
-(defun my/get-git-apply-region-result ()
-    (zerop
-     (shell-command-on-region (point-min) (point-max)
-                              "git apply -"
-                              t nil
-                              "*git-apply-errors*")))
+(defun my/get-git-apply-region-status ()
+    (shell-command-on-region (point-min) (point-max)
+                             "git apply -"
+                             t nil
+                             "*git-apply-errors*"))
 #+end_src
 
 Горячие клавиши.
