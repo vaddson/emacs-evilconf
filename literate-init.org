@@ -9176,11 +9176,14 @@ Opencode и других. Страница на GitHub:
 (my/leader-def nil 'override
                "l a" '(:ignore t :which-key "agent-shell")
                "l a a" '(agent-shell :which-key "Select agent")
-               "l a o" '(agent-shell-opencode-start-agent
-                         :which-key "OpenCode")
                "l a d" '(agent-shell-anthropic-start-claude-code
                          :which-key "Claude-Code")
-               "l a u" '(agent-shell-cursor-start-agent))
+               "l a o" '(agent-shell-opencode-start-agent
+                         :which-key "OpenCode")
+               "l a p" '(agent-shell-pi-start-agent
+                         :which-key "Pi")
+               "l a u" '(agent-shell-cursor-start-agent
+                         :which-key "Cursor"))
 #+end_src
 
 ** Macher. Работа с проектом через Gptel
