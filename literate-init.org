@@ -9194,6 +9194,8 @@ Opencode и других. Страница на GitHub:
                          :which-key "Pi")
                "l a u" '(agent-shell-cursor-start-agent
                          :which-key "Cursor"))
+
+(define-key agent-shell-mode-map (kbd "M-RET") 'agent-shell-ui-toggle-fragment)
 #+end_src
 
 ** Macher. Работа с проектом через Gptel
