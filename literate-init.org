@@ -1495,6 +1495,18 @@ Find application name in my/application-name variable."
 
 ** Общие клавиши для редактирования текста
 
+Убираем неудобные сочетания клавиш:
+- закрытие окна по Ctrl+x, Ctrl+c,
+- удаление слова перед курсором по Ctrl+Backspace.
+- удаление слова по Ctrl+Del.
+
+#+begin_src emacs-lisp :tangle yes
+(unbind-key (kbd "C-x C-c"))
+(unbind-key (kbd "C-<backspace>"))
+(unbind-key (kbd "C-<delete>"))
+(unbind-key (kbd "C-DEL"))
+#+end_src
+
 Редакция или среда. Здесь задается вызов выравнивания текста по
 указанному шаблону.
 
@@ -1816,15 +1828,6 @@ from urllib.parse import quote, unquote
                "h c" #'helpful-command)
 (global-set-key (kbd "M-?") 'mark-paragraph)
 (global-set-key (kbd "M-h") 'backward-kill-word)
-#+end_src
-
-Убираем неудобные сочетания клавиш:
-- закрытие окна по Ctrl+x, Ctrl+c,
-- удаление слова перед курсором по Ctrl+Backspace.
-
-#+begin_src emacs-lisp :tangle yes
-(unbind-key (kbd "C-x C-c"))
-(unbind-key (kbd "<C-backspace>"))
 #+end_src
 
 ** Переключение раскладки клавиатуры
@@ -3972,6 +3975,7 @@ emacs-клиента.
     "p c" '(projectile-compile-project :which-key "Compile in project")
     "p R" '(projectile-run-project :which-key "Run project")
     "p T" '(projectile-test-project :which-key "Test project")
+    "p n" '(projectile-index-project-async :which-key "Indexate")
     "/" '(consult-ripgrep :which-key "Search project"))
 
 (defun my/switch-project-with-workspace-safe-title ()
@@ -4725,6 +4729,12 @@ text-mode, то он отменит перенос строк. :)
 #+end_src
 
 ** Поддержка org-календаря
+
+Начало рабочей недели с понедельника:
+
+#+begin_src emacs-lisp :tangle yes
+(setq calendar-week-start-day 1)
+#+end_src
 
 Определим клавиши навигации по org-календарю на привычные "hjkl".
 
@@ -11899,6 +11909,8 @@ dap-mode.
 Нужно установить утилиты:
 : sudo npm i -g typescript-language-server
 : sudo npm i -g typescript
+и для совместимости с отстающими ts-ls (2026-08-19):
+: sudo npm install -g typescript@5.7.3
 а также пакет =ts-ls= через lsp-install-server (сделано ниже).
 
 #+begin_src emacs-lisp :tangle yes
