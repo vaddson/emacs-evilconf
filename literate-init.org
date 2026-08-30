@@ -47,6 +47,7 @@
   - [[#звуковой-сигнал][Звуковой сигнал]]
   - [[#безопасность-сетевого-доступа][Безопасность сетевого доступа]]
   - [[#подтверждение-удаления-процессов-при-закрытии-редактора][Подтверждение удаления процессов при закрытии редактора]]
+  - [[#пользовательские-переменные-окружения-env-exec-path-from-shell][Пользовательские переменные окружения (env, exec-path-from-shell)]]
 - [[#evil-режим-редактирования][Evil. Режим редактирования]]
   - [[#установка-и-настройка][Установка и настройка]]
   - [[#general-назначение-клавиш-на-помощь-evil][General (назначение клавиш на помощь evil)]]
@@ -645,6 +646,21 @@ GigaChat) запущен постоянно, то выключим запрос 
 
 #+begin_src emacs-lisp :tangle yes
 (setq confirm-kill-processes nil)
+#+end_src
+
+** Пользовательские переменные окружения (env, exec-path-from-shell)
+
+Подтаскиваем пользовательское окружение из настроек типа ~/.bachrc.
+
+#+begin_src emacs-lisp :tangle yes
+(use-package exec-path-from-shell
+    :ensure t)
+
+(when (memq window-system '(mac ns x pgtk))
+    (exec-path-from-shell-initialize))
+
+(when (daemonp)
+    (exec-path-from-shell-initialize))
 #+end_src
 
 * Evil. Режим редактирования
@@ -3150,12 +3166,21 @@ stays on current"
 
 #+begin_src emacs-lisp :tangle yes
 (defun my/--make-buffer-suffix ()
-    (let* ((project-path (projectile-project-root))
+    (let* ((project-path (my/projectile-project-root))
            (persp-name (my/--get-current-persp-name))
            (name (if project-path
                      (concat "PROJ-" (my/make-project-name project-path))
                      persp-name)))
         name))
+
+(defun my/projectile-project-root ()
+    (when-let* ((project-path
+                 (expand-file-name (projectile-project-root)))
+                (home-path (expand-file-name "~")))
+        (if (string= (string-remove-suffix "/" project-path)
+                     (string-remove-suffix "/" home-path))
+            nil
+            project-path)))
 #+end_src
 
 Теперь сама функция. Она принимает на вход имя буфера и какой-либо
@@ -3990,7 +4015,8 @@ emacs-клиента.
 
 #+begin_src emacs-lisp :tangle yes
 (setq grep-find-ignored-directories
-      '("SCCS" "RCS" "CVS" "MCVS" ".src" ".svn" ".git" ".hg" ".bzr"
+      `(,(expand-file-name "~")
+        "SCCS" "RCS" "CVS" "MCVS" ".src" ".svn" ".git" ".hg" ".bzr"
         "_MTN" "_darcs" "{arch}"
         "__pycache__" "build" "develop-eggs"
         "dist" "dist_local" "eggs" ".eggs" "sdist" ".pytest_cache"
@@ -4000,7 +4026,8 @@ emacs-клиента.
 (setq grep-find-ignored-files
       (append grep-find-ignored-files '("TAGS" "tags")))
 (setq helm-grep-ignored-directories
-      '("SCCS/" "RCS/" "CVS/" "MCVS/" ".svn/" ".git/" ".hg/" ".bzr/"
+      `(,(expand-file-name "~")
+        "SCCS/" "RCS/" "CVS/" "MCVS/" ".svn/" ".git/" ".hg/" ".bzr/"
         "_MTN/" "_darcs/" "{arch}/" ".gvfs/"
         "__pycache__/" "build/" "develop-eggs/"
         "dist/" "dist_local/" "eggs/" ".eggs/" "sdist/" ".pytest_cache/"
@@ -4008,7 +4035,8 @@ emacs-клиента.
         "env.bak/" ".env.back/" "venv.bak/" ".venv.bak/"
         ".mypy_cache/" "build/" ".ccls-cache"))
 (setq projectile-globally-ignored-directories
-      '("~/.emacs.d/.local/" "~/.emacs.d/.local/" "~/.emacs.d/.local/"
+      `(,(expand-file-name "~")
+        "~/.emacs.d/.local/" "~/.emacs.d/.local/" "~/.emacs.d/.local/"
         ".idea" ".vscode" ".ensime_cache" ".eunit"
         ".git" ".hg" ".fslckout" "_FOSSIL_" ".bzr"
         "_darcs" ".tox" ".svn" ".stack-work"
@@ -6945,6 +6973,8 @@ treemacs при показе текущего файла в дереве про�
 (my/evil-define-key 'normal 'treemacs-mode-map
     ">" #'treemacs-increase-width
     "<" #'treemacs-decrease-width)
+
+(define-key treemacs-mode-map (kbd "C-c C-p u") 'treemacs-refresh)
 #+end_src
 
 Вызов меню для treemacs.
@@ -7971,6 +8001,7 @@ LLM). Один из таких инструментов - пакет Gptel. Он
 #+begin_src emacs-lisp :tangle yes
 (use-package gptel
     :ensure t
+    :pin "melpa-stable"
     :custom
     (gptel-default-mode 'org-mode))
 #+end_src
@@ -8340,12 +8371,12 @@ gptel-make-deepseek.
             (endpoint "/api/v1/chat/completions")
             (models '((GigaChat-2-Max
                        :capabilities (tool reasoning)
-                       :context-window 64
+                       :context-window 128
                        :input-cost 0.55
                        :output-cost 2.19)
                       (GigaChat-Max
                        :capabilities (tool reasoning)
-                       :context-window 64
+                       :context-window 128
                        :input-cost 0.55
                        :output-cost 2.19)
                       (GigaChat
@@ -9246,6 +9277,7 @@ diff-apply-buffer (с записью в файлах) или diff-apply-hunk (т
 #+begin_src emacs-lisp :tangle yes
 (use-package macher
     :ensure t
+    :pin "melpa-stable"
     :custom
     (macher-action-buffer-ui 'org)
     :config
