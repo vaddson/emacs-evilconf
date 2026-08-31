@@ -3166,21 +3166,12 @@ stays on current"
 
 #+begin_src emacs-lisp :tangle yes
 (defun my/--make-buffer-suffix ()
-    (let* ((project-path (my/projectile-project-root))
+    (let* ((project-path (projectile-project-root))
            (persp-name (my/--get-current-persp-name))
            (name (if project-path
                      (concat "PROJ-" (my/make-project-name project-path))
                      persp-name)))
         name))
-
-(defun my/projectile-project-root ()
-    (when-let* ((project-path
-                 (expand-file-name (projectile-project-root)))
-                (home-path (expand-file-name "~")))
-        (if (string= (string-remove-suffix "/" project-path)
-                     (string-remove-suffix "/" home-path))
-            nil
-            project-path)))
 #+end_src
 
 Теперь сама функция. Она принимает на вход имя буфера и какой-либо
@@ -3935,6 +3926,22 @@ emacs-клиента.
 (setq projectile-switch-project-action 'projectile-dired)
 #+end_src
 
+И еще один костыль. С некоторых пор Projectile стал определять
+домашнюю директорию, как проект, что очень неудобно. Отвадим его от
+такого.
+
+#+begin_src emacs-lisp :tangle yes
+(defun my/projectile-project-root (func &rest args)
+    (when-let* ((project-path (expand-file-name (apply func args)))
+                (home-path (expand-file-name "~")))
+        (if (string= (string-remove-suffix "/" project-path)
+                     (string-remove-suffix "/" home-path))
+            nil
+            project-path)))
+
+(advice-add #'projectile-project-root :around #'my/projectile-project-root)
+#+end_src
+
 ** Совместная работа проектов и рабочих пространств
 
 Для работы с проектом в отдельном Emacs-клиенте мне нужны следующие действия:
@@ -4015,8 +4022,7 @@ emacs-клиента.
 
 #+begin_src emacs-lisp :tangle yes
 (setq grep-find-ignored-directories
-      `(,(expand-file-name "~")
-        "SCCS" "RCS" "CVS" "MCVS" ".src" ".svn" ".git" ".hg" ".bzr"
+      '("SCCS" "RCS" "CVS" "MCVS" ".src" ".svn" ".git" ".hg" ".bzr"
         "_MTN" "_darcs" "{arch}"
         "__pycache__" "build" "develop-eggs"
         "dist" "dist_local" "eggs" ".eggs" "sdist" ".pytest_cache"
@@ -4026,8 +4032,7 @@ emacs-клиента.
 (setq grep-find-ignored-files
       (append grep-find-ignored-files '("TAGS" "tags")))
 (setq helm-grep-ignored-directories
-      `(,(expand-file-name "~")
-        "SCCS/" "RCS/" "CVS/" "MCVS/" ".svn/" ".git/" ".hg/" ".bzr/"
+      '("SCCS/" "RCS/" "CVS/" "MCVS/" ".svn/" ".git/" ".hg/" ".bzr/"
         "_MTN/" "_darcs/" "{arch}/" ".gvfs/"
         "__pycache__/" "build/" "develop-eggs/"
         "dist/" "dist_local/" "eggs/" ".eggs/" "sdist/" ".pytest_cache/"
@@ -4035,8 +4040,7 @@ emacs-клиента.
         "env.bak/" ".env.back/" "venv.bak/" ".venv.bak/"
         ".mypy_cache/" "build/" ".ccls-cache"))
 (setq projectile-globally-ignored-directories
-      `(,(expand-file-name "~")
-        "~/.emacs.d/.local/" "~/.emacs.d/.local/" "~/.emacs.d/.local/"
+      '("~/.emacs.d/.local/" "~/.emacs.d/.local/" "~/.emacs.d/.local/"
         ".idea" ".vscode" ".ensime_cache" ".eunit"
         ".git" ".hg" ".fslckout" "_FOSSIL_" ".bzr"
         "_darcs" ".tox" ".svn" ".stack-work"
