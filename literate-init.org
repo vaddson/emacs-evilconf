@@ -10140,6 +10140,8 @@ dumb-jump. Грепает регулярками по проекту и пока
 Устанавливаем пакеты для поддержки markdown.
 
 #+begin_src emacs-lisp :tangle yes
+(use-package markdown-mode
+    :ensure t)
 (use-package markdown-toc
 	:ensure t)
 #+end_src
@@ -10182,7 +10184,31 @@ sudo apt install retext
 
 (my/localleader-def nil 'markdown-mode-map
     "p" #'my/markdown-preview-file)
+#+end_src
 
+Минорный режим для подсветки markdown в других режимах. Пригождается в
+консольных режимах, когда много печати в стилистике markdown (например
+в eshell).
+
+#+begin_src emacs-lisp :tangle yes
+(define-minor-mode my/markdown-minor-mode
+    "Markdown highligthing in current buffer."
+    :lighter " MD"
+    (if my/markdown-minor-mode
+        (progn
+            (font-lock-add-keywords nil markdown-mode-font-lock-keywords)
+            (font-lock-flush))
+        (font-lock-remove-keywords nil markdown-mode-font-lock-keywords)
+        (font-lock-flush)))
+#+end_src
+
+Горячие клавиши, чтобы вызывать набрасывать markdown-подсветку на
+текущий буфер.
+
+#+begin_src emacs-lisp :tangle yes
+(my/leader-def nil 'override
+               "v" '(:ignore t :which-key "view and highlight")
+               "v m" '(my/markdown-minor-mode :which-key "Markdown minor mode"))
 #+end_src
 
 ** CSV и TSV
