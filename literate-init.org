@@ -236,6 +236,7 @@
 - [[#инструменты-свои][Инструменты свои]]
   - [[#словарик-под-stardict][Словарик под StarDict]]
   - [[#калькулятор-на-python][Калькулятор на Python]]
+  - [[#читалка-в-консоли-rag][Читалка в консоли (RAG)]]
 - [[#сценарии-для-emacsclient][Сценарии для emacsclient]]
   - [[#вызов-словарика][Вызов словарика]]
   - [[#список-закладок][Список закладок]]
@@ -1521,6 +1522,8 @@ Find application name in my/application-name variable."
 (unbind-key (kbd "C-<backspace>"))
 (unbind-key (kbd "C-<delete>"))
 (unbind-key (kbd "C-DEL"))
+(unbind-key (kbd "S-<delete>"))
+(unbind-key (kbd "S-DEL"))
 #+end_src
 
 Редакция или среда. Здесь задается вызов выравнивания текста по
@@ -2225,10 +2228,18 @@ prog-mode, поэтому делаем свою функцию проверки 
                "h v" '(describe-variable :which-key "Describe variable")
                "h p" '(describe-package :which-key "Describe package")
                "h o" '(describe-symbol :which-key "Describe symbol")
-               "h t" '(consult-theme :which-key "Load visual theme")
+               "h t" '(my/consult-theme :which-key "Load visual theme")
                "h a" '(counsel-apropos :which-key "Apropos")
                "h m" '(describe-mode :which-key "Describe mode")
                "h i" '(emacs-index-search :which-key "Emacs index search"))
+
+(defun my/consult-theme ()
+    "It's only a crutch."
+    (interactive)
+    (call-interactively 'consult-theme)
+    (set-face-attribute 'fringe nil
+                        :background (face-background 'default)
+                        :foreground (face-foreground 'default)))
 #+end_src
 
 ** Company. Автодополнения
@@ -7671,6 +7682,47 @@ python-калькулятор (и не только).
     "o c" '(my/calculator-python-toggle :which-key "Calculator live on Python"))
 #+end_src
 
+** Читалка в консоли (RAG)
+   :PROPERTIES:
+   :ID:       a95627b0-aa7b-40db-80a9-daf7c8975114
+   :CUSTOM_ID: a95627b0-aa7b-40db-80a9-daf7c8975114
+   :END:
+
+#+begin_src emacs-lisp :tangle yes
+(defcustom my/reader-ask-command
+  "head"
+  "Command for run reader like: reader file."
+  :type '(string))
+
+(defun my/reader-find-book ()
+    (interactive)
+    (my/reader--open-shell (my/reader--find-file))
+    (my/markdown-minor-mode))
+
+(defun my/reader--find-file ()
+    (expand-file-name
+     (read-file-name "Select index file (*.db): "
+                     nil nil t nil
+                     (lambda (name) (or (file-directory-p name)
+                                        (string-match-p "\\.db\\'" name))))))
+
+(defun my/reader--open-shell (index-file-name)
+    (when-let* ((buffer-name (format "BOOK-COMPANY: %s"
+                                     (file-name-base index-file-name)))
+                (buffer (pop-to-buffer buffer-name)))
+        (eshell-mode)
+        (goto-char (point-max))
+        (insert (concat my/reader-ask-command
+                        " "
+                        (eshell-quote-argument index-file-name)))
+        (eshell-queue-input)
+        (eshell-send-input)
+        ))
+
+(my/leader-def nil 'override
+               "o r" '(my/reader-find-book :which-key "Open book reader"))
+#+end_src
+
 * Сценарии для emacsclient
   :PROPERTIES:
   :ID:       cc0595b8-0628-4bd8-b398-ddfc80b95a01
@@ -9215,6 +9267,14 @@ Opencode и других. Страница на GitHub:
                       (evil-emacs-state)))))
 #+end_src
 
+Настроим, чтобы окно agent-shell появлялось в соседнем окне.
+По-умолчанию буфер агента появляется в текущем окне:
+: (display-buffer-same-window)
+
+#+begin_src emacs-lisp :tangle yes
+(setopt agent-shell-display-action '(display-buffer-in-previous-window))
+#+end_src
+
 Горячие клавиши.
 
 #+begin_src emacs-lisp :tangle yes
@@ -10197,9 +10257,11 @@ sudo apt install retext
     (if my/markdown-minor-mode
         (progn
             (font-lock-add-keywords nil markdown-mode-font-lock-keywords)
-            (font-lock-flush))
+            (font-lock-flush)
+            (toggle-word-wrap 1))
         (font-lock-remove-keywords nil markdown-mode-font-lock-keywords)
-        (font-lock-flush)))
+        (font-lock-flush)
+        (toggle-word-wrap nil)))
 #+end_src
 
 Горячие клавиши, чтобы вызывать набрасывать markdown-подсветку на
