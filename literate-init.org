@@ -2236,7 +2236,13 @@ prog-mode, поэтому делаем свою функцию проверки 
 (defun my/consult-theme ()
     "It's only a crutch."
     (interactive)
-    (call-interactively 'consult-theme)
+    (unwind-protect
+         (call-interactively 'consult-theme)
+        (my/correct-fringe-color)))
+
+(defun my/correct-fringe-color ()
+    "Correct fringe color."
+    (interactive)
     (set-face-attribute 'fringe nil
                         :background (face-background 'default)
                         :foreground (face-foreground 'default)))
