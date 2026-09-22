@@ -2245,7 +2245,8 @@ prog-mode, поэтому делаем свою функцию проверки 
     (interactive)
     (set-face-attribute 'fringe nil
                         :background (face-background 'default)
-                        :foreground (face-foreground 'default)))
+                        ;; :foreground (face-foreground 'default)
+                        ))
 #+end_src
 
 ** Company. Автодополнения
