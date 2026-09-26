@@ -1161,10 +1161,10 @@ Restart Emacs after changing it."
 установки шрифта сделаем выравнивание заголовков в org-mode буферах.
 
 #+begin_src emacs-lisp :tangle yes
-(defun my/correct-font-in-current-frame ()
+(defun my/correct-font-in-current-frame (&optional frame)
     (interactive)
     (my/ensure-fonts)
-    (my/select-frame-font-for-monitor nil
+    (my/select-frame-font-for-monitor frame
                                       my/global-font-dec
                                       my/global-font
                                       my/global-font-inc
@@ -2202,7 +2202,7 @@ prog-mode, поэтому делаем свою функцию проверки 
 (use-package consult
     :ensure t
     :config
-    (setq consult-preview-key 'any
+    (setq consult-preview-key nil  ;; default is t
           consult-narrow-key "<"))
 #+end_src
 
@@ -2308,18 +2308,25 @@ prog-mode, поэтому делаем свою функцию проверки 
 ** Prescient — сортировка и фильтрация по частоте использования
 
 =Prescient= запоминает наиболее часто используемые кандидаты и
-сортирует их по частоте использования.
+сортирует их по частоте использования. Ощутимо замедляет выпадашку для
+дополнений, поэтому отключим.
 
 #+begin_src emacs-lisp :tangle yes
 (use-package prescient
     :ensure t)
+;; (prescient-persist-mode 1)
+#+end_src
+
+=Orderless= позволяет не обращать внимания на порядок чанков при
+поиске. Это в большинстве случаев удобно.
+
+#+begin_src emacs-lisp :tangle yes
 (use-package orderless
     :ensure t
     :config
     ;; (setq completion-styles '(orderless basic))
     (setq completion-styles '(prescient basic))
     (setq completion-category-defaults nil))
-(prescient-persist-mode 1)
 #+end_src
 
 ** Дополнительные пакеты
@@ -2381,6 +2388,19 @@ Ctrl + jk.
 
 (define-key read-expression-map (kbd "C-j") #'next-line-or-history-element)
 (define-key read-expression-map (kbd "C-k") #'previous-line-or-history-element)
+
+(setq my/default-completion-maps (list completion-in-region-mode-map
+                                       completion-list-mode-map
+                                       minibuffer-local-completion-map
+                                       minibuffer-local-shell-command-map))
+
+(mapc (lambda (key-map)
+          (define-key key-map (kbd "C-k") #'minibuffer-previous-completion)
+          (define-key key-map (kbd "C-j") #'minibuffer-next-completion)
+          (define-key key-map (kbd "C-h") #'minibuffer-previous-column-completion)
+          (define-key key-map (kbd "C-l") #'minibuffer-next-column-completion)
+          (define-key key-map (kbd "RET") #'minibuffer-choose-completion))
+      my/default-completion-maps)
 #+end_src
 
 * Поиск и выделение
@@ -2609,6 +2629,25 @@ Imenu - дает не только удобный способ навигаци�
         (switch-to-buffer "*scratch*")
         (switch-to-buffer "*dashboard*")
         (delete-other-windows)))
+#+end_src
+
+** COMMENT Обработка изменения размеров фрейма
+
+#+begin_src emacs-lisp :tangle yes
+(defun my/frame-size-change-hook (frame)
+    (when (frame-size-changed-p frame)
+        (my/correct-font-in-current-frame frame)))
+
+;; (add-hook 'window-size-change-functions #'my/frame-size-change-hook)
+
+(defun my/display-monitors-change-hook (terminal)
+    (dolist (monitor (display-monitor-attributes-list terminal))
+        (dolist (frame (alist-get 'frames monitor))
+            (when (and (frame-live-p frame)
+                       (eq (frame-terminal frame) terminal))
+                (my/correct-font-in-frame frame)))))
+
+(add-hook 'display-monitors-changed-functions #'my/display-monitors-change-hook)
 #+end_src
 
 * Работа с окнами
