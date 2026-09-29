@@ -96,8 +96,9 @@
   - [[#подсказки-на-клавиши][Подсказки на клавиши]]
   - [[#consult--расширенные-команды-завершения][Consult — расширенные команды завершения]]
   - [[#company-автодополнения][Company. Автодополнения]]
-  - [[#marginalia--аннотации-кандидатов][Marginalia — аннотации кандидатов]]
-  - [[#prescient--сортировка-и-фильтрация-по-частоте-использования][Prescient — сортировка и фильтрация по частоте использования]]
+  - [[#marginalia---аннотации-кандидатов][Marginalia - аннотации кандидатов]]
+  - [[#prescient---сортировка-и-фильтрация-по-частоте-использования][Prescient - сортировка и фильтрация по частоте использования]]
+  - [[#orgerless---порядок-ввода-чанков-не-имеет-значения][Orgerless - порядок ввода чанков не имеет значения]]
   - [[#дополнительные-пакеты][Дополнительные пакеты]]
   - [[#embark--контекстное-меню-действий][Embark — контекстное меню действий]]
   - [[#клавиши-перемещения-по-минибуферу][Клавиши перемещения по минибуферу]]
@@ -1733,9 +1734,17 @@ follow-mode. Это удобно, когда буфер появляется в 
 Теперь покажем номера строк для текстовых и программных режимов.
 
 #+begin_src emacs-lisp :tangle yes
-(add-hook 'text-mode-hook (lambda () (my/display-line-numbers 1)))
-(add-hook 'prog-mode-hook (lambda () (my/display-line-numbers 1)))
-(add-hook 'org-mode-hook (lambda () (my/display-line-numbers 1)))
+;; (add-hook 'text-mode-hook (lambda () (my/display-line-numbers 1)))
+;; (add-hook 'prog-mode-hook (lambda () (my/display-line-numbers 1)))
+;; (add-hook 'org-mode-hook (lambda () (my/display-line-numbers 1)))
+
+(mapc (lambda (mode-hook)
+          (add-hook mode-hook
+                    (lambda () (my/display-line-numbers 1))))
+      '(text-mode-hook
+        prog-mode-hook
+        org-mode-hook
+        agent-shell-mode))
 #+end_src
 
 Горячие клавиши смены показа нумерации строк.
@@ -2293,7 +2302,7 @@ prog-mode, поэтому делаем свою функцию проверки 
                "e c" 'company-mode)
 #+end_src
 
-** Marginalia — аннотации кандидатов
+** Marginalia - аннотации кандидатов
 
 =Marginalia= добавляет аннотации (дополнительную информацию) к
 кандидатам в меню завершения. Заменяет =ivy-rich=.
@@ -2305,7 +2314,7 @@ prog-mode, поэтому делаем свою функцию проверки 
     (marginalia-mode))
 #+end_src
 
-** Prescient — сортировка и фильтрация по частоте использования
+** Prescient - сортировка и фильтрация по частоте использования
 
 =Prescient= запоминает наиболее часто используемые кандидаты и
 сортирует их по частоте использования. Ощутимо замедляет выпадашку для
@@ -2314,8 +2323,10 @@ prog-mode, поэтому делаем свою функцию проверки 
 #+begin_src emacs-lisp :tangle yes
 (use-package prescient
     :ensure t)
-;; (prescient-persist-mode 1)
+(prescient-persist-mode -1)
 #+end_src
+
+** Orgerless - порядок ввода чанков не имеет значения
 
 =Orderless= позволяет не обращать внимания на порядок чанков при
 поиске. Это в большинстве случаев удобно.
@@ -2324,8 +2335,9 @@ prog-mode, поэтому делаем свою функцию проверки 
 (use-package orderless
     :ensure t
     :config
-    ;; (setq completion-styles '(orderless basic))
-    (setq completion-styles '(prescient basic))
+    ;; (setq completion-styles '(basic))
+    ;; (setq completion-styles '(prescient basic))
+    (setq completion-styles '(orderless basic))
     (setq completion-category-defaults nil))
 #+end_src
 
@@ -4796,10 +4808,12 @@ Org-babel блок - это блок текста, заключенный в о�
 объединяет эти два вызова.
 
 #+begin_src emacs-lisp :tangle yes
-(defun my/set-word-wrap (&optional arg)
+(defun my/set-word-wrap (&optional arg markdown-like)
 	(interactive)
-	(toggle-word-wrap arg)
-	(toggle-truncate-lines arg))
+    (if markdown-like
+        (progn (toggle-word-wrap arg))
+        (progn (toggle-word-wrap arg)
+               (toggle-truncate-lines arg))))
 #+end_src
 
 Теперь добавим обработчик для режима org-mode. Но надо быть
@@ -10258,6 +10272,15 @@ dumb-jump. Грепает регулярками по проекту и пока
 # #+begin_src emacs-lisp :tangle yes
 # (add-hook 'markdown-mode-hook #'whitespace-mode)
 # #+end_src
+
+Перенос слов в markdown.
+
+#+begin_src emacs-lisp :tangle yes
+(add-hook 'markdown-mode-hook 'my/set-word-wrap-markdown)
+
+(defun my/set-word-wrap-markdown (&optional arg)
+    (my/set-word-wrap arg t))
+#+end_src
 
 Для markdown-файлов нужен просмотр. Сделаем его через утилиту
 =retext=. Утилита хороша тем, что в режиме просмотра тут же
