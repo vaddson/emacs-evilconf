@@ -2411,7 +2411,8 @@ Ctrl + jk.
           (define-key key-map (kbd "C-j") #'minibuffer-next-completion)
           (define-key key-map (kbd "C-h") #'minibuffer-previous-column-completion)
           (define-key key-map (kbd "C-l") #'minibuffer-next-column-completion)
-          (define-key key-map (kbd "RET") #'minibuffer-choose-completion))
+          ;; (define-key key-map (kbd "RET") #'minibuffer-choose-completion)
+          )
       my/default-completion-maps)
 #+end_src
 
