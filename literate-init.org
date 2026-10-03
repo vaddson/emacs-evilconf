@@ -1734,17 +1734,16 @@ follow-mode. Это удобно, когда буфер появляется в 
 Теперь покажем номера строк для текстовых и программных режимов.
 
 #+begin_src emacs-lisp :tangle yes
-;; (add-hook 'text-mode-hook (lambda () (my/display-line-numbers 1)))
-;; (add-hook 'prog-mode-hook (lambda () (my/display-line-numbers 1)))
-;; (add-hook 'org-mode-hook (lambda () (my/display-line-numbers 1)))
-
 (mapc (lambda (mode-hook)
           (add-hook mode-hook
                     (lambda () (my/display-line-numbers 1))))
       '(text-mode-hook
         prog-mode-hook
         org-mode-hook
-        agent-shell-mode))
+        conf-mode-hook
+        conf-toml-mode-hook
+        yaml-mode-hook
+        agent-shell-mode-hook))
 #+end_src
 
 Горячие клавиши смены показа нумерации строк.
@@ -7608,6 +7607,12 @@ StartDict - это утилита для работы со словарями. �
 (setenv "STARDICT_DATA_DIR" my/sdcv-path)
 (require 'sdcv)
 (setq sdcv-dictionary-data-dir my/sdcv-path)
+#+end_src
+
+Перенос строк в окошке словаря.
+
+#+begin_src emacs-lisp :tangle yes
+(add-hook 'sdcv-mode-hook 'my/set-word-wrap-markdown)
 #+end_src
 
 Горячие клавиши.
