@@ -9359,6 +9359,16 @@ Opencode и других. Страница на GitHub:
 (define-key agent-shell-mode-map (kbd "M-RET") 'agent-shell-ui-toggle-fragment)
 #+end_src
 
+Чтобы вкладки в evil-mode переключались привычными "g t", нужно
+перенести вызов agent-shell-open-transcript на другие клавиши.
+
+#+begin_src emacs-lisp :tangle yes
+(my/evil-define-key '(normal motion) 'agent-shell-mode-map
+                    "g t" nil)
+(my/evil-define-key '(normal motion) 'agent-shell-mode-map
+                    "g h" 'agent-shell-open-transcript)
+#+end_src
+
 ** Macher. Работа с проектом через Gptel
 
 Macher - это агент для работы с много-файловыми проектами, подобно
