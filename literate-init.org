@@ -9321,6 +9321,12 @@ Opencode и других. Страница на GitHub:
     :ensure t)
 #+end_src
 
+Отключим запрет на сон компьютера:
+
+#+begin_src emacs-lisp :tangle yes
+(setopt agent-shell-inhibit-system-sleep nil)
+#+end_src
+
 Настроим перевод строки в evil-mode, как это показано в инструкции.
 
 #+begin_src emacs-lisp :tangle yes
