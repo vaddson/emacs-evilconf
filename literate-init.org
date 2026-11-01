@@ -82,7 +82,6 @@
   - [[#более-привычная-раскладка-клавиш-для-evil-mode-ближе-к-vim-и-консоли][Более привычная раскладка клавиш для evil-mode (ближе к Vim и консоли)]]
   - [[#переключение-раскладки-клавиатуры][Переключение раскладки клавиатуры]]
   - [[#схлопывание-текста-yafolding][Схлопывание текста (yafolding)]]
-  - [[#подсветка-отступов-highlight-indent-guides][Подсветка отступов (highlight-indent-guides)]]
   - [[#подсветка-отступов-indent-bars][Подсветка отступов (indent-bars)]]
   - [[#проверка-орфографии][Проверка орфографии]]
   - [[#сниппеты-yasnippet][Сниппеты (Yasnippet)]]
@@ -134,6 +133,7 @@
   - [[#переключение-показа-по-центру-окна][Переключение показа по центру окна]]
   - [[#показ-буферов-разобранных-по-проектам][Показ буферов, разобранных по проектам]]
   - [[#scratch-буфер][Scratch буфер]]
+  - [[#режим-fundamental-в-произвольном-буфере][Режим Fundamental в произвольном буфере]]
 - [[#работа-с-файлами][Работа с файлами]]
   - [[#клавиши-для-работы-с-файлами][Клавиши для работы с файлами]]
   - [[#режим-ранее-открытых-файлов][Режим ранее открытых файлов]]
@@ -196,6 +196,7 @@
   - [[#показ-времени-выполнения-babel-блока][Показ времени выполнения babel-блока]]
   - [[#org-modern-красивое-представление-org][Org-modern. Красивое представление org]]
   - [[#слайды-и-презентации][Слайды и презентации]]
+  - [[#режим-org-в-произвольном-буфере][Режим Org в произвольном буфере]]
   - [[#новый-буфер-в-режиме-org-mode][Новый буфер в режиме org-mode]]
   - [[#работа-с-параграфом-в-отдельном-буфере-indirect-buffer][Работа с параграфом в отдельном буфере (indirect buffer)]]
   - [[#agenda][Agenda]]
@@ -289,6 +290,11 @@
   - [[#dumb-jump-решение-проблемы-перехода-по-сущностям][Dumb-jump. Решение проблемы перехода по сущностям]]
   - [[#logview][Logview]]
   - [[#markdown][Markdown]]
+    - [[#классический-markdown-mode][Классический markdown-mode]]
+    - [[#минорный-режим-для-подсветки-в-произвольном-major-mode][Минорный режим для подсветки в произвольном major-mode]]
+    - [[#режим-для-treesit-markdown-ts-mode][Режим для treesit markdown-ts-mode]]
+    - [[#предпросмотр][Предпросмотр]]
+  - [[#asciidoc][Asciidoc]]
   - [[#csv-и-tsv][CSV и TSV]]
   - [[#pdf][PDF]]
   - [[#yaml][Yaml]]
@@ -1924,7 +1930,7 @@ yafolding-toggle-element. Можно сочетать с выделением б
                "y f" #'yafolding-toggle-all)
 #+end_src
 
-** Подсветка отступов (highlight-indent-guides)
+** COMMENT Подсветка отступов (highlight-indent-guides)
 
 Можно подсветить верткальньной "чертой" отступы в тексте. Почти всегда
 это удобно. Подсвечивать можно или символом "|", что не всегда
@@ -1964,7 +1970,11 @@ prog-mode, поэтому делаем свою функцию проверки 
 #+begin_src emacs-lisp :tangle yes
 (use-package indent-bars
     :ensure t
-    :hook ((json-mode json-ts-mode)
+    :hook ((json-mode
+            json-ts-mode
+            prog-mode
+            yaml-mode
+            emacs-lisp-mode)
            . indent-bars-mode))
 #+end_src
 
@@ -3304,6 +3314,14 @@ scratch-буфера (на замену стандартному "*scratch*").
 (my/leader-def nil 'override
     "x" '(my/make-scratch-main :which-key "Scratch main")
     "p x" '(my/make-scratch-perspective :which-key "Scratch project"))
+#+end_src
+
+** Режим Fundamental в произвольном буфере
+
+#+begin_src emacs-lisp :tangle yes
+(my/leader-def nil 'override
+               "v" '(:ignore t :which-key "view and highlight")
+               "v f" '(fundamental-mode :which-key "Fundamental mode"))
 #+end_src
 
 * Работа с файлами
@@ -5551,6 +5569,15 @@ shows it in message and put the result into registers `\"' and `t'."
     (define-key org-tree-slide-mode-map (kbd "<f10>") 'org-tree-slide-move-next-tree))
 #+end_src
 
+** Режим Org в произвольном буфере
+
+Чтобы не набирать команду =org-mode= повесим ее на клавиши.
+
+#+begin_src emacs-lisp :tangle yes
+(my/leader-def nil 'override
+               "v o" '(org-mode :which-key "Org mode"))
+#+end_src
+
 ** Новый буфер в режиме org-mode
 
 Очень часто открываю новый буфер, после чего устанавливаюему режим
@@ -5975,13 +6002,20 @@ For example: 'or' logic instead of 'and' logic:
 Открываем узел сразу на весь фрейм и с окном ссылок.
 
 #+begin_src emacs-lisp :tangle yes
-(defun my/org-roam-node-find ()
+(defun my/org-roam-node-find (&optional initial-input)
     (interactive)
     (my/hack-dir-locals)
-    (org-roam-node-find (my/org-roam--same-window-p))
+    (org-roam-node-find (my/org-roam--same-window-p) initial-input)
     ;; (unless (get-buffer-window org-roam-buffer)
     ;;     (org-roam-buffer-toggle))
     )
+
+(defun my/org-roam-node-insert-person ()
+    (interactive)
+    (my/hack-dir-locals)
+    (when-let ((node (org-roam-node-read "@person ")))
+        (insert (org-link-make-string (concat "id:" (org-roam-node-id node))
+                                      (org-roam-node-title node)))))
 
 (defun my/org-roam-node-insert ()
     (interactive)
@@ -6025,6 +6059,7 @@ For example: 'or' logic instead of 'and' logic:
                "r q" 'org-roam-ql-search
                "r n" #'my/org-roam-show-vault-dir
                "r v" '(:ignore t :which-key "vault")
+               "r p" '(my/org-roam-node-insert-person :which-key "Find person")
                "r v i" '(my/org-roam-vault-init :which-key "Init vault in directory")
                "r v s" '(my/org-roam-register-vault-subdirectory
                            :which-key "Register subdirectory"))
@@ -10279,6 +10314,8 @@ dumb-jump. Грепает регулярками по проекту и пока
 
 ** Markdown
 
+*** Классический markdown-mode
+
 Устанавливаем пакеты для поддержки markdown.
 
 #+begin_src emacs-lisp :tangle yes
@@ -10287,13 +10324,6 @@ dumb-jump. Грепает регулярками по проекту и пока
 (use-package markdown-toc
 	:ensure t)
 #+end_src
-
-# Поскольку в markdown пробелы в конце строки имеют значение, то
-# визуализируем их.
-#
-# #+begin_src emacs-lisp :tangle yes
-# (add-hook 'markdown-mode-hook #'whitespace-mode)
-# #+end_src
 
 Перенос слов в markdown.
 
@@ -10304,38 +10334,7 @@ dumb-jump. Грепает регулярками по проекту и пока
     (my/set-word-wrap arg t))
 #+end_src
 
-Для markdown-файлов нужен просмотр. Сделаем его через утилиту
-=retext=. Утилита хороша тем, что в режиме просмотра тут же
-перерисовывает содержимое при изменениях в исходном файле. Это
-особенно удобно при работе в плиточных оконных менеджерах.
-
-Устанавливаем утилиту =retext= так:
-
-#+begin_example bash
-sudo apt install retext
-#+end_example
-
-Пишем код для предпросмотра markdown-файлов.
-
-#+begin_src emacs-lisp :tangle yes
-(defun my/markdown-preview-file ()
-    "Preview a markdown file by `retext' utilite."
-    (interactive)
-    (start-process "Markdown-Preview-by-Retext"
-                   "*markdown-retext-preview*"
-                   "retext" "--preview" (buffer-file-name)))
-                   ;; "retext" "--preview" (shell-quote-argument (buffer-file-name))))  ; Оставлено для памяти.
-#+end_src
-
-Вешаем предпросмотр на горячие клавиши.
-
-#+begin_src emacs-lisp :tangle yes
-;; (eval-after-load 'markdown-mode
-;; 	'(evil-define-key nil markdown-mode-map (my/kbd-localleader "p") #'my/markdown-preview-file))
-
-(my/localleader-def nil 'markdown-mode-map
-    "p" #'my/markdown-preview-file)
-#+end_src
+*** Минорный режим для подсветки в произвольном major-mode
 
 Минорный режим для подсветки markdown в других режимах. Пригождается в
 консольных режимах, когда много печати в стилистике markdown (например
@@ -10360,8 +10359,136 @@ sudo apt install retext
 
 #+begin_src emacs-lisp :tangle yes
 (my/leader-def nil 'override
-               "v" '(:ignore t :which-key "view and highlight")
-               "v m" '(my/markdown-minor-mode :which-key "Markdown minor mode"))
+               "v m" '(my/markdown-minor-mode :which-key "Markdown minor mode")
+               "v M" '(markdown-mode :which-key "Markdown mode"))
+#+end_src
+
+*** Режим для treesit markdown-ts-mode
+
+В emacs 31 для работы с markdown встроен режим markdown-ts-mode, надо
+лишь собрать соответствующие "сошки". Поскольку tree sitter - штука
+более продвинутая, воспользуемся им вместо стандартного markdown-mode.
+
+#+begin_src emacs-lisp :tangle yes
+(use-package markdown-ts-mode
+    :ensure nil
+    :if (>= emacs-major-version 31)
+    :mode (("\\.md\\'"       . markdown-ts-mode)
+           ("\\.markdown\\'" . markdown-ts-mode))
+    :custom
+    (markdown-ts-fontify-code-blocks-natively t)
+    (markdown-ts-default-folding nil)
+    (markdown-ts-enable-table-mode t)
+    (markdown-ts-table-auto-align t)
+    :config
+    (unless (and (treesit-language-available-p 'markdown)
+                 (treesit-language-available-p 'markdown-inline))
+        (markdown-ts-mode-install-parsers))
+    (add-to-list 'major-mode-remap-alist '(markdown-mode . markdown-ts-mode)))
+#+end_src
+
+Возвращаем цвета таблицам.
+
+#+begin_src emacs-lisp :tangle yes
+(add-hook 'markdown-ts-mode-hook 'my/markdown-minor-mode)
+#+end_src
+
+Возвращаем шрифты в блоки кода и таблицы.
+
+#+begin_src emacs-lisp :tangle yes
+(with-eval-after-load 'markdown-ts-mode
+    (set-face-attribute 'markdown-ts-code-block nil
+                        :family (face-attribute 'default :family))
+    (set-face-attribute 'markdown-ts-table nil
+                        :family (face-attribute 'default :family)))
+#+end_src
+
+Возвращаем поведение клавиши TAB в evil.
+
+#+begin_src emacs-lisp :tangle yes
+(my/evil-define-key '(normal visual motion) 'markdown-ts-mode-map
+                    "TAB" 'markdown-ts-outline-cycle)
+(my/evil-define-key 'insert 'markdown-ts-mode-map
+                    "TAB" 'indent-for-tab-command)
+#+end_src
+
+Показ картинок. Пока не нашел способа, чтобы срабатывало при загрузке
+файла (как в org-mode), поэтому пока для evil повесим на горячие
+клавиши переключение показа картинок.
+
+#+begin_src emacs-lisp :tangle yes
+(setopt markdown-ts-image-max-width 800)
+;; (setopt markdown-ts-inline-images t)
+
+(my/localleader-def nil 'markdown-ts-mode-map
+                    "i" 'markdown-ts-toggle-inline-images)
+#+end_src
+
+*** Предпросмотр
+
+Для markdown-файлов нужен просмотр. Сделаем его через утилиту
+=retext=. Утилита хороша тем, что в режиме просмотра тут же
+перерисовывает содержимое при изменениях в исходном файле. Это
+особенно удобно при работе в плиточных оконных менеджерах.
+
++Устанавливаем утилиту =retext= так:+
++: sudo pacman -S retext+
+
+Устанавливаем утилиту =marktext= так:
+: yay -S marktext-bin
+
+Пишем код для предпросмотра markdown-файлов.
+
+#+begin_src emacs-lisp :tangle yes
+;; ;; Retext
+;; (defun my/markdown-preview-file ()
+;;     "Preview a markdown file by `retext' utilite."
+;;     (interactive)
+;;     (start-process "Markdown-Preview-by-Retext"
+;;                    "*markdown-retext-preview*"
+;;                    "retext" "--preview" (buffer-file-name)))
+
+;; MarkText
+(defun my/markdown-preview-file ()
+    "Preview a markdown file by `retext' utilite."
+    (interactive)
+    (start-process "Markdown-Preview-by-MarkText"
+                   "*markdown-marktext-preview*"
+                   "marktext" "--read-only" (buffer-file-name)))
+#+end_src
+
+Вешаем предпросмотр на горячие клавиши.
+
+#+begin_src emacs-lisp :tangle yes
+(my/localleader-def nil 'markdown-mode-map
+                    "p" #'my/markdown-preview-file)
+(my/localleader-def nil 'markdown-ts-mode-map
+                    "p" #'my/markdown-preview-file)
+#+end_src
+
+** Asciidoc
+
+Вариант текста с разметкой, типа Org или Markdown, но под серьезную
+печать. Пусть будет на всякий случай.
+
+Для экспорта из asciidoc нужна утилита asciidoc (или asciidoc-pdf).
+
+#+begin_src emacs-lisp :tangle yes
+(use-package asciidoc-mode
+    :ensure t
+    :vc (:url "https://github.com/bbatsov/asciidoc-mode"
+              :rev :newest
+              :branch "main")
+    :mode "\\.adoc\\'"
+    :mode "\\.asciidoc\\'"
+    :hook
+    ;; (asciidoc-mode . flymake-mode)
+    (asciidoc-mode . flycheck-mode)
+    :custom
+    (asciidoc-fontify-code-blocks-natively t))
+
+(unless (treesit-language-available-p 'asciidoc)
+    (asciidoc-install-grammars))
 #+end_src
 
 ** CSV и TSV
