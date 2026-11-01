@@ -10360,7 +10360,13 @@ dumb-jump. Грепает регулярками по проекту и пока
 #+begin_src emacs-lisp :tangle yes
 (my/leader-def nil 'override
                "v m" '(my/markdown-minor-mode :which-key "Markdown minor mode")
-               "v M" '(markdown-mode :which-key "Markdown mode"))
+               "v M" '(my/markdown-mode :which-key "Markdown mode"))
+
+(defun my/markdown-mode ()
+    (interactive)
+    (if (fboundp 'markdown-ts-mode)
+        (markdown-ts-mode)
+        (markdown-mode)))
 #+end_src
 
 *** Режим для treesit markdown-ts-mode
