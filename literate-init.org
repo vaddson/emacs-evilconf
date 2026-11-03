@@ -10346,12 +10346,15 @@ dumb-jump. Грепает регулярками по проекту и пока
     :lighter " MD"
     (if my/markdown-minor-mode
         (progn
+            (setq-local my/save-word-wrap-value word-wrap)
             (font-lock-add-keywords nil markdown-mode-font-lock-keywords)
             (font-lock-flush)
             (toggle-word-wrap 1))
-        (font-lock-remove-keywords nil markdown-mode-font-lock-keywords)
-        (font-lock-flush)
-        (toggle-word-wrap nil)))
+        (progn
+            (font-lock-remove-keywords nil markdown-mode-font-lock-keywords)
+            (font-lock-flush)
+            (toggle-word-wrap (when (boundp my/save-word-wrap-value)
+                                  my/save-word-wrap-value)))))
 #+end_src
 
 Горячие клавиши, чтобы вызывать набрасывать markdown-подсветку на
@@ -10377,7 +10380,7 @@ dumb-jump. Грепает регулярками по проекту и пока
 
 #+begin_src emacs-lisp :tangle yes
 (use-package markdown-ts-mode
-    :ensure nil
+    :ensure t
     :if (>= emacs-major-version 31)
     :mode (("\\.md\\'"       . markdown-ts-mode)
            ("\\.markdown\\'" . markdown-ts-mode))
@@ -10393,10 +10396,19 @@ dumb-jump. Грепает регулярками по проекту и пока
     (add-to-list 'major-mode-remap-alist '(markdown-mode . markdown-ts-mode)))
 #+end_src
 
-Возвращаем цвета таблицам.
+Перенос слов в markdown.
 
 #+begin_src emacs-lisp :tangle yes
-(add-hook 'markdown-ts-mode-hook 'my/markdown-minor-mode)
+(add-hook 'markdown-ts-mode-hook 'my/set-word-wrap-markdown-ts)
+
+(defun my/set-word-wrap-markdown-ts (&optional arg)
+    (my/set-word-wrap arg t))
+#+end_src
+
+Чтобы вернуть цвета таблицам, нужно повесить следующий хук.
+
+#+begin_src emacs-lisp :tangle yes
+;; (add-hook 'markdown-ts-mode-hook 'my/markdown-minor-mode)
 #+end_src
 
 Возвращаем шрифты в блоки кода и таблицы.
