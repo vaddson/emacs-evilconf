@@ -10416,6 +10416,10 @@ dumb-jump. Грепает регулярками по проекту и пока
                     "TAB" 'markdown-ts-outline-cycle)
 (my/evil-define-key 'insert 'markdown-ts-mode-map
                     "TAB" 'indent-for-tab-command)
+(my/evil-define-key '(normal visual motion) 'markdown-ts-mode-map
+                    "S-TAB" 'outline-cycle-buffer)
+(my/evil-define-key '(normal visual motion) 'markdown-ts-mode-map
+                    "<backtab>" 'outline-cycle-buffer)
 #+end_src
 
 Показ картинок. Пока не нашел способа, чтобы срабатывало при загрузке
