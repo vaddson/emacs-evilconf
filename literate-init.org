@@ -9864,7 +9864,8 @@ Lsp-mode подсвечивает объекты, на которых наход
                "c l m" '(lsp-workspace-folders-remove :which-key "Remove workspace")
                "c l b" '(lsp-workspace-blocklist-remove :which-key "Blocklist remove")
                "c l w" '(lsp-workspace-restart :which-key "Restart workspace")
-               "c l h" '(my/eldoc-toggle-hover :which-key "Toggle eldoc hover"))
+               "c l h" '(my/eldoc-toggle-hover :which-key "Toggle eldoc hover")
+               "c l n" '(lsp-rename :which-key "Rename symbol and all references"))
 #+end_src
 
 ** Перезагрузка
@@ -12297,8 +12298,13 @@ dap-mode.
 (add-to-list 'interpreter-mode-alist '("node" . js2-jsx-mode))
 (add-to-list 'auto-mode-alist '("\\.tsx\\'" . typescript-mode))
 ;; (add-hook 'js-mode-hook 'js2-minor-mode)
-(add-hook 'js-mode-hook 'my/--lsp-except-json)
-(add-hook 'typescript-mode-hook 'my/--lsp-except-json)
+
+(mapc (lambda (hook)
+          (add-hook hook 'my/--lsp-except-json))
+      '(js-mode-hook
+        typescript-mode-hook
+        typescript-ts-mode-hook
+        tsx-ts-mode-hook))
 
 (defun my/--lsp-except-json ()
     (unless (member major-mode '(json-mode json-ts-mode))
@@ -12308,7 +12314,39 @@ dap-mode.
 Позаботимся о вычислении org-babel блоков.
 
 #+begin_src emacs-lisp :tangle yes
-(my/--register-org-babel 'js)
+(use-package ob-typescript
+    :ensure t
+    :config
+    (my/--register-org-babel 'typescript))
+#+end_src
+
+Альтернатива для поддержки typescript в org-babel через =deno=.
+Использует tree sitter, но настроить на выполнение кода пока
+не получилось.
+
+#+begin_src emacs-lisp :tangle yes
+(use-package ob-deno
+    :ensure t)
+
+(add-to-list 'org-babel-load-languages
+             '(deno . t))
+(org-babel-do-load-languages 'org-babel-load-languages
+                             org-babel-load-languages)
+(add-to-list 'org-src-lang-modes
+             '("deno" . typescript-ts))
+#+end_src
+
+Поддержка tree sitter.
+
+#+begin_src emacs-lisp :tangle yes
+(mapc (lambda (lang)
+          (my/treesit-install-language-grammar
+           lang
+           '("https://github.com/tree-sitter/tree-sitter-typescript" "release")))
+      '(typescript
+        tsx))
+
+(add-to-list 'major-mode-remap-alist '(typescript-mode . typescript-ts-mode))
 #+end_src
 
 ** Scala
